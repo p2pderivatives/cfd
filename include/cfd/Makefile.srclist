@@ -1,0 +1,26 @@
+# ./include/cfd/Makefile.inc
+
+CFD_ELEMENTS_PKGINCLUDE_FILES = \
+  cfd_elements_address.h \
+  cfd_elements_transaction.h \
+  cfdapi_elements_address.h \
+  cfdapi_elements_transaction.h \
+  cfdapi_elements_pegin.h
+
+CFD_PKGINCLUDE_FILES = \
+  cfd_common.h \
+  cfd_fee.h \
+  cfd_transaction_common.h \
+  cfd_transaction.h \
+  cfd_address.h \
+  cfdapi_transaction.h \
+  cfdapi_transaction_base.h \
+  cfdapi_address.h \
+  cfdapi_hdwallet.h \
+  cfdapi_key.h \
+  cfdapi_utility.h \
+  dlc_script.h \
+  dlcapi_transaction.h \
+  dlcapi_address.h \
+  $(CFD_ELEMENTS_PKGINCLUDE_FILES)
+
