@@ -2,7 +2,8 @@
 /**
  * @file cfdapi_elements_transaction.cpp
  *
- * @brief cfd-apiで利用するConfidential Transaction操作の実装ファイル
+ * @brief-eng implementation of Confidential Transaction that uses cfd-api
+ * @brief-jp cfd-apiで利用するConfidential Transaction操作の実装ファイル
  */
 #ifndef CFD_DISABLE_ELEMENTS
 #include <algorithm>

@@ -2,7 +2,8 @@
 /**
  * @file dlc_script.h
  *
- * @brief dlc向けScript生成Utilクラス実装
+ * @brief-eng implementation of the script generation util class for dlc
+ * @brief-jp dlc向けScript生成Utilクラス実装
  */
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"

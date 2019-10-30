@@ -2,7 +2,8 @@
 /**
  * @file dlcapi_address.cpp
  *
- * @brief dlc-apiで利用するAddress操作の実装ファイル
+ * @brief-eng implementation file for address operation that uses dlc-api
+ * @brief-jp dlc-apiで利用するAddress操作の実装ファイル
  */
 
 #include <limits>

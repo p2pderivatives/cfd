@@ -2,7 +2,8 @@
 /**
  * @file cfd_transaction.cpp
  *
- * @brief Transaction操作の関連クラスの実装ファイル
+ * @brief-eng implementation of classes related to transaction operation
+ * @brief-jp Transaction操作の関連クラスの実装ファイル
  */
 #include "cfd/cfd_transaction.h"
 
