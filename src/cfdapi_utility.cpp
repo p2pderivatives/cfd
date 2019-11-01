@@ -2,7 +2,8 @@
 /**
  * @file cfdapi_utility.cpp
  *
- * @brief cfd-apiで利用する共通系クラスの実装ファイル
+ * @brief-eng implementation file for common classes that uses cfd-api
+ * @brief-jp cfd-apiで利用する共通系クラスの実装ファイル
  */
 #include <string>
 #include <vector>

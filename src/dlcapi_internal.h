@@ -2,7 +2,8 @@
 /**
  * @file dlcapi_internal.h
  *
- * @brief dlc_apiの内部定義ヘッダ.
+ * @brief-eng header for internal definition of dlc_api
+ * @brief-jp dlc_apiの内部定義ヘッダ.
  */
 #ifndef CFD_SRC_DLCAPI_INTERNAL_H_
 #define CFD_SRC_DLCAPI_INTERNAL_H_
@@ -23,7 +24,8 @@ using cfd::core::logger::warn;
 using cfd::js::api::InnerErrorResponseStruct;
 
 /**
- * @brief CfdExceptionをInnerErrorResponseStructに変換する.
+ * @brief-eng converts CfdException to InnerErrorResponseStruct
+ * @brief-jp CfdExceptionをInnerErrorResponseStructに変換する.
  * @param cfde CfdException object
  * @return ErrorResponse object
  */

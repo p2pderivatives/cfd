@@ -2,7 +2,8 @@
 /**
  * @file cfdapi_internal.h
  *
- * @brief cfd_apiの内部定義ヘッダ.
+ * @brief-eng header for internal definition of cfd_api
+ * @brief-jp cfd_apiの内部定義ヘッダ.
  */
 #ifndef CFD_SRC_CFDAPI_INTERNAL_H_
 #define CFD_SRC_CFDAPI_INTERNAL_H_

@@ -2,7 +2,8 @@
 /**
  * @file dlcapi_transaction.cpp
  *
- * @brief dlc-apiで利用するTransaction操作の実装ファイル
+ * @brief-eng implementation file for transaction operation that uses dlc-api
+ * @brief-jp dlc-apiで利用するTransaction操作の実装ファイル
  */
 
 #include <limits>

@@ -2,7 +2,8 @@
 /**
  * @file cfdapi_transaction.cpp
  *
- * @brief cfd-apiで利用するTransaction作成の実装ファイル
+ * @brief-eng implementation file for transaction operation that uses cfd-api
+ * @brief-jp cfd-apiで利用するTransaction作成の実装ファイル
  */
 
 #include <algorithm>
