@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "cfd/cfd_common.h"
+#include "cfd/cfd_utxo.h"
 #include "cfdcore/cfdcore_amount.h"
 
 namespace cfd {
@@ -22,21 +23,62 @@ using cfd::core::Amount;
  */
 class CFD_EXPORT FeeCalculator {
  public:
-  /** @brief ベースレート(大き目) */
-  static constexpr uint32_t kBaseRate = 11000;
+  /**
+   * @brief 最小のfee
+   * @details bitcoin relay minimum fee rate.
+   * @see bitcoin: DEFAULT_INCREMENTAL_RELAY_FEE
+   */
+  static constexpr const int64_t kRelayMinimumFee = 1000;
+  /**
+   * @brief 最小のfee
+   * @details elements relay minimum fee rate.
+   */
+  static constexpr const int64_t kElementsRelayMinimumFee = 100;
 
   /**
    * @brief Feeを計算する.
    * @param[in] size    Transaction size
    * @param[in] vsize   Transaction virtual size
-   * @param[in] rate    rate (base = 1000)
+   * @param[in] rate    rate (default = relay minimum)
    * @return Fee Amount
    */
   static Amount CalculateFee(  // Fee計算
-      uint32_t size, uint32_t vsize, uint32_t rate = kBaseRate);
+      uint32_t size, uint32_t vsize, uint64_t rate = kRelayMinimumFee);
+
+  /**
+   * @brief constructor.
+   */
+  FeeCalculator();
+
+  /**
+   * @brief constructor.
+   * @param[in] baserate  baserate (bitcoin: 1.0)
+   */
+  explicit FeeCalculator(uint64_t baserate);
+
+  /**
+   * @brief Feeを計算する.
+   * @param[in] size    Transaction size
+   * @return Fee Amount
+   */
+  Amount GetFee(uint32_t size) const;
+
+  /**
+   * @brief Feeを計算する.
+   * @param[in] size    Transaction size
+   * @return Fee Amount
+   */
+  Amount GetFee(size_t size) const;
+
+  /**
+   * @brief Feeを計算する.
+   * @param[in] utxo    unused transaction output
+   * @return Fee Amount
+   */
+  Amount GetFee(const Utxo& utxo) const;
 
  private:
-  FeeCalculator();
+  uint32_t baserate_;  //!< ベースレート
 };
 
 }  // namespace cfd

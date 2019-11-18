@@ -105,6 +105,14 @@ const TxInReference TransactionController::AddTxIn(
   return transaction_.GetTxIn(index);
 }
 
+const TxInReference TransactionController::RemoveTxIn(
+    const Txid& txid, uint32_t vout) {
+  uint32_t index = transaction_.GetTxInIndex(txid, vout);
+  TxInReference ref = transaction_.GetTxIn(index);
+  transaction_.RemoveTxIn(index);
+  return ref;
+}
+
 const TxOutReference TransactionController::AddTxOut(
     const Script& locking_script, const Amount& value) {
   uint32_t index = transaction_.AddTxOut(value, locking_script);
@@ -117,6 +125,12 @@ const TxOutReference TransactionController::AddTxOut(
   Script locking_script = address.GetLockingScript();
   uint32_t index = transaction_.AddTxOut(value, locking_script);
   return transaction_.GetTxOut(index);
+}
+
+const TxOutReference TransactionController::RemoveTxOut(uint32_t index) {
+  TxOutReference ref = transaction_.GetTxOut(index);
+  transaction_.RemoveTxOut(index);
+  return ref;
 }
 
 void TransactionController::SetUnlockingScript(
@@ -227,6 +241,15 @@ void TransactionController::RemoveWitnessStackAll(  // linefeed
 
 const Transaction& TransactionController::GetTransaction() const {
   return transaction_;
+}
+
+uint32_t TransactionController::GetSizeIgnoreTxIn() const {
+  uint32_t result = AbstractTransaction::kTransactionMinimumSize;
+  std::vector<TxOutReference> txouts = transaction_.GetTxOutList();
+  for (const auto& txout : txouts) {
+    result += txout.GetSerializeSize();
+  }
+  return result;
 }
 
 const TxInReference TransactionController::GetTxIn(
