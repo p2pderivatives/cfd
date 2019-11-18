@@ -132,6 +132,14 @@ class CFD_EXPORT TransactionController
   const TxInReference GetTxIn(const Txid& txid, uint32_t vout) const;
 
   /**
+   * @brief TxInを削除する.
+   * @param[in] txid 取得するTxInのTxId
+   * @param[in] vout 取得するTxInのvout
+   * @return 削除したTxInのTxInReferenceインスタンス
+   */
+  const TxInReference RemoveTxIn(const Txid& txid, uint32_t vout);
+
+  /**
    * @brief TxOutを追加する.
    * @param[in] address  送金先アドレス
    * @param[in] value  送金額
@@ -146,6 +154,12 @@ class CFD_EXPORT TransactionController
    */
   const TxOutReference AddTxOut(
       const Script& locking_script, const Amount& value);
+  /**
+   * @brief TxOutを削除する.
+   * @param[in] index 削除対象のindex
+   * @return 削除したTxOutのTxOutReferenceインスタンス
+   */
+  const TxOutReference RemoveTxOut(uint32_t index);
 
   /**
    * @brief TxInにUnlocking Scriptを設定する.
@@ -262,6 +276,12 @@ class CFD_EXPORT TransactionController
    * @return Transactionインスタンス
    */
   const Transaction& GetTransaction() const;
+
+  /**
+   * @brief TxInを除外したサイズを取得する。
+   * @return TxInを除外したTxサイズ(Serialize)
+   */
+  uint32_t GetSizeIgnoreTxIn() const;
 
   /**
    * @brief 指定されたP2PKH形式のTxInのSignatureHashを計算する.

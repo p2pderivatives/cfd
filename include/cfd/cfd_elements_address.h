@@ -9,6 +9,8 @@
 #ifndef CFD_DISABLE_ELEMENTS
 
 #include <string>
+#include <vector>
+
 #include "cfd/cfd_common.h"
 
 #include "cfd/cfd_address.h"
@@ -20,6 +22,8 @@
 namespace cfd {
 
 using cfd::core::Address;
+using cfd::core::AddressFormatData;
+using cfd::core::AddressType;
 using cfd::core::ConfidentialKey;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::ElementsNetType;
@@ -47,9 +51,27 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
   /**
    * @brief コンストラクタ.
    * @param[in] type      network type
+   * @param[in] prefix_list   address prefix list
+   */
+  explicit ElementsAddressFactory(
+      NetType type, const std::vector<AddressFormatData>& prefix_list);
+
+  /**
+   * @brief コンストラクタ.
+   * @param[in] type      network type
    * @param[in] wit_ver   witness version
    */
   explicit ElementsAddressFactory(NetType type, WitnessVersion wit_ver);
+
+  /**
+   * @brief コンストラクタ.
+   * @param[in] type      network type
+   * @param[in] wit_ver   witness version
+   * @param[in] prefix_list   address prefix list
+   */
+  explicit ElementsAddressFactory(
+      NetType type, WitnessVersion wit_ver,
+      const std::vector<AddressFormatData>& prefix_list);
 
   /**
    * @brief デストラクタ.
@@ -60,7 +82,7 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
 
   /**
    * @brief UnblindedAddressをconfidential
-   * keyでブラインドしたConfidentialAddressを取得する.
+   *     keyでブラインドしたConfidentialAddressを取得する.
    * @param[in] unblinded_address Addressインスタンス
    * @param[in] confidential_key  ConfidentialKeyインスタンス(ec public key)
    * @return BlindされたElementsConfidentialAddressインスタンス
@@ -70,34 +92,51 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
       const ConfidentialKey& confidential_key);
 
   /**
+   * @brief ConfidentialAddressを取得する.
+   * @param[in] address Address文字列
+   * @return BlindされたElementsConfidentialAddressインスタンス
+   */
+  ElementsConfidentialAddress GetConfidentialAddress(
+      const std::string& address) const;
+
+  /**
    * @brief fedpegscriptとpubkeyから、net_typeに応じたmainchain用のpeg-in
-   * addressを作成する
+   *     addressを作成する
+   * @param[in] address_type          for future use
+   *     (currently fixed with p2sh-p2wpkh)
    * @param[in] pubkey 公開鍵
    * @param[in] fedpegscript elementsのfedpegscript
    * @return mainchain用peg-in address
    */
   Address CreatePegInAddress(
-      const Pubkey& pubkey, const Script& fedpegscript) const;
+      AddressType address_type, const Pubkey& pubkey,
+      const Script& fedpegscript) const;
 
   /**
    * @brief fedpegscriptとclaim_scriptから、net_typeに応じたmainchain用のpeg-in
-   * addressを作成する
+   *     addressを作成する
+   * @param[in] address_type          for future use
+   *     (currently fixed with p2sh-p2wpkh)
    * @param[in] claim_script sidechainでの資産引取りに必要なclaim script
    * @param[in] fedpegscript elementsのfedpegscript
    * @return mainchain用peg-in address
    */
   Address CreatePegInAddress(
-      const Script& claim_script, const Script& fedpegscript) const;
+      AddressType address_type, const Script& claim_script,
+      const Script& fedpegscript) const;
 
   /**
    * @brief tweakが足されたfedpegscriptから、net_typeに応じたmainchain用のpeg-in
-   * addressを作成する
+   *     addressを作成する
+   * @param[in] address_type          for future use
+   *     (currently fixed with p2sh-p2wpkh)
    * @param[in] tweak_fedpegscript
-   * fedpegscript内部のpubkeyをtweakと合成させたscript. (ref:
-   * cfd::core::ContractHashUtil)
+   *     fedpegscript内部のpubkeyをtweakと合成させたscript.
+   *     (ref: cfd::core::ContractHashUtil)
    * @return mainchain用peg-in address
    */
-  Address CreatePegInAddress(const Script& tweak_fedpegscript) const;
+  Address CreatePegInAddress(
+      AddressType address_type, const Script& tweak_fedpegscript) const;
 };
 
 }  // namespace cfd
