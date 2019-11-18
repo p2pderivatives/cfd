@@ -7,69 +7,50 @@
 #include <string>
 
 #include "cfd/cfdapi_address.h"
-#include "cfdcore/cfdcore_bytedata.h"
-#include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
-#include "cfdcore/cfdcore_transaction_common.h"
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfdapi_key.h"
+#include "cfdapi_internal.h"  // NOLINT
 
 namespace cfd {
+namespace js {
 namespace api {
 
-using cfd::core::ByteData;
-using cfd::core::CfdError;
-using cfd::core::CfdException;
 using cfd::core::NetType;
 using cfd::core::Privkey;
+using cfd::core::Pubkey;
+using cfd::js::api::AddressStructApi;
 
-Privkey KeyApi::CreateKeyPair(
-    bool is_compressed, Pubkey* pubkey, std::string* wif, NetType net_type) {
-  // generate random private key
-  Privkey privkey = Privkey::GenerageRandomKey();
+CreateKeyPairResponseStruct KeyStructApi::CreateKeyPair(
+    const CreateKeyPairRequestStruct& request) {
+  auto call_func = [](const CreateKeyPairRequestStruct& request)
+      -> CreateKeyPairResponseStruct {  // NOLINT
+    CreateKeyPairResponseStruct response;
 
-  // derive pubkey from private key
-  const Pubkey out_pubkey = privkey.GeneratePubkey(is_compressed);
+    // generate random private key
+    Privkey privkey = Privkey::GenerageRandomKey();
 
-  if (pubkey != nullptr) {
-    *pubkey = out_pubkey;
-  }
+    // derive pubkey from private key
+    bool is_compressed = request.is_compressed;
+    const Pubkey pubkey = privkey.GeneratePubkey(is_compressed);
 
-  if (wif != nullptr) {
-    *wif = privkey.ConvertWif(net_type, is_compressed);
-  }
-  return privkey;
-}
+    // convert parameters to response struct
+    const bool is_wif = request.wif;
+    const NetType net_type = AddressStructApi::ConvertNetType(request.network);
+    response.privkey = is_wif ? privkey.ConvertWif(net_type, is_compressed)
+                              : privkey.GetHex();  // NOLINT
+    response.pubkey = pubkey.GetHex();
+    return response;
+  };
 
-std::string KeyApi::GetPubkeyFromPrivkey(
-    const std::string& privkey, bool is_compressed) const {
-  static const std::string kWifError = "Error WIF to Private key.";
-  Privkey key;
-
-  try {
-    key = Privkey::FromWif(privkey, NetType::kMainnet, is_compressed);
-  } catch (const CfdException& except1) {
-    std::string errmsg(except1.what());
-    if (errmsg.find(kWifError) == std::string::npos) {
-      throw except1;
-    }
-  }
-  if (key.IsInvalid()) {
-    try {
-      key = Privkey::FromWif(privkey, NetType::kTestnet, is_compressed);
-    } catch (const CfdException& except2) {
-      std::string errmsg(except2.what());
-      if (errmsg.find(kWifError) == std::string::npos) {
-        throw except2;
-      }
-    }
-  }
-  if (key.IsInvalid()) {
-    key = Privkey(ByteData(privkey));
-  }
-  return key.GeneratePubkey(is_compressed).GetHex();
+  CreateKeyPairResponseStruct result;
+  result = ExecuteStructApi<
+      CreateKeyPairRequestStruct, CreateKeyPairResponseStruct>(
+      request, call_func, std::string(__FUNCTION__));
+  return result;
 }
 
 }  // namespace api
+}  // namespace js
 }  // namespace cfd

@@ -1,0 +1,21 @@
+{
+	"namespace": ["dlc","js","api","json"],
+	"request": {
+		":class": "CreateCETxAddressRequest",
+		"network": "mainnet",
+		"combineKeys": {
+			":class": "CombineKeysRequest",
+			"pubkey": "",
+			"commitmentKey": ""
+		},
+		"counterPartyPubkey": "",
+		"delay": 0,
+		"delay:type": "int64_t"
+	},
+	"response": {
+		":class": "CreateCETxAddressResponse",
+		"address": "",
+		"redeemScript": "",
+		"combinedPubkey": ""
+	}
+}

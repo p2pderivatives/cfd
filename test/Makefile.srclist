@@ -1,11 +1,7 @@
 TEST_CFD_SOURCES= \
-    test_cfd_abstracttx_controller.cpp \
     test_cfd_address.cpp \
-    test_cfd_elements_address.cpp \
     test_cfd_fee.cpp \
-    test_cfd_signparameter.cpp \
-    test_cfd_confidentialtx_controller.cpp \
-    test_cfd_coin_selection.cpp
+    test_cfd_confidentialtx_controller.cpp
 
 TEST_CFD_STATIC_SOURCES= 
 

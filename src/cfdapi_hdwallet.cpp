@@ -14,6 +14,104 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfdapi_hdwallet.h"
+#include "cfdapi_internal.h"  // NOLINT
+
+//////////////////////////////////
+/// HDWalletStructApi
+//////////////////////////////////
+namespace cfd {
+namespace js {
+namespace api {
+
+using cfd::api::HDWalletApi;
+using cfd::core::ByteData;
+
+GetMnemonicWordlistResponseStruct HDWalletStructApi::GetMnemonicWordlist(
+    const GetMnemonicWordlistRequestStruct& request) {
+  auto call_func = [](const GetMnemonicWordlistRequestStruct& request)
+      -> GetMnemonicWordlistResponseStruct {
+    GetMnemonicWordlistResponseStruct response;
+    // check language is support
+    std::string language = request.language;
+
+    // get bip39 wordlist
+    std::vector<std::string> wordlist =
+        HDWalletApi::GetMnemonicWordlist(language);
+
+    response.wordlist = wordlist;
+    return response;
+  };
+
+  GetMnemonicWordlistResponseStruct result;
+  result = ExecuteStructApi<
+      GetMnemonicWordlistRequestStruct, GetMnemonicWordlistResponseStruct>(
+      request, call_func, std::string(__FUNCTION__));
+  return result;
+}
+
+ConvertMnemonicToSeedResponseStruct HDWalletStructApi::ConvertMnemonicToSeed(
+    const ConvertMnemonicToSeedRequestStruct& request) {
+  auto call_func = [](const ConvertMnemonicToSeedRequestStruct& request)
+      -> ConvertMnemonicToSeedResponseStruct {
+    ConvertMnemonicToSeedResponseStruct response;
+    // check language is support
+    std::vector<std::string> mnemonic = request.mnemonic;
+    std::string passphrase = request.passphrase;
+    bool strict_check = request.strict_check;
+    std::string language = request.language;
+    bool use_ideographic_space =
+        ((language == "jp") && request.use_ideographic_space);
+    ByteData entropy;
+
+    // get bip39 wordlist
+    ByteData seed = HDWalletApi::ConvertMnemonicToSeed(
+        mnemonic, passphrase, strict_check, language, use_ideographic_space,
+        &entropy);
+    if (entropy.Empty()) {
+      response.ignore_items.insert("entropy");
+    } else {
+      response.entropy = entropy.GetHex();
+    }
+
+    response.seed = seed.GetHex();
+    return response;
+  };
+
+  ConvertMnemonicToSeedResponseStruct result;
+  result = ExecuteStructApi<
+      ConvertMnemonicToSeedRequestStruct, ConvertMnemonicToSeedResponseStruct>(
+      request, call_func, std::string(__FUNCTION__));
+  return result;
+}
+
+ConvertEntropyToMnemonicResponseStruct
+HDWalletStructApi::ConvertEntropyToMnemonic(
+    const ConvertEntropyToMnemonicRequestStruct& request) {
+  auto call_func = [](const ConvertEntropyToMnemonicRequestStruct& request)
+      -> ConvertEntropyToMnemonicResponseStruct {
+    ConvertEntropyToMnemonicResponseStruct response;
+    ByteData entropy(request.entropy);
+    std::string language = request.language;
+
+    // entropy to mnemonic
+    std::vector<std::string> mnemonic =
+        HDWalletApi::ConvertEntropyToMnemonic(entropy, language);
+
+    response.mnemonic = mnemonic;
+    return response;
+  };
+
+  ConvertEntropyToMnemonicResponseStruct result;
+  result = ExecuteStructApi<
+      ConvertEntropyToMnemonicRequestStruct,
+      ConvertEntropyToMnemonicResponseStruct>(
+      request, call_func, std::string(__FUNCTION__));
+  return result;
+}
+
+}  // namespace api
+}  // namespace js
+}  // namespace cfd
 
 //////////////////////////////////
 /// HDWalletApi
@@ -24,20 +122,11 @@ namespace api {
 using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
-using cfd::core::ExtPrivkey;
-using cfd::core::ExtPubkey;
 using cfd::core::HDWallet;
-using cfd::core::Privkey;
-using cfd::core::Pubkey;
 using cfd::core::logger::warn;
 
-/// base58 error message
-static constexpr const char* kBase58Error = " base58 decode error.";
-/// key type error message
-static constexpr const char* kKeyTypeError = " keytype error.";
-
 std::vector<std::string> HDWalletApi::GetMnemonicWordlist(
-    const std::string& language) const {
+    const std::string& language) {
   try {
     return HDWallet::GetMnemonicWordlist(language);
   } catch (CfdException& e) {
@@ -53,7 +142,7 @@ std::vector<std::string> HDWalletApi::GetMnemonicWordlist(
 ByteData HDWalletApi::ConvertMnemonicToSeed(
     const std::vector<std::string>& mnemonic, const std::string& passphrase,
     bool strict_check, const std::string& language, bool use_ideographic_space,
-    ByteData* entropy) const {
+    ByteData* entropy) {
   if (strict_check) {
     if (language.empty()) {
       warn(
@@ -96,7 +185,7 @@ ByteData HDWalletApi::ConvertMnemonicToSeed(
 }
 
 std::vector<std::string> HDWalletApi::ConvertEntropyToMnemonic(
-    const ByteData& entropy, const std::string& language) const {
+    const ByteData& entropy, const std::string& language) {
   try {
     // calculate seed
     std::vector<std::string> mnemonic =
@@ -111,200 +200,6 @@ std::vector<std::string> HDWalletApi::ConvertEntropyToMnemonic(
         CfdError::kCfdIllegalArgumentError,
         "Failed to ConvertEntropyToMnemonic. " + std::string(e.what()));
   }
-}
-
-std::string HDWalletApi::CreateExtkeyFromSeed(
-    const ByteData& seed, NetType net_type, ExtKeyType output_key_type) const {
-  ExtPrivkey privkey(seed, net_type);
-  if (output_key_type == ExtKeyType::kExtPrivkey) {
-    return privkey.ToString();
-  } else {
-    return privkey.GetExtPubkey().ToString();
-  }
-}
-
-std::string HDWalletApi::CreateExtkeyFromParent(
-    const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
-    uint32_t child_number, bool hardened) const {
-  uint32_t child_num = child_number;
-  if (hardened) {
-    child_num |= ExtPrivkey::kHardenedKey;
-  }
-  std::vector<uint32_t> path = {child_num};
-  return CreateExtkeyFromParentPath(extkey, net_type, output_key_type, path);
-}
-
-std::string HDWalletApi::CreateExtkeyFromParentPath(
-    const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
-    const std::vector<uint32_t>& child_number_list) const {
-  std::string result;
-  uint32_t check_version;
-  uint32_t version;
-
-  if (child_number_list.empty()) {
-    warn(CFD_LOG_SOURCE, "child_number_list empty.");
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "child_number_list empty.");
-  }
-
-  ExtPrivkey privkey;
-  ExtPubkey pubkey;
-  try {
-    privkey = ExtPrivkey(extkey);
-  } catch (const CfdException& except) {
-    std::string errmsg(except.what());
-    if ((errmsg.find(kBase58Error) == std::string::npos) &&
-        (errmsg.find(kKeyTypeError) == std::string::npos)) {
-      throw except;
-    }
-  }
-
-  if (privkey.IsValid()) {
-    if (output_key_type == ExtKeyType::kExtPrivkey) {
-      result = privkey.DerivePrivkey(child_number_list).ToString();
-    } else {
-      result = privkey.DerivePubkey(child_number_list).ToString();
-    }
-    version = privkey.GetVersion();
-    check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
-
-  } else {
-    try {
-      pubkey = ExtPubkey(extkey);
-    } catch (const CfdException& pub_except) {
-      std::string errmsg(pub_except.what());
-      if (errmsg.find(kBase58Error) != std::string::npos) {
-        warn(CFD_LOG_SOURCE, "Illegal extkey. base58 decode error.");
-        throw CfdException(
-            CfdError::kCfdIllegalArgumentError,
-            "Illegal extkey. base58 decode error.");
-      }
-      throw pub_except;
-    }
-
-    if (output_key_type == ExtKeyType::kExtPrivkey) {
-      warn(
-          CFD_LOG_SOURCE,
-          "Illegal output_key_type. Cannot create privkey from pubkey.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Illegal output_key_type. Cannot create privkey from pubkey.");
-    }
-    for (const uint32_t child_num : child_number_list) {
-      // libwallyでもエラー検知されるが、エラーを把握しやすくするため確認
-      if ((child_num & ExtPrivkey::kHardenedKey) != 0) {
-        warn(
-            CFD_LOG_SOURCE, "Illegal child_number. Hardened is privkey only.");
-        throw CfdException(
-            CfdError::kCfdIllegalArgumentError,
-            "Illegal child_number. Hardened is privkey only.");
-      }
-    }
-    result = pubkey.DerivePubkey(child_number_list).ToString();
-    version = pubkey.GetVersion();
-    check_version = GetExtkeyVersion(ExtKeyType::kExtPubkey, net_type);
-  }
-
-  if (version != check_version) {
-    warn(CFD_LOG_SOURCE, "Version unmatch. key version: {}", version);
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "extkey networkType unmatch.");
-  }
-  return result;
-}
-
-std::string HDWalletApi::CreateExtPubkey(
-    const std::string& extkey, NetType net_type) const {
-  ExtPrivkey privkey(extkey);
-  uint32_t check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
-  if (privkey.GetVersion() != check_version) {
-    warn(
-        CFD_LOG_SOURCE, "Version unmatch. key version: {}",
-        privkey.GetVersion());
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "extkey networkType unmatch.");
-  }
-  return privkey.GetExtPubkey().ToString();
-}
-
-std::string HDWalletApi::GetPrivkeyFromExtkey(
-    const std::string& extkey, NetType net_type, bool wif,
-    bool is_compressed) const {
-  ExtPrivkey ext_privkey(extkey);
-  uint32_t check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
-  if (ext_privkey.GetVersion() != check_version) {
-    warn(
-        CFD_LOG_SOURCE, "Version unmatch. key version: {}",
-        ext_privkey.GetVersion());
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "extkey networkType unmatch.");
-  }
-
-  Privkey privkey = ext_privkey.GetPrivkey();
-  if (wif) {
-    return privkey.ConvertWif(net_type, is_compressed);
-  } else {
-    return privkey.GetHex();
-  }
-}
-
-std::string HDWalletApi::GetPubkeyFromExtkey(
-    const std::string& extkey, NetType net_type) const {
-  std::string result;
-  ExtPrivkey ext_privkey;
-  ExtPubkey ext_pubkey;
-
-  try {
-    ext_privkey = ExtPrivkey(extkey);
-  } catch (const CfdException& except) {
-    std::string errmsg(except.what());
-    if ((errmsg.find(kBase58Error) == std::string::npos) &&
-        (errmsg.find(kKeyTypeError) == std::string::npos)) {
-      throw except;
-    }
-  }
-
-  if (ext_privkey.IsValid()) {
-    ext_pubkey = ext_privkey.GetExtPubkey();
-  } else {
-    try {
-      ext_pubkey = ExtPubkey(extkey);
-    } catch (const CfdException& pub_except) {
-      std::string errmsg(pub_except.what());
-      if (errmsg.find(kBase58Error) != std::string::npos) {
-        warn(CFD_LOG_SOURCE, "Illegal extkey. base58 decode error.");
-        throw CfdException(
-            CfdError::kCfdIllegalArgumentError,
-            "Illegal extkey. base58 decode error.");
-      }
-      throw pub_except;
-    }
-  }
-
-  uint32_t version = ext_pubkey.GetVersion();
-  uint32_t check_version = GetExtkeyVersion(ExtKeyType::kExtPubkey, net_type);
-  if (version != check_version) {
-    warn(CFD_LOG_SOURCE, "Version unmatch. key version: {}", version);
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "extkey networkType unmatch.");
-  }
-  return ext_pubkey.GetPubkey().GetHex();
-}
-
-uint32_t HDWalletApi::GetExtkeyVersion(ExtKeyType key_type, NetType net_type) {
-  uint32_t version;
-  if (key_type == ExtKeyType::kExtPrivkey) {
-    version = ExtPrivkey::kVersionTestnetPrivkey;
-    if ((net_type == NetType::kMainnet) || (net_type == NetType::kLiquidV1)) {
-      version = ExtPrivkey::kVersionMainnetPrivkey;
-    }
-  } else {
-    version = ExtPubkey::kVersionTestnetPubkey;
-    if ((net_type == NetType::kMainnet) || (net_type == NetType::kLiquidV1)) {
-      version = ExtPubkey::kVersionMainnetPubkey;
-    }
-  }
-  return version;
 }
 
 }  // namespace api

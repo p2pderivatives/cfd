@@ -40,7 +40,6 @@ using cfd::core::ConfidentialNonce;
 using cfd::core::ConfidentialTransaction;
 using cfd::core::ConfidentialTxInReference;
 using cfd::core::ConfidentialTxOutReference;
-using cfd::core::ConfidentialValue;
 using cfd::core::ElementsAddressType;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
@@ -123,14 +122,6 @@ const ConfidentialTxInReference ConfidentialTransactionController::GetTxIn(
   return transaction_.GetTxIn(index);
 }
 
-const ConfidentialTxInReference ConfidentialTransactionController::RemoveTxIn(
-    const Txid& txid, uint32_t vout) {
-  uint32_t index = transaction_.GetTxInIndex(txid, vout);
-  ConfidentialTxInReference ref = transaction_.GetTxIn(index);
-  transaction_.RemoveTxIn(index);
-  return ref;
-}
-
 const ConfidentialTxOutReference ConfidentialTransactionController::AddTxOut(
     const Address& address, const Amount& value,
     const ConfidentialAssetId& asset) {
@@ -198,27 +189,6 @@ ConfidentialTransactionController::AddTxOutFee(
     const Amount& value, const ConfidentialAssetId& asset) {
   uint32_t index = transaction_.AddTxOutFee(value, asset);
   return transaction_.GetTxOut(index);
-}
-
-const ConfidentialTxOutReference
-ConfidentialTransactionController::UpdateTxOutFeeAmount(
-    uint32_t index, const Amount& value, const ConfidentialAssetId& asset) {
-  ConfidentialTxOutReference ref = transaction_.GetTxOut(index);
-  if (!ref.GetLockingScript().IsEmpty()) {
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "target is not fee txout.");
-  }
-  transaction_.SetTxOutCommitment(
-      index, asset, ConfidentialValue(value), ConfidentialNonce(), ByteData(),
-      ByteData());
-  return transaction_.GetTxOut(index);
-}
-
-const ConfidentialTxOutReference
-ConfidentialTransactionController::RemoveTxOut(uint32_t index) {
-  ConfidentialTxOutReference ref = transaction_.GetTxOut(index);
-  transaction_.RemoveTxOut(index);
-  return ref;
 }
 
 void ConfidentialTransactionController::SetUnlockingScript(
@@ -370,24 +340,6 @@ ConfidentialTransactionController::GetTransaction() const {
   return transaction_;
 }
 
-uint32_t ConfidentialTransactionController::GetSizeIgnoreTxIn(
-    bool is_blinded, uint32_t* witness_stack_size) const {
-  if (witness_stack_size) {
-    *witness_stack_size = 0;
-  }
-
-  uint32_t result = ConfidentialTransaction::kElementsTransactionMinimumSize;
-  std::vector<ConfidentialTxOutReference> txouts = transaction_.GetTxOutList();
-  uint32_t witness_size = 0;
-  for (const auto& txout : txouts) {
-    result += txout.GetSerializeSize(is_blinded, &witness_size);
-    if (witness_stack_size) {
-      *witness_stack_size += witness_size;
-    }
-  }
-  return result;
-}
-
 IssuanceParameter ConfidentialTransactionController::SetAssetIssuance(
     const Txid& txid, uint32_t vout, const Amount& asset_amount,
     const Script& asset_locking_script, const ByteData& asset_nonce,
@@ -518,7 +470,7 @@ Amount ConfidentialTransactionController::CalculateSimpleFee(
   // 簡易計算
   uint32_t size = transaction_.GetTotalSize();
   uint32_t vsize = transaction_.GetVsize();
-  uint32_t rate = FeeCalculator::kRelayMinimumFee;
+  uint32_t rate = FeeCalculator::kBaseRate;
   if (append_feature_signed_size) {
     uint32_t weight = transaction_.GetWeight();
     uint32_t count = transaction_.GetTxInCount();

@@ -11,130 +11,81 @@
 #ifndef CFD_DISABLE_ELEMENTS
 
 #include <string>
-#include <vector>
 
 #include "cfd/cfd_common.h"
-#include "cfd/cfdapi_address.h"
+#include "cfd/cfdapi_struct.h"
 #include "cfdcore/cfdcore_elements_address.h"
 
+/**
+ * @brief cfdapi名前空間
+ */
 namespace cfd {
+namespace js {
 namespace api {
 
-using cfd::core::Address;
-using cfd::core::AddressFormatData;
-using cfd::core::AddressType;
-using cfd::core::ConfidentialKey;
-using cfd::core::DescriptorKeyType;
-using cfd::core::DescriptorScriptType;
-using cfd::core::ElementsConfidentialAddress;
-using cfd::core::NetType;
-using cfd::core::Pubkey;
-using cfd::core::Script;
-
 /**
- * @brief ElementsAddress関連のAPI群クラス
+ * @brief ElementsAddress関連の関数群クラス
  */
-class CFD_EXPORT ElementsAddressApi {
+class CFD_EXPORT ElementsAddressStructApi {
  public:
   /**
-   * @brief constructor
+   * @brief JSONパラメータの情報を元に、Addressを作成する
+   * @param[in] request Addressを構築するパラメータ
+   * @return Addressのhexデータを格納した構造体
    */
-  ElementsAddressApi() {}
+  static CreateAddressResponseStruct CreateAddress(
+      const CreateAddressRequestStruct& request);
 
   /**
-   * @brief Addressを作成する
-   * @param[in] net_type        network type
-   * @param[in] address_type    address type
-   * @param[in] pubkey          public key (default: nullptr)
-   * @param[in] script          script (default: nullptr)
-   * @param[out] locking_script locking script
-   * @param[out] redeem_script  redeem script
-   * @param[in] prefix_list     address prefix list
-   * @return Address
+   * @brief JSONパラメータの情報を元に、Multisigを作成する
+   * @param[in] request Multisigを構築するパラメータ
+   * @return MultisigAddressとredeem scriptのhexデータを格納した構造体
    */
-  Address CreateAddress(
-      NetType net_type, AddressType address_type, const Pubkey* pubkey,
-      const Script* script, Script* locking_script = nullptr,
-      Script* redeem_script = nullptr,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+  static CreateMultisigResponseStruct CreateMultisig(
+      const CreateMultisigRequestStruct& request);
 
   /**
-   * @brief Multisig Addressを作成する
-   * @param[in] net_type        network type
-   * @param[in] address_type    address type
-   * @param[in] req_sig_num     multisig require sign num
-   * @param[in] pubkeys         public key list
-   * @param[out] redeem_script  redeem script (p2sh, p2sh-p2wsh)
-   * @param[out] witness_script witness script (p2wsh, p2sh-p2wsh)
-   * @param[in] prefix_list     address prefix list
-   * @return Address
+   * @brief
+   * 構造体の情報を元に、UnblinedAddressからElements用ConfidentialAddressを取得する
+   * @param[in] request ConfidentialAddressを構築するパラメータ
+   * @return Addressのhexデータを格納した構造体
    */
-  Address CreateMultisig(
-      NetType net_type, AddressType address_type, uint32_t req_sig_num,
-      const std::vector<Pubkey>& pubkeys, Script* redeem_script = nullptr,
-      Script* witness_script = nullptr,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+  static GetConfidentialAddressResponseStruct GetConfidentialAddress(
+      const GetConfidentialAddressRequestStruct& request);
 
   /**
-   * @brief Multisig ScriptからPubkey Address一覧を作成する
-   * @param[in] net_type        network type
-   * @param[in] address_type    address type
-   * @param[in] redeem_script   multisig script
-   * @param[out] pubkey_list    pubkey list
-   * @param[in] prefix_list     address prefix list
-   * @return pubkey address list
+   * @brief
+   * 構造体の情報を元に、ConfidentialAddressからElements用UnblinedAddressを取得する
+   * @param[in] request ConfidentialAddressを構築するパラメータ
+   * @return Addressのhexデータを格納した構造体
    */
-  std::vector<Address> GetAddressesFromMultisig(
-      NetType net_type, AddressType address_type, const Script& redeem_script,
-      std::vector<Pubkey>* pubkey_list = nullptr,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+  static GetUnblindedAddressResponseStruct GetUnblindedAddress(
+      const GetUnblindedAddressRequestStruct& request);
 
   /**
-   * @brief AddressからConfidentialAddressを取得する.
-   * @param[in] address Address
-   * @param[in] confidential_key confidential key
-   * @return ElementsConfidentialAddress
+   * @brief 構造体の情報を元に、bitcoin
+   * blockchainからのpeginに利用できるAddressを生成する
+   * @param[in] request peg-inに利用できるAddressを構成するパラメータ
+   * @return peg-inに利用できるAddress hexを格納した構造体
    */
-  ElementsConfidentialAddress GetConfidentialAddress(
-      const Address& address, const ConfidentialKey confidential_key) const;
+  static ElementsCreatePegInAddressResponseStruct CreatePegInAddress(
+      const ElementsCreatePegInAddressRequestStruct& request);
 
   /**
-   * @brief bitcoin blockchainからのpeginに利用できるAddressを生成する
-   * @param[in] net_type              network type of mainchain
-   * @param[in] address_type          for future use
-   *     (currently fixed with p2sh-p2wpkh)
-   * @param[in] fedpegscript          fed peg script
-   * @param[in] pubkey                pubkey related to mainchain address
-   * @param[out] claim_script         claim script used when claiming peg-in bitcoin
-   * @param[out] tweak_fedpegscript   fedpeg_script with pubkey added as tweak
-   * @param[in] prefix_list           address prefix list
-   * @return peg-inに利用できるAddressインスタンス
+   * @brief elementsネットワーク文字列を、ElementsNetType構造体へ変換する.
+   * @param[in] elements_net_type ネットワーク文字列
+   * @return 引数に対応するElementsNetType構造体
+   * @throws CfdException 指定文字列以外が渡された場合
    */
-  Address CreatePegInAddress(
-      NetType net_type, AddressType address_type, const Script& fedpegscript,
-      const Pubkey& pubkey, Script* claim_script = nullptr,
-      Script* tweak_fedpegscript = nullptr,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+  static cfd::core::ElementsNetType ConvertElementsNetType(
+      const std::string& elements_net_type);
 
-  /**
-   * @brief Output descriptorから情報を抽出する
-   * @param[in] descriptor              output descriptor
-   * @param[in] net_type                network type
-   * @param[in] bip32_derivation_path   bip32 derivation path
-   * @param[out] script_list            descriptor script list
-   * @param[out] multisig_key_list      descriptor multisig key list
-   * @param[in] prefix_list             address prefix list
-   * @return descriptor script data (top level or high security)
-   */
-  DescriptorScriptData ParseOutputDescriptor(
-      const std::string& descriptor, NetType net_type,
-      const std::string& bip32_derivation_path = "",
-      std::vector<DescriptorScriptData>* script_list = nullptr,
-      std::vector<DescriptorKeyData>* multisig_key_list = nullptr,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+ private:
+  ElementsAddressStructApi();
 };
 
 }  // namespace api
+}  // namespace js
 }  // namespace cfd
 
 #endif  // CFD_DISABLE_ELEMENTS

@@ -1,0 +1,30 @@
+{
+	"namespace": ["dlc","js","api","json"],
+	"request": {
+		":class": "AddCETxSignRequest",
+		"tx": "",
+		"tx:comment": "transaction hex",
+		"txin": {
+			":class": "AddCETxSignTxInRequest",
+			"txid": "",
+			"vout": 0,
+			"vout:type": "uint32_t",
+			"sign": {
+				":class": "CETxSignData",
+				"hex": "",
+				"type": "sign",
+				"type:hint": "sign only",
+				"derEncode": true,
+				"sighashType": "all",
+				"sighashType:hint": "all, none, single",
+				"sighashAnyoneCanPay": false
+			},
+			"delayedUnlocking": false,
+			"redeemScript": ""
+		}
+	},
+	"response": {
+		":class": "AddCETxSignResponse",
+		"hex": ""
+	}
+}

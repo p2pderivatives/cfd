@@ -42,7 +42,6 @@ using cfd::core::ConfidentialTxOutReference;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
 using cfd::core::IssuanceParameter;
-using cfd::core::NetType;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::Script;
@@ -146,13 +145,6 @@ class CFD_EXPORT ConfidentialTransactionController
    */
   const ConfidentialTxInReference GetTxIn(
       const Txid& txid, uint32_t vout) const;
-  /**
-   * @brief TxInを削除する.
-   * @param[in] txid 取得するTxInのTxId
-   * @param[in] vout 取得するTxInのvout
-   * @return 削除したTxInのTxInReferenceインスタンス
-   */
-  const ConfidentialTxInReference RemoveTxIn(const Txid& txid, uint32_t vout);
 
   /**
    * @brief TxOutを追加する.
@@ -229,21 +221,6 @@ class CFD_EXPORT ConfidentialTransactionController
    */
   const ConfidentialTxOutReference AddTxOutFee(
       const Amount& value, const ConfidentialAssetId& asset);
-  /**
-   * @brief TxOutのFee情報を更新する.
-   * @param[in] index 設定対象のindex
-   * @param[in] value Fee額
-   * @param[in] asset AssetID
-   * @return 更新したTxOutのTxOutReferenceインスタンス
-   */
-  const ConfidentialTxOutReference UpdateTxOutFeeAmount(
-      uint32_t index, const Amount& value, const ConfidentialAssetId& asset);
-  /**
-   * @brief TxOutを削除する.
-   * @param[in] index 削除対象のindex
-   * @return 削除したTxOutのTxOutReferenceインスタンス
-   */
-  const ConfidentialTxOutReference RemoveTxOut(uint32_t index);
 
   /**
    * @brief TxInにUnlocking Scriptを設定する.
@@ -393,15 +370,6 @@ class CFD_EXPORT ConfidentialTransactionController
    * @return Transactionインスタンス
    */
   const ConfidentialTransaction& GetTransaction() const;
-
-  /**
-   * @brief TxInを除外したサイズを取得する。
-   * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
-   * @param[out] witness_stack_size   witness stack size
-   * @return TxInを除外したTxサイズ(Serialize)
-   */
-  uint32_t GetSizeIgnoreTxIn(
-      bool is_blinded = false, uint32_t* witness_stack_size = nullptr) const;
 
   /**
    * @brief IssueAssetの情報を設定する.

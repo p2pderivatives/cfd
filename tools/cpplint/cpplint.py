@@ -52,13 +52,11 @@ import string
 import sys
 import unicodedata
 import sysconfig
-import traceback
 
 try:
   xrange          # Python 2
 except NameError:
   xrange = range  # Python 3
-  unicode = str
 
 
 _USAGE = """
@@ -954,12 +952,7 @@ class _CppLintState(object):
 
   def PrintErrorCounts(self):
     """Print a summary of errors by category, and the total."""
-    try:
-      itemarr = self.errors_by_category.iteritems()
-    except:
-      itemarr = self.errors_by_category.items()     # Python3
-
-    for category, count in itemarr:
+    for category, count in self.errors_by_category.iteritems():
       sys.stderr.write('Category \'%s\' errors found: %d\n' %
                        (category, count))
     sys.stdout.write('Total errors found: %d\n' % self.error_count)
@@ -1140,8 +1133,7 @@ class FileInfo(object):
           one_up_dir = os.path.dirname(one_up_dir)
 
         prefix = os.path.commonprefix([root_dir, project_dir])
-        sep_len = 0 if(prefix[-1:] == "/") else 1
-        return fullname[len(prefix) + sep_len:]
+        return fullname[len(prefix) + 1:]
 
       # Not SVN <= 1.6? Try to find a git, hg, or svn top level directory by
       # searching up from the current path.
@@ -1157,14 +1149,9 @@ class FileInfo(object):
           os.path.exists(os.path.join(root_dir, ".hg")) or
           os.path.exists(os.path.join(root_dir, ".svn"))):
         prefix = os.path.commonprefix([root_dir + '/external', project_dir])
-        prefix2 = os.path.commonprefix([root_dir, project_dir])
         # sys.stderr.write('[%s]\n' % (prefix))
         # prefix = os.path.commonprefix([root_dir, project_dir])
-        if(prefix[-1:] == "/"):   prefix = prefix[:-1]
-        if(prefix2[-1:] == "/"):  prefix2 = prefix2[:-1]
-        if (prefix == prefix2):   prefix = '/'.join(prefix2.split('/')[0:-1])
-        sep_len = 0 if(prefix[-1:] == "/") else 1
-        return fullname[len(prefix) + sep_len:]
+        return fullname[len(prefix) + 1:]
 
     # Don't know what to do; header guard warnings may be wrong...
     return fullname
@@ -1252,20 +1239,15 @@ def Error(filename, linenum, category, confidence, message):
   """
   if _ShouldPrintError(category, confidence, linenum):
     _cpplint_state.IncrementErrorCount(category)
-    errstr = ''
     if _cpplint_state.output_format == 'vs7':
-      # sys.stderr.write('%s(%s): error cpplint: [%s] %s [%d]\n' % (
-      errstr = '%s(%s): error cpplint: [%s] %s [%d]\n' % (filename, linenum, category, message, confidence)
+      sys.stderr.write('%s(%s): error cpplint: [%s] %s [%d]\n' % (
+          filename, linenum, category, message, confidence))
     elif _cpplint_state.output_format == 'eclipse':
-      # sys.stderr.write('%s:%s: warning: %s  [%s] [%d]\n' % (
-      errstr = '%s:%s: warning: %s  [%s] [%d]\n' % (filename, linenum, category, message, confidence)
+      sys.stderr.write('%s:%s: warning: %s  [%s] [%d]\n' % (
+          filename, linenum, message, category, confidence))
     else:
-      # sys.stderr.write('%s:%s:  %s  [%s] [%d]\n' % (
-      errstr = '%s:%s:  %s  [%s] [%d]\n' % (filename, linenum, category, message, confidence)
-    try:
-      sys.stderr.write(errstr)
-    except:
-      sys.stderr.buffer.write(errstr.encode('utf-8'))   # python3
+      sys.stderr.write('%s:%s:  %s  [%s] [%d]\n' % (
+          filename, linenum, message, category, confidence))
 
 
 # Matches standard C++ escape sequences per 2.13.2.3 of the C++ standard.
@@ -4642,10 +4624,7 @@ def _GetTextInside(text, start_pattern):
 
   # Give opening punctuations to get the matching close-punctuations.
   matching_punctuation = {'(': ')', '{': '}', '[': ']'}
-  try:
-    closing_punctuation = set(matching_punctuation.itervalues())
-  except:
-    closing_punctuation = set(matching_punctuation.values())    # Python3
+  closing_punctuation = set(matching_punctuation.itervalues())
 
   # Find the position to start extracting text.
   match = re.search(start_pattern, text, re.M)
@@ -5593,8 +5572,7 @@ def CheckForIncludeWhatYouUse(filename, clean_lines, include_state, error,
 
   # include_dict is modified during iteration, so we iterate over a copy of
   # the keys.
-  copy_include_dict = copy.copy(include_dict)
-  header_keys = copy_include_dict.keys()
+  header_keys = include_dict.keys()
   for header in header_keys:
     (same_module, common_path) = FilesBelongToSameModule(abs_filename, header)
     fullpath = common_path + header
@@ -6245,26 +6223,21 @@ def ParseArguments(args):
 
 
 def main():
-  try:
-    filenames = ParseArguments(sys.argv[1:])
+  filenames = ParseArguments(sys.argv[1:])
 
-    # Change stderr to write with replacement characters so we don't die
-    # if we try to print something containing non-ASCII characters.
-    sys.stderr = codecs.StreamReaderWriter(sys.stderr,
-                                           codecs.getreader('utf8'),
-                                           codecs.getwriter('utf8'),
-                                           'replace')
+  # Change stderr to write with replacement characters so we don't die
+  # if we try to print something containing non-ASCII characters.
+  sys.stderr = codecs.StreamReaderWriter(sys.stderr,
+                                         codecs.getreader('utf8'),
+                                         codecs.getwriter('utf8'),
+                                         'replace')
 
-    _cpplint_state.ResetErrorCounts()
-    for filename in filenames:
-      ProcessFile(filename, _cpplint_state.verbose_level)
-    # If --quiet is passed, suppress printing error count unless there are errors.
-    if not _cpplint_state.quiet or _cpplint_state.error_count > 0:
-      _cpplint_state.PrintErrorCounts()
-
-  except Exception as e:
-    print(sys.argv[1:], ': ', e)
-    print(traceback.format_exc())
+  _cpplint_state.ResetErrorCounts()
+  for filename in filenames:
+    ProcessFile(filename, _cpplint_state.verbose_level)
+  # If --quiet is passed, suppress printing error count unless there are errors.
+  if not _cpplint_state.quiet or _cpplint_state.error_count > 0:
+    _cpplint_state.PrintErrorCounts()
 
   sys.exit(_cpplint_state.error_count > 0)
 
