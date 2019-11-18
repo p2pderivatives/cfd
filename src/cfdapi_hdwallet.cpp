@@ -2,7 +2,8 @@
 /**
  * @file cfdapi_hdwallet.cpp
  *
- * @brief cfd-apiで利用するHDWallet APIクラスの実装
+ * @brief-eng implementation of HDWallet API class that uses cfd-api
+ * @brief-jp cfd-apiで利用するHDWallet APIクラスの実装
  */
 #include <string>
 #include <vector>

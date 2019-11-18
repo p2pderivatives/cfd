@@ -2,7 +2,8 @@
 /**
  * @file cfdapi_address.cpp
  *
- * @brief cfd-apiで利用するAddress操作の実装ファイル
+ * @brief-eng implementation of address operation that uses cfd-api
+ * @brief-jp cfd-apiで利用するAddress操作の実装ファイル
  */
 #include <string>
 #include <vector>

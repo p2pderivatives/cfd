@@ -2,7 +2,8 @@
 /**
  * @file cfd_elements_transaction.cpp
  *
- * @brief Elements Transaction操作の関連クラスの実装ファイル
+ * @brief-eng implementation of Elements Transaction operation related class
+ * @brief-jp Elements Transaction操作の関連クラスの実装ファイル
  */
 #ifndef CFD_DISABLE_ELEMENTS
 #include "cfd/cfd_elements_transaction.h"
