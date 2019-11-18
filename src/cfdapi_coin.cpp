@@ -5,6 +5,7 @@
  * @brief cfd-apiで利用するCoin関連の実装ファイル
  */
 #include <string>
+#include <cstring>
 #include <vector>
 
 #include "cfd/cfd_common.h"
@@ -27,8 +28,8 @@ std::vector<Utxo> CoinApi::ConvertToUtxo(
 }
 
 void CoinApi::ConvertToUtxo(const UtxoData& utxo_data, Utxo* utxo) const {
-  if (utxo) {
-    memset(utxo, 0, sizeof(utxo));
+  if (utxo != nullptr) {
+    memset(utxo, 0, sizeof(Utxo));
     utxo->block_height = utxo_data.block_height;
     utxo->vout = utxo_data.vout;
     utxo->binary_data = utxo_data.binary_data;
