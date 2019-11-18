@@ -1,7 +1,9 @@
 @echo off
 cd ..
 call :search_lint include\cfd ..\..
+call :search_lint include\cfdc ..\..
 call :search_lint src ..
+call :search_lint src\capi ..\..
 
 pause
 exit /b

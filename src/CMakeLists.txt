@@ -15,6 +15,7 @@ endif()
 # option(ENABLE_DEBUG "enable debugging (ON or OFF. default:OFF)" OFF)
 option(ENABLE_ELEMENTS "enable elements code (ON or OFF. default:ON)" ON)
 option(ENABLE_BITCOIN  "enable bitcoin code (ON or OFF. default:ON)" ON)
+option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
 
 if(NOT WIN32)
 #option(TARGET_RPATH "target rpath list (separator is ';') (default:)" "")
@@ -63,6 +64,12 @@ if(NOT ENABLE_ELEMENTS)
 set(CFD_ELEMENTS_USE   CFD_DISABLE_ELEMENTS)
 else()
 set(CFD_ELEMENTS_USE   "")
+endif()
+
+if(NOT ENABLE_CAPI)
+set(CFD_CAPI_USE   CFD_DISABLE_CAPI)
+else()
+set(CFD_CAPI_USE   "")
 endif()
 
 if(ENABLE_SHARED)
@@ -122,10 +129,18 @@ add_library(${PROJECT_NAME} SHARED)
 else()
 add_library(${PROJECT_NAME} STATIC)
 endif()
+
+if(NOT ENABLE_CAPI)
 target_sources(${PROJECT_NAME}
   PRIVATE
     ${CFD_SOURCES}
 )
+else()
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ${CFD_SOURCES} ${CFD_CAPI_SOURCES}
+)
+endif()
 
 target_compile_options(${PROJECT_NAME}
   PRIVATE
@@ -143,6 +158,7 @@ target_compile_definitions(${PROJECT_NAME}
     CFD_BUILD=1
     ${CFD_BITCOIN_USE}
     ${CFD_ELEMENTS_USE}
+    ${CFD_CAPI_USE}
     ${CFD_CORE_SHARED_OPT}
 )
 target_include_directories(${PROJECT_NAME}

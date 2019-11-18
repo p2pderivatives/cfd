@@ -1,0 +1,11 @@
+# ./include/cfd/Makefile.inc
+
+CFDC_PKGINCLUDE_FILES = \
+  cfdcapi_common.h \
+  cfdcapi_address.h \
+  cfdcapi_transaction.h \
+  cfdcapi_key.h \
+  cfdcapi_coin.h \
+  cfdcapi_elements_address.h \
+  cfdcapi_elements_transaction.h
+
