@@ -79,8 +79,8 @@
     "lint_check:linux": "cd tools && ./lint_quiet.sh",
     "lint_check:darwin": "cd tools && ./lint_quiet.sh",
     "git_subm_update": "git submodule -q foreach git fetch -q && git submodule -q update -i",
-    "check": "run-s lint_check doxygen_check ctest_quiet",
-    "check_all": "run-s cmake_clean git_subm_update lint_check doxygen_check cmake_quiet ctest_quiet"
+    "check": "run-s doxygen_check ctest_quiet lint_check",
+    "check_all": "run-s cmake_clean git_subm_update cmake_quiet doxygen_check ctest_quiet lint_check"
   },
   "author": "",
   "license": "MIT",

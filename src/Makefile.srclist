@@ -12,14 +12,12 @@ CFD_SOURCES = \
   cfd_transaction_common.cpp \
   cfd_transaction.cpp \
   cfd_address.cpp \
+  cfd_utxo.cpp \
   cfdapi_transaction.cpp \
   cfdapi_transaction_base.cpp \
   cfdapi_address.cpp \
   cfdapi_hdwallet.cpp \
+  cfdapi_coin.cpp \
   cfdapi_key.cpp \
-  cfdapi_utility.cpp \
-  dlc_script.cpp \
-  dlcapi_transaction.cpp \
-  dlcapi_address.cpp \
   ${CFD_ELEMENTS_SOURCES}
 

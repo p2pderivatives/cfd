@@ -17,3 +17,16 @@ TEST(FeeCalculator, CalculateFeeTest)
   EXPECT_NO_THROW((amt = FeeCalculator::CalculateFee(3000, 3000, 10000)));
   EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(30000));
 }
+
+TEST(FeeCalculator, GetFeeTest)
+{
+  FeeCalculator fee(2000);
+  size_t size = 3000;
+  Amount amt;
+  EXPECT_NO_THROW((amt = fee.GetFee(size)));
+  EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(6000));
+
+  FeeCalculator fee2(20000);
+  EXPECT_NO_THROW((amt = fee2.GetFee(size)));
+  EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(60000));
+}

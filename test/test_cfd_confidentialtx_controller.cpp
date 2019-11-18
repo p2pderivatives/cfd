@@ -35,10 +35,10 @@ TEST(ConfidentialTransactionController, CalculateSimpleFeeTest)
         "02000000000109c4149d4e59119f2b11b3e160b02694bc4ecbf56f6de4ab587128f86bf4e7d30000000000ffffffff0201f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000005ee3fe00374eb131b54a7b528e5449b3827bcaa5069c259346810f20cf9079bd17b32fe481976a914d753351535a2a55f33ab39bbd6c70a55d46904e788ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000");
     Amount amt;
     EXPECT_NO_THROW((amt = tx.CalculateSimpleFee()));
-    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(2464));
+    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
 
     EXPECT_NO_THROW((amt = tx.CalculateSimpleFee(false)));
-    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(2167));
+    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
 }
 
 TEST(ConfidentialTransactionController, SetAssetIssuanceTest1)
