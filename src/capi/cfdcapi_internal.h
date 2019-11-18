@@ -79,7 +79,7 @@ class CfdCapiManager {
 
  protected:
   std::vector<CfdCapiHandleData*> handle_list_;  ///< ハンドル一覧
-  std::mutex mutex_;                             ///< 排他制御用オブジェクト
+  std::mutex mutex_;  ///< 排他制御用オブジェクト
 };
 
 }  // namespace capi

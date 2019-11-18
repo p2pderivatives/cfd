@@ -11,9 +11,7 @@
 #include <string>
 #include <vector>
 
-
 #ifndef CFD_DISABLE_ELEMENTS
-
 
 #endif  // CFD_DISABLE_ELEMENTS
 

@@ -31,8 +31,7 @@ static CfdCapiManager capi_instance;
 // -----------------------------------------------------------------------------
 // CfdCapiManager
 // -----------------------------------------------------------------------------
-CfdCapiManager::CfdCapiManager()
-    : handle_list_(), mutex_() {
+CfdCapiManager::CfdCapiManager() : handle_list_(), mutex_() {
   // do nothing
 }
 
@@ -47,10 +46,11 @@ CfdCapiManager::~CfdCapiManager() {
 void* CfdCapiManager::CreateHandle(void) {
   // 排他制御開始
   std::lock_guard<std::mutex> lock(mutex_);
-  CfdCapiHandleData* handle = static_cast<CfdCapiHandleData*>(::malloc(sizeof(CfdCapiHandleData)));
+  CfdCapiHandleData* handle =
+      static_cast<CfdCapiHandleData*>(::malloc(sizeof(CfdCapiHandleData)));
   if (handle == nullptr) {
-    throw CfdException(CfdError::kCfdIllegalStateError,
-        "CfdCreateHandle fail.");
+    throw CfdException(
+        CfdError::kCfdIllegalStateError, "CfdCreateHandle fail.");
   }
   ::memset(handle, 0, sizeof(CfdCapiHandleData));
   handle_list_.push_back(handle);
@@ -74,13 +74,15 @@ void CfdCapiManager::FreeHandle(void* handle) {
   }
 }
 
-void CfdCapiManager::SetLastError(void* handle, int error_code, const char* message) {
+void CfdCapiManager::SetLastError(
+    void* handle, int error_code, const char* message) {
   // TODO(k-matsuzawa): handle存在チェックすべきかどうか
   if (handle != nullptr) {
     CfdCapiHandleData* data = static_cast<CfdCapiHandleData*>(handle);
     if (message != nullptr) {
-      strncpy_s(data->error_message, sizeof(data->error_message),
-          message, sizeof(data->error_message) - 1);
+      strncpy_s(
+          data->error_message, sizeof(data->error_message), message,
+          sizeof(data->error_message) - 1);
       data->error_message[sizeof(data->error_message) - 1] = '\0';
     }
     data->error_code = error_code;
@@ -96,11 +98,12 @@ CfdException CfdCapiManager::GetLastError(void* handle) {
   if (handle != nullptr) {
     CfdCapiHandleData* data = static_cast<CfdCapiHandleData*>(handle);
     char str_buffer[257];
-    strncpy_s(str_buffer, sizeof(str_buffer), data->error_message,
+    strncpy_s(
+        str_buffer, sizeof(str_buffer), data->error_message,
         sizeof(data->error_message) - 1);
     str_buffer[255] = '\0';
-    return CfdException(static_cast<CfdError>(data->error_code),
-        std::string(str_buffer));
+    return CfdException(
+        static_cast<CfdError>(data->error_code), std::string(str_buffer));
   }
   return CfdException(CfdError::kCfdSuccess);
 }
@@ -115,7 +118,7 @@ CfdException CfdCapiManager::GetLastError(void* handle) {
 extern "C" int CfdGetSupportedFunction(uint64_t* support_flag) {
   try {
     cfd::Initialize();
-    if (support_flag == nullptr)  return kCfdIllegalArgumentError;
+    if (support_flag == nullptr) return kCfdIllegalArgumentError;
     *support_flag = cfd::GetSupportedFunction();
     return kCfdSuccess;
   } catch (const CfdException& except) {
@@ -149,7 +152,7 @@ extern "C" int CfdFinalize(bool is_finish_process) {
 
 extern "C" int CfdCreateHandle(void** handle) {
   try {
-    if (handle != nullptr)  ::free(handle);
+    if (handle != nullptr) ::free(handle);
     cfd::Initialize();
     *handle = cfd::capi::capi_instance.CreateHandle();
     return kCfdSuccess;
@@ -163,7 +166,7 @@ extern "C" int CfdCreateHandle(void** handle) {
 extern "C" int CfdFreeHandle(void* handle) {
   try {
     cfd::Initialize();
-    if (handle != nullptr)  free(handle);
+    if (handle != nullptr) free(handle);
     return kCfdSuccess;
   } catch (...) {
     return kCfdUnknownError;
@@ -173,7 +176,7 @@ extern "C" int CfdFreeHandle(void* handle) {
 extern "C" int CfdFreeBuffer(void* address) {
   try {
     cfd::Initialize();
-    if (address != nullptr)  ::free(address);
+    if (address != nullptr) ::free(address);
     return kCfdSuccess;
   } catch (...) {
     return kCfdUnknownError;
@@ -183,7 +186,7 @@ extern "C" int CfdFreeBuffer(void* address) {
 extern "C" int CfdFreeStringBuffer(char* address) {
   try {
     cfd::Initialize();
-    if (address != nullptr)  ::free(address);
+    if (address != nullptr) ::free(address);
     return kCfdSuccess;
   } catch (...) {
     return kCfdUnknownError;
@@ -203,11 +206,11 @@ extern "C" int CfdGetLastErrorCode(void* handle) {
 
 extern "C" int CfdGetLastErrorMessage(void* handle, char** message) {
   try {
-    if (message == nullptr)  return kCfdIllegalArgumentError;
+    if (message == nullptr) return kCfdIllegalArgumentError;
     CfdException last_error = cfd::capi::capi_instance.GetLastError(handle);
     size_t len = strlen(last_error.what()) + 1;
     char* buffer = static_cast<char*>(malloc(len));
-    if (buffer == nullptr)  return kCfdIllegalStateError;
+    if (buffer == nullptr) return kCfdIllegalStateError;
     strncpy_s(buffer, len, last_error.what(), 255);
     *message = buffer;
     return kCfdSuccess;

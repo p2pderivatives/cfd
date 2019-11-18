@@ -26,43 +26,32 @@ enum CfdNetworkType {
   kCfdNetworkLiquidRegtest,
 };
 
-CFDC_API int CfdCreateAddress(void* handle,
-    int hash_type, const char* pubkey, const char* redeem_script,
-    int network_type, 
-    char** address, 
-    char** locking_script, 
+CFDC_API int CfdCreateAddress(
+    void* handle, int hash_type, const char* pubkey, const char* redeem_script,
+    int network_type, char** address, char** locking_script,
     char** p2sh_segwit_locking_script);
 
-CFDC_API int CfdInitializeMultisigScript(void* handle,
-    int network_type, int hash_type,
+CFDC_API int CfdInitializeMultisigScript(
+    void* handle, int network_type, int hash_type, void** multisig_handle);
+CFDC_API int CfdAddMultisigScriptData(
+    void* handle, void* multisig_handle, const char* pubkey,
     void** multisig_handle);
-CFDC_API int CfdAddMultisigScriptData(void* handle, void* multisig_handle,
-    const char* pubkey, void** multisig_handle);
-CFDC_API int CfdFinalizeMultisigScript(void* handle, void* multisig_handle,
-    uint32_t nrequired,
-    char** address,
-    char** redeem_script,
-    char** witness_script);
+CFDC_API int CfdFinalizeMultisigScript(
+    void* handle, void* multisig_handle, uint32_t nrequired, char** address,
+    char** redeem_script, char** witness_script);
 CFDC_API int CfdFreeMultisigScript(void* handle, void* multisig_handle);
 
-CFDC_API int CfdParseDescriptor(void* handle,
-    const char* descriptor, int network_type, const char* bip32_derivation_path,
-    void** descriptor_handle);
-CFDC_API int CfdGetDescriptorData(void* handle, void* descriptor_handle,
-    uint32_t depth,
-    char** locking_script,
-    char** address,
-    int* hash_type,
-    char** redeem_script,
-    int* key_type,
-    char** ext_pubkey,
-    char** pubkey,
+CFDC_API int CfdParseDescriptor(
+    void* handle, const char* descriptor, int network_type,
+    const char* bip32_derivation_path, void** descriptor_handle);
+CFDC_API int CfdGetDescriptorData(
+    void* handle, void* descriptor_handle, uint32_t depth,
+    char** locking_script, char** address, int* hash_type,
+    char** redeem_script, int* key_type, char** ext_pubkey, char** pubkey,
     bool* is_multisig);
-CFDC_API int CfdGetDescriptorMultisigKey(void* handle, void* descriptor_handle,
-    uint32_t depth,
-    int* key_type,
-    char** ext_pubkey,
-    char** pubkey);
+CFDC_API int CfdGetDescriptorMultisigKey(
+    void* handle, void* descriptor_handle, uint32_t depth, int* key_type,
+    char** ext_pubkey, char** pubkey);
 CFDC_API int CfdFreeDescriptor(void* handle, void* descriptor_handle);
 
 // CfdGetAddressesFromMultisig

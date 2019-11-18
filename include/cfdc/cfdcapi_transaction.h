@@ -35,19 +35,21 @@ enum CfdSighashType {
   kCfdSigHashSingle = 0x03,  //!< SIGHASH_SINGLE
 };
 
-CFDC_API int CfdInitializeMultisigSign(void* handle, int address_type,
-    const Script& witness_script, const Script redeem_script, void** multisign_handle);
-CFDC_API int CfdAddMultisigSignData(void* handle, void* multisign_handle,
-    const uint8_t* signature, uint32_t signature_size,
-    const char* related_pubkey);
-CFDC_API int CfdAddMultisigSignDataToDer(void* handle, void* multisign_handle,
-    const uint8_t* signature, uint32_t signature_size,
-    uint8_t sighashType, bool sighash_anyone_can_pay,
+CFDC_API int CfdInitializeMultisigSign(
+    void* handle, int address_type, const Script& witness_script,
+    const Script redeem_script, void** multisign_handle);
+CFDC_API int CfdAddMultisigSignData(
+    void* handle, void* multisign_handle, const uint8_t* signature,
+    uint32_t signature_size, const char* related_pubkey);
+CFDC_API int CfdAddMultisigSignDataToDer(
+    void* handle, void* multisign_handle, const uint8_t* signature,
+    uint32_t signature_size, uint8_t sighashType, bool sighash_anyone_can_pay,
     const char* related_pubkey);
 CFDC_API int CfdFreeMultisigSignHandle(void* handle, void* multisign_handle);
-CFDC_API int CfdFinalizeMultisigSign(void* handle, void* multisign_handle,  // BTC
-    const char* tx_hex_string, const Txid& txid, uint32_t vout, bool is_witness, char** tx_string);
-
+CFDC_API int CfdFinalizeMultisigSign(
+    void* handle, void* multisign_handle,  // BTC
+    const char* tx_hex_string, const Txid& txid, uint32_t vout,
+    bool is_witness, char** tx_string);
 
 // FIXME elementsを先に作る
 

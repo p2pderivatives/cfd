@@ -21,17 +21,15 @@ extern "C" {
 
 #include "cfdc/cfdcapi_common.h"
 
-CFDC_API int CfdCalcurateEcSignature(void* handle,
-    const uint8_t* sighash, uint32_t sighash_size,
-    const uint8_t* privkey, uint32_t privkey_size,
-    bool has_grind_r, 
+CFDC_API int CfdCalcurateEcSignature(
+    void* handle, const uint8_t* sighash, uint32_t sighash_size,
+    const uint8_t* privkey, uint32_t privkey_size, bool has_grind_r,
     uint8_t** signature, uint32_t* signature_size);
 
-CFDC_API int CfdVerifyEcSignature(void* handle,
-    const uint8_t* sighash, uint32_t sighash_size,
-    const char* pubkey,
-    bool has_grind_r, 
-    uint8_t** signature, uint32_t* signature_size);
+CFDC_API int CfdVerifyEcSignature(
+    void* handle, const uint8_t* sighash, uint32_t sighash_size,
+    const char* pubkey, bool has_grind_r, uint8_t** signature,
+    uint32_t* signature_size);
 
 #if 0
       - key

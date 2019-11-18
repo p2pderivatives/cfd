@@ -9,17 +9,13 @@
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
 
-
-CFDC_API int CfdCreateConfidentialAddress(void* handle,
-    const char* address, 
-    const char* confidential_key, 
+CFDC_API int CfdCreateConfidentialAddress(
+    void* handle, const char* address, const char* confidential_key,
     char** confidential_address);
 
-CFDC_API int CfdParseConfidentialAddress(void* handle,
-    const char* confidential_address, 
-    char** address, 
+CFDC_API int CfdParseConfidentialAddress(
+    void* handle, const char* confidential_address, char** address,
     char** confidential_key);
-
 
 #if 0
 
