@@ -6,6 +6,7 @@
  */
 #include <cstring>
 #include <string>
+#include <cstring>
 #include <vector>
 
 #include "cfd/cfd_common.h"

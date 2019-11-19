@@ -318,16 +318,17 @@ class CFD_EXPORT TransactionController
       const Txid& txid, uint32_t vout, const Pubkey& pubkey,
       SigHashType sighash_type, const Amount& value);
   /**
-   * @brief 指定されたP2SH形式のTxInのSignatureHashを計算する.
+   * @brief 指定されたP2WSH形式のTxInのSignatureHashを計算する.
+   * @details OP_CODESEPARATORが存在するScriptについては未対応
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] redeem_script Redeem Script
+   * @param[in] witness_script WSHのWitness Script
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
    * @return 算出されたSignatureHashのHex文字列
    */
   std::string CreateP2wshSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& redeem_script,
+      const Txid& txid, uint32_t vout, const Script& witness_script,
       SigHashType sighash_type, const Amount& value);
 
  private:
