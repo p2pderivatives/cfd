@@ -1,6 +1,6 @@
 // Copyright 2019 CryptoGarage
 /**
- * @file cfdapi_address.h
+ * @file cfdcapi_address.h
  *
  * @brief cfd-capiで利用するAddress操作のクラス定義
  *
@@ -18,14 +18,18 @@ extern "C" {
 
 #include "cfdc/cfdcapi_common.h"
 
+/**
+ * @brief network type
+ */
 enum CfdNetworkType {
-  kCfdNetworkMainnet = 0,
-  kCfdNetworkTestnet,
-  kCfdNetworkRegtest,
-  kCfdNetworkLiquidv1 = 10,
-  kCfdNetworkLiquidRegtest,
+  kCfdNetworkMainnet = 0,      //!< btc mainnet
+  kCfdNetworkTestnet,          //!< btc testnet
+  kCfdNetworkRegtest,          //!< btc regtest
+  kCfdNetworkLiquidv1 = 10,    //!< liquidv1
+  kCfdNetworkElementsRegtest,  //!< elements regtest
 };
 
+/*
 CFDC_API int CfdCreateAddress(
     void* handle, int hash_type, const char* pubkey, const char* redeem_script,
     int network_type, char** address, char** locking_script,
@@ -53,34 +57,22 @@ CFDC_API int CfdGetDescriptorMultisigKey(
     void* handle, void* descriptor_handle, uint32_t depth, int* key_type,
     char** ext_pubkey, char** pubkey);
 CFDC_API int CfdFreeDescriptor(void* handle, void* descriptor_handle);
+*/
 
 // CfdGetAddressesFromMultisig
 // CfdGetAddressesMultisigKey
-// CFDC_API int CfdFreeAddressesMultisig(void* handle, void* addr_multisig_handle);
+// CfdFreeAddressesMultisig(void* handle, void* addr_multisig_handle);
 
 #if 0
-
-/**
- * @brief Address関連の関数群クラス
- * @details 現状は内部クラス扱い。あとで名称変更予定.
- */
+/*
 class CFD_EXPORT AddressApi {
  public:
-
-  /**
-   * @brief Multisig ScriptからPubkey Address一覧を作成する
-   * @param[in] net_type        network type
-   * @param[in] address_type    address type
-   * @param[in] redeem_script   multisig script
-   * @param[out] pubkey_list    pubkey list
-   * @param[in] prefix_list     address prefix list
-   * @return pubkey address list
-   */
   std::vector<Address> GetAddressesFromMultisig(
       NetType net_type, AddressType address_type, const Script& redeem_script,
       std::vector<Pubkey>* pubkey_list = nullptr,
       std::vector<AddressFormatData>* prefix_list = nullptr);
 };
+*/
 #endif
 
 #ifdef __cplusplus

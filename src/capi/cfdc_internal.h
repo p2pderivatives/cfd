@@ -1,12 +1,12 @@
 // Copyright 2019 CryptoGarage
 /**
- * @file cfdcapi_internal.h
+ * @file cfdc_internal.h
  *
  * @brief cfd-capi内部定義ファイルです。
  *
  */
-#ifndef CFD_SRC_CAPI_CFDCAPI_INTERNAL_H_
-#define CFD_SRC_CAPI_CFDCAPI_INTERNAL_H_
+#ifndef CFD_SRC_CAPI_CFDC_INTERNAL_H_
+#define CFD_SRC_CAPI_CFDC_INTERNAL_H_
 
 #include <memory>
 #include <mutex>  // NOLINT
@@ -20,6 +20,7 @@
  * @param[in] handle      ハンドル情報
  * @param[in] error_code  エラーコード
  * @param[in] message     エラーメッセージ
+ * @return error code
  */
 extern "C" CFDC_API int CfdSetLastError(
     void* handle, int error_code, const char* message);
@@ -28,6 +29,7 @@ extern "C" CFDC_API int CfdSetLastError(
  * @brief 例外エラー情報を設定する。
  * @param[in] handle    ハンドル情報
  * @param[in] message   エラーメッセージ
+ * @return error code
  */
 extern "C" CFDC_API int CfdSetLastFatalError(
     void* handle, const char* message);
@@ -108,4 +110,4 @@ class CfdCapiManager {
 }  // namespace capi
 }  // namespace cfd
 
-#endif  // CFD_SRC_CAPI_CFDCAPI_INTERNAL_H_
+#endif  // CFD_SRC_CAPI_CFDC_INTERNAL_H_

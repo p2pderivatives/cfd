@@ -9,8 +9,20 @@
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+}
+#endif  // 0
+#endif  // __cplusplus
+
 #include "cfdc/cfdcapi_common.h"
 
+// FIXME elementsを先に作る
+
+/**
+ * @brief address type
+ */
 enum CfdAddressType {
   kCfdP2shAddress = 1,   //!< Legacy address (Script Hash)
   kCfdP2pkhAddress,      //!< Legacy address (PublicKey Hash)
@@ -20,6 +32,9 @@ enum CfdAddressType {
   kCfdP2shP2wpkhAddress  //!< P2sh wrapped address (Pubkey Hash)
 };
 
+/**
+ * @brief hash type
+ */
 enum CfdHashType {
   kCfdP2sh = 1,   //!< Legacy address (Script Hash)
   kCfdP2pkh,      //!< Legacy address (PublicKey Hash)
@@ -29,12 +44,16 @@ enum CfdHashType {
   kCfdP2shP2wpkh  //!< P2sh wrapped address (Pubkey Hash)
 };
 
+/**
+ * @brief sighash type
+ */
 enum CfdSighashType {
   kCfdSigHashAll = 0x01,     //!< SIGHASH_ALL
   kCfdSigHashNone = 0x02,    //!< SIGHASH_NONE
   kCfdSigHashSingle = 0x03,  //!< SIGHASH_SINGLE
 };
 
+/*
 CFDC_API int CfdInitializeMultisigSign(
     void* handle, int address_type, const Script& witness_script,
     const Script redeem_script, void** multisign_handle);
@@ -50,12 +69,10 @@ CFDC_API int CfdFinalizeMultisigSign(
     void* handle, void* multisign_handle,  // BTC
     const char* tx_hex_string, const Txid& txid, uint32_t vout,
     bool is_witness, char** tx_string);
-
-// FIXME elementsを先に作る
+*/
 
 #if 0
-
-
+/*
 CFDC_API int CfdAddTxSign(void* handle, const char* tx_hex_string,
     const char* txid, uint32_t vout, bool is_witness,
     const uint8_t* data, uint32_t data_size,
@@ -72,9 +89,6 @@ CFDC_API int CfdCreateSighash(void* handle, const char* tx_hex_string,
     int address_type, const char* pubkey, const char* redeem_script,
     int64_t value_satoshi,
     uint8_t** sighash, uint32_t* sighash_size);
-
-
-
 
 - AddTxIn
 - AddWitnessStack
@@ -117,7 +131,14 @@ CFDC_API int CfdCreateSighash(void* handle, const char* tx_hex_string,
           - AddMultisigSign
           - FinalizeMultisigSign
         * get系
-
+*/
 #endif
+
+#ifdef __cplusplus
+#if 0
+{
+#endif  // 0
+}
+#endif  // __cplusplus
 
 #endif  // CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_

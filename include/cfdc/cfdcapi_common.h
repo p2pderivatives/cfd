@@ -1,10 +1,10 @@
 // Copyright 2019 CryptoGarage
 /**
- * @file cfdc_common.h
- * @brief cfd-cの共通定義ファイル。
+ * @file cfdcapi_common.h
+ * @brief cfd-capiの共通定義ファイル。
  */
-#ifndef CFDC_INCLUDE_CFDC_CFDC_COMMON_H_
-#define CFDC_INCLUDE_CFDC_CFDC_COMMON_H_
+#ifndef CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_
+#define CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -110,14 +110,14 @@ CFDC_API int CfdFreeStringBuffer(char* address);
 
 /**
  * @brief cfdで最後に発生したエラーコードを取得する。
- * @param[in] handle    handle pointer. (NULL is global error info.)
+ * @param[in] handle    handle pointer.
  * @return last error code
  */
 CFDC_API int CfdGetLastErrorCode(void* handle);
 
 /**
  * @brief cfdで最後に発生したエラーのエラーメッセージを取得する。
- * @param[in] handle    handle pointer. (NULL is global error info.)
+ * @param[in] handle    handle pointer.
  * @param[in] message   message string.
  * @retval kCfdSuccess  success
  * @retval kCfdIllegalArgumentError   message is NULL.
@@ -131,4 +131,4 @@ CFDC_API int CfdGetLastErrorMessage(void* handle, char** message);
 }
 #endif  // __cplusplus
 
-#endif  // CFDC_INCLUDE_CFDC_CFDC_COMMON_H_
+#endif  // CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_
