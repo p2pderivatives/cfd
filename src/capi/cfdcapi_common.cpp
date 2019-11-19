@@ -150,7 +150,7 @@ extern "C" int CfdFinalize(bool is_finish_process) {
 
 extern "C" int CfdCreateHandle(void** handle) {
   try {
-    if (handle != nullptr) ::free(handle);
+    if (handle == nullptr) return kCfdIllegalArgumentError;
     cfd::Initialize();
     *handle = cfd::capi::capi_instance.CreateHandle();
     return kCfdSuccess;
