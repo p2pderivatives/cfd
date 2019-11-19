@@ -9,3 +9,6 @@ TEST_CFD_SOURCES= \
 
 TEST_CFD_STATIC_SOURCES= 
 
+TEST_CFD_CAPI_SOURCES= \
+    capi/test_cfdcapi_common.cpp
+

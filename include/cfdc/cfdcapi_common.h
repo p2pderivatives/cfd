@@ -13,23 +13,23 @@ extern "C" {
 #endif  // 0
 #endif  // __cplusplus
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 /**
  * @brief APIのDLLエクスポート定義
  */
 #ifndef CFDC_API
 #if defined(_WIN32)
-#ifdef CFDC_BUILD
+#ifdef CFD_BUILD
 #define CFDC_API __declspec(dllexport)
 #elif defined(CFD_SHARED)
 #define CFDC_API __declspec(dllimport)
 #else
 #define CFDC_API
 #endif
-#elif defined(__GNUC__) && defined(CFDC_BUILD)
+#elif defined(__GNUC__) && defined(CFD_BUILD)
 #define CFDC_API __attribute__((visibility("default")))
 #else
 #define CFDC_API

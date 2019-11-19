@@ -190,13 +190,41 @@ target_link_libraries(${PROJECT_NAME}
 ####################
 if(ENABLE_DEBUG AND ENABLE_COVERAGE)
 add_custom_target(
-  lcov_cfd1 ${CMAKE_COMMAND} -E make_directory ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output
-  COMMAND lcov -c -d . -o cfd1.info
+  lcov_cfd00
+  ${CMAKE_COMMAND} -E make_directory ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output
+  COMMAND ${CMAKE_COMMAND} -E remove -f cfd1.info cfd_api.info cfd_cfd.info cfd_cfd1.info cfd.info capi/cfd2.info capi/cfd_capi.info
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
+)
+add_custom_target(
+  lcov_cfd11
+  lcov -c -d . -o cfd1.info
+  DEPENDS lcov_cfd00
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
+)
+add_custom_target(
+  lcov_cfd12
+  lcov -o cfd_api.info -e cfd1.info "*/cfdapi_*"
+  COMMAND lcov -o cfd_cfd.info -e cfd1.info "*/cfd_*"
+  DEPENDS lcov_cfd11
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
+)
+add_custom_target(
+  lcov_cfd21
+  lcov -c -d . -o cfd2.info
+  COMMAND lcov -o cfd_capi.info -e cfd2.info "*/cfdcapi_*"
+  DEPENDS lcov_cfd00
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir/capi
+)
+add_custom_target(
+  lcov_cfd1
+  COMMAND lcov -a cfd_cfd.info -a cfd_api.info -o cfd_cfd1.info
+  DEPENDS lcov_cfd12 lcov_cfd21
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
 )
 #  COMMAND gcov -f -m *.gcda > console.log
 add_custom_target(
-  lcov_cfd lcov -e cfd1.info "*/cfd_*" -o cfd_cfd.info && lcov -e cfd1.info "*/cfdapi_*" -o cfd_api.info && lcov -a cfd_cfd.info -a cfd_api.info -o cfd.info
+  lcov_cfd
+  lcov -a cfd_cfd1.info -a capi/cfd_capi.info -o cfd.info
   COMMAND genhtml -s --demangle-cpp -o ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output cfd.info
   DEPENDS lcov_cfd1
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir

@@ -12,8 +12,25 @@
 #include <mutex>  // NOLINT
 #include <vector>
 
-#include "cfd/cfd_common.h"
+#include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_exception.h"
+
+/**
+ * @brief エラー情報を設定する。
+ * @param[in] handle      ハンドル情報
+ * @param[in] error_code  エラーコード
+ * @param[in] message     エラーメッセージ
+ */
+extern "C" CFDC_API int CfdSetLastError(
+    void* handle, int error_code, const char* message);
+
+/**
+ * @brief 例外エラー情報を設定する。
+ * @param[in] handle    ハンドル情報
+ * @param[in] message   エラーメッセージ
+ */
+extern "C" CFDC_API int CfdSetLastFatalError(
+    void* handle, const char* message);
 
 /**
  * @brief cfd名前空間
@@ -46,7 +63,7 @@ class CfdCapiManager {
   /**
    * @brief デストラクタ。
    */
-  virtual ~CfdCapiManager();
+  virtual ~CfdCapiManager() { FreeAllList(&handle_list_); }
 
   /**
    * @brief ハンドルを作成する。
@@ -80,6 +97,12 @@ class CfdCapiManager {
  protected:
   std::vector<CfdCapiHandleData*> handle_list_;  ///< ハンドル一覧
   std::mutex mutex_;  ///< 排他制御用オブジェクト
+
+  /**
+   * @brief ハンドル一覧の解放を行う。
+   * @param[in,out] list  handle list
+   */
+  static void FreeAllList(std::vector<CfdCapiHandleData*>* list);
 };
 
 }  // namespace capi

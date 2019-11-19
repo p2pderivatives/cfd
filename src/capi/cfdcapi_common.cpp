@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "capi/cfdcapi_internal.h"
+#include "capi/cfdc_internal.h"
 #include "cfd/cfd_common.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_logger.h"
@@ -35,11 +35,12 @@ CfdCapiManager::CfdCapiManager() : handle_list_(), mutex_() {
   // do nothing
 }
 
-CfdCapiManager::~CfdCapiManager() {
-  if (!handle_list_.empty()) {
-    for (CfdCapiHandleData* handle : handle_list_) {
+void CfdCapiManager::FreeAllList(std::vector<CfdCapiHandleData*>* list) {
+  if ((list != nullptr) && (!list->empty())) {
+    for (CfdCapiHandleData* handle : *list) {
       ::free(handle);
     }
+    list->clear();
   }
 }
 
@@ -164,7 +165,7 @@ extern "C" int CfdCreateHandle(void** handle) {
 extern "C" int CfdFreeHandle(void* handle) {
   try {
     cfd::Initialize();
-    if (handle != nullptr) free(handle);
+    cfd::capi::capi_instance.FreeHandle(handle);
     return kCfdSuccess;
   } catch (...) {
     return kCfdUnknownError;
@@ -213,6 +214,30 @@ extern "C" int CfdGetLastErrorMessage(void* handle, char** message) {
     err_str.copy(buffer, len);
     buffer[len - 1] = '\0';
     *message = buffer;
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
+}
+
+extern "C" int CfdSetLastError(
+    void* handle, int error_code, const char* message) {
+  try {
+    cfd::capi::capi_instance.SetLastError(handle, error_code, message);
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
+}
+
+extern "C" CFDC_API int CfdSetLastFatalError(
+    void* handle, const char* message) {
+  try {
+    cfd::capi::capi_instance.SetLastFatalError(handle, message);
     return kCfdSuccess;
   } catch (const CfdException& except) {
     return except.GetErrorCode();
