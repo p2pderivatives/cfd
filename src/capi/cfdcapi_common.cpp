@@ -80,9 +80,8 @@ void CfdCapiManager::SetLastError(
   if (handle != nullptr) {
     CfdCapiHandleData* data = static_cast<CfdCapiHandleData*>(handle);
     if (message != nullptr) {
-      strncpy_s(
-          data->error_message, sizeof(data->error_message), message,
-          sizeof(data->error_message) - 1);
+      std::string err_str(message, sizeof(data->error_message));
+      err_str.copy(data->error_message, sizeof(data->error_message) - 1);
       data->error_message[sizeof(data->error_message) - 1] = '\0';
     }
     data->error_code = error_code;
@@ -97,11 +96,10 @@ CfdException CfdCapiManager::GetLastError(void* handle) {
   // TODO(k-matsuzawa): handle存在チェックすべきかどうか
   if (handle != nullptr) {
     CfdCapiHandleData* data = static_cast<CfdCapiHandleData*>(handle);
-    char str_buffer[257];
-    strncpy_s(
-        str_buffer, sizeof(str_buffer), data->error_message,
-        sizeof(data->error_message) - 1);
-    str_buffer[255] = '\0';
+    char str_buffer[256];
+    std::string err_str(data->error_message, sizeof(data->error_message));
+    err_str.copy(str_buffer, sizeof(str_buffer) - 1);
+    str_buffer[sizeof(str_buffer) - 1] = '\0';
     return CfdException(
         static_cast<CfdError>(data->error_code), std::string(str_buffer));
   }
@@ -208,10 +206,12 @@ extern "C" int CfdGetLastErrorMessage(void* handle, char** message) {
   try {
     if (message == nullptr) return kCfdIllegalArgumentError;
     CfdException last_error = cfd::capi::capi_instance.GetLastError(handle);
-    size_t len = strlen(last_error.what()) + 1;
+    std::string err_str(last_error.what());
+    size_t len = err_str.length() + 1;
     char* buffer = static_cast<char*>(malloc(len));
     if (buffer == nullptr) return kCfdIllegalStateError;
-    strncpy_s(buffer, len, last_error.what(), 255);
+    err_str.copy(buffer, len);
+    buffer[len - 1] = '\0';
     *message = buffer;
     return kCfdSuccess;
   } catch (const CfdException& except) {
