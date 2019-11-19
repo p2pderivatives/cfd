@@ -283,26 +283,21 @@ std::string TransactionController::CreateP2wpkhSignatureHash(
     SigHashType sighash_type, const Amount& value) {
   uint32_t index = transaction_.GetTxInIndex(txid, vout);
 
-  const ByteData& witness_program =
-      SignatureUtil::CreateWitnessProgramWPKH(pubkey);
-
+  const Script& locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
   const ByteData256& data = transaction_.GetSignatureHash(
-      index, witness_program, HashType::kP2wpkh, sighash_type, value);
+      index, locking_script.GetData(), HashType::kP2wpkh, sighash_type, value);
   return data.GetHex();
 }
 
 std::string TransactionController::CreateP2wshSignatureHash(
-    const Txid& txid, uint32_t vout, const Script& redeem_script,
+    const Txid& txid, uint32_t vout, const Script& witness_script,
     SigHashType sighash_type, const Amount& value) {
   uint32_t index = transaction_.GetTxInIndex(txid, vout);
 
-  // TODO(soejima): OP_CODESEPARATORの存在時に分割必要。
-  const ByteData& witness_program =
-      SignatureUtil::CreateWitnessProgramWSH(redeem_script);
+  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
 
   const ByteData256& data = transaction_.GetSignatureHash(
-      index, witness_program, HashType::kP2wsh, sighash_type, value);
-
+      index, witness_script.GetData(), HashType::kP2wsh, sighash_type, value);
   return data.GetHex();
 }
 
