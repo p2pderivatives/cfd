@@ -100,6 +100,7 @@ CFDC_API int CfdFreeHandle(void* handle);
  */
 CFDC_API int CfdFreeBuffer(void* address);
 
+#ifndef CFD_DISABLE_FREESTRING
 /**
  * @brief cfdが確保した文字列バッファを解放する。
  * @details CfdFreeBufferのalias.
@@ -107,6 +108,7 @@ CFDC_API int CfdFreeBuffer(void* address);
  * @return CfdErrorCode
  */
 CFDC_API int CfdFreeStringBuffer(char* address);
+#endif  // CFD_DISABLE_FREESTRING
 
 /**
  * @brief cfdで最後に発生したエラーコードを取得する。
