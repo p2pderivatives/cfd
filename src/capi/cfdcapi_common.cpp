@@ -5,12 +5,14 @@
  * @brief cfd-capiで利用する共通処理の実装ファイル
  */
 #ifndef CFD_DISABLE_CAPI
+#include <exception>
 #include <string>
 #include <vector>
 
 #include "capi/cfdc_internal.h"
 #include "cfd/cfd_common.h"
 #include "cfdc/cfdcapi_common.h"
+#include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
 
 using cfd::core::CfdError;
@@ -25,12 +27,12 @@ using cfd::core::logger::warn;
 namespace cfd {
 namespace capi {
 
-/// cfd-capiインスタンス
-static CfdCapiManager capi_instance;
-
 // -----------------------------------------------------------------------------
 // CfdCapiManager
 // -----------------------------------------------------------------------------
+/// cfd-capiインスタンス
+static CfdCapiManager capi_instance;
+
 CfdCapiManager::CfdCapiManager() : handle_list_(), mutex_() {
   // do nothing
 }
@@ -105,6 +107,40 @@ CfdException CfdCapiManager::GetLastError(void* handle) {
         static_cast<CfdError>(data->error_code), std::string(str_buffer));
   }
   return CfdException(CfdError::kCfdSuccess);
+}
+
+// -----------------------------------------------------------------------------
+// namespace api
+// -----------------------------------------------------------------------------
+int SetLastError(void* handle, int error_code, const char* message) {
+  try {
+    cfd::capi::capi_instance.SetLastError(handle, error_code, message);
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
+}
+
+int SetLastFatalError(void* handle, const char* message) {
+  try {
+    cfd::capi::capi_instance.SetLastFatalError(handle, message);
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
+}
+
+const CfdException& SetLastError(void* handle, const CfdException& exception) {
+  SetLastError(handle, exception.GetErrorCode(), exception.what());
+  return exception;
+}
+
+void SetLastFatalError(void* handle, const std::exception& exception) {
+  SetLastFatalError(handle, exception.what());
 }
 
 }  // namespace capi
@@ -214,30 +250,6 @@ extern "C" int CfdGetLastErrorMessage(void* handle, char** message) {
     err_str.copy(buffer, len);
     buffer[len - 1] = '\0';
     *message = buffer;
-    return kCfdSuccess;
-  } catch (const CfdException& except) {
-    return except.GetErrorCode();
-  } catch (...) {
-    return kCfdUnknownError;
-  }
-}
-
-extern "C" int CfdSetLastError(
-    void* handle, int error_code, const char* message) {
-  try {
-    cfd::capi::capi_instance.SetLastError(handle, error_code, message);
-    return kCfdSuccess;
-  } catch (const CfdException& except) {
-    return except.GetErrorCode();
-  } catch (...) {
-    return kCfdUnknownError;
-  }
-}
-
-extern "C" CFDC_API int CfdSetLastFatalError(
-    void* handle, const char* message) {
-  try {
-    cfd::capi::capi_instance.SetLastFatalError(handle, message);
     return kCfdSuccess;
   } catch (const CfdException& except) {
     return except.GetErrorCode();

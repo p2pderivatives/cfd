@@ -16,8 +16,8 @@ extern "C" {
 #endif  // 0
 #endif  // __cplusplus
 
-#include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_address.h"
+#include "cfdc/cfdcapi_common.h"
 
 /**
  * @brief create confidential address.

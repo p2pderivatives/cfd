@@ -8,31 +8,13 @@
 #ifndef CFD_SRC_CAPI_CFDC_INTERNAL_H_
 #define CFD_SRC_CAPI_CFDC_INTERNAL_H_
 
+#include <exception>
 #include <memory>
 #include <mutex>  // NOLINT
 #include <vector>
 
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_exception.h"
-
-/**
- * @brief エラー情報を設定する。
- * @param[in] handle      ハンドル情報
- * @param[in] error_code  エラーコード
- * @param[in] message     エラーメッセージ
- * @return error code
- */
-extern "C" CFDC_API int CfdSetLastError(
-    void* handle, int error_code, const char* message);
-
-/**
- * @brief 例外エラー情報を設定する。
- * @param[in] handle    ハンドル情報
- * @param[in] message   エラーメッセージ
- * @return error code
- */
-extern "C" CFDC_API int CfdSetLastFatalError(
-    void* handle, const char* message);
 
 /**
  * @brief cfd名前空間
@@ -52,6 +34,38 @@ struct CfdCapiHandleData {
   int32_t error_code;       //!< error code
   char error_message[256];  //!< error message
 };
+
+/**
+ * @brief エラー情報を設定する。
+ * @param[in] handle      ハンドル情報
+ * @param[in] error_code  エラーコード
+ * @param[in] message     エラーメッセージ
+ * @return error code
+ */
+int SetLastError(void* handle, int error_code, const char* message);
+
+/**
+ * @brief 例外エラー情報を設定する。
+ * @param[in] handle    ハンドル情報
+ * @param[in] message   エラーメッセージ
+ * @return error code
+ */
+int SetLastFatalError(void* handle, const char* message);
+
+/**
+ * @brief エラー情報を設定する。
+ * @param[in] handle     ハンドル情報
+ * @param[in] exception  CFD例外オブジェクト
+ * @return second parameter object.
+ */
+const CfdException& SetLastError(void* handle, const CfdException& exception);
+
+/**
+ * @brief 例外エラー情報を設定する。
+ * @param[in] handle     ハンドル情報
+ * @param[in] exception  CFD例外オブジェクト
+ */
+void SetLastFatalError(void* handle, const std::exception& exception);
 
 /**
  * @brief cfd-capi管理クラス。

@@ -1,7 +1,11 @@
 #include "gtest/gtest.h"
 
+#include <stdexcept>
+#include <string>
+
 #include "cfdc/cfdcapi_common.h"
 #include "capi/cfdc_internal.h"
+#include "cfdcore/cfdcore_exception.h"
 
 /**
  * @brief testing class.
@@ -68,11 +72,11 @@ TEST(cfdcapi_common, CfdGetLastErrorCode) {
   ret = CfdGetLastErrorCode(handle);
   EXPECT_EQ(kCfdSuccess, ret);
 
-  CfdSetLastError(handle, kCfdOutOfRangeError, "dummy");
+  cfd::capi::SetLastError(handle, kCfdOutOfRangeError, "dummy");
   ret = CfdGetLastErrorCode(handle);
   EXPECT_EQ(kCfdOutOfRangeError, ret);
 
-  CfdSetLastFatalError(handle, "dummy");
+  cfd::capi::SetLastFatalError(handle, "dummy");
   ret = CfdGetLastErrorCode(handle);
   EXPECT_EQ(kCfdUnknownError, ret);
 
@@ -101,10 +105,30 @@ TEST(cfdcapi_common, CfdGetLastErrorMessage) {
   CfdFreeStringBuffer(str_buffer);
   str_buffer = NULL;
 
-  CfdSetLastFatalError(handle, "dummy");
+  cfd::capi::SetLastFatalError(handle, "dummy");
   ret = CfdGetLastErrorMessage(handle, &str_buffer);
   EXPECT_EQ(kCfdSuccess, ret);
   EXPECT_STREQ("dummy", str_buffer);
+  CfdFreeStringBuffer(str_buffer);
+  str_buffer = NULL;
+
+  cfd::capi::SetLastError(handle,
+    cfd::core::CfdException(cfd::core::CfdError::kCfdInternalError,
+      "dummy_cfdexcept"));
+  ret = CfdGetLastErrorMessage(handle, &str_buffer);
+  EXPECT_EQ(kCfdSuccess, ret);
+  ret = CfdGetLastErrorCode(handle);
+  EXPECT_EQ(kCfdInternalError, ret);
+  EXPECT_STREQ("dummy_cfdexcept", str_buffer);
+  CfdFreeStringBuffer(str_buffer);
+  str_buffer = NULL;
+
+  cfd::capi::SetLastFatalError(handle, std::runtime_error("dummy_except"));
+  ret = CfdGetLastErrorMessage(handle, &str_buffer);
+  EXPECT_EQ(kCfdSuccess, ret);
+  ret = CfdGetLastErrorCode(handle);
+  EXPECT_EQ(kCfdUnknownError, ret);
+  EXPECT_STREQ("dummy_except", str_buffer);
   CfdFreeStringBuffer(str_buffer);
   str_buffer = NULL;
 
