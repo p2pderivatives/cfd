@@ -4,8 +4,8 @@
  *
  * @brief cfd-apiで利用するCoin関連の実装ファイル
  */
-#include <string>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "cfd/cfd_common.h"

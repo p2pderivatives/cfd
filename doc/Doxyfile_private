@@ -814,7 +814,9 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = ../include/cfd \
+                         ../include/cfdc \
                          ../src \
+                         ../src/capi \
                          ../external/cfd-core/include/cfdcore \
                          ../external/cfd-core/src/include/cfdcore \
                          ../external/cfd-core/src

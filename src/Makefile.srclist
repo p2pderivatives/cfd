@@ -21,3 +21,7 @@ CFD_SOURCES = \
   cfdapi_key.cpp \
   ${CFD_ELEMENTS_SOURCES}
 
+CFD_CAPI_SOURCES = \
+  capi/cfdcapi_common.cpp \
+  capi/cfdcapi_address.cpp
+

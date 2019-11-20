@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "cfd",
   "scripts": {
-    "code_format": "clang-format -i --style=file src/*.cpp src/*.h include/cfd/*.h",
+    "code_format": "clang-format -i --style=file src/*.cpp src/*.h include/cfd/*.h src/capi/*.cpp src/capi/*.h include/cfdc/*.h",
     "cmake_all": "run-s cmake_configure cmake_build",
     "cmake_configure": "run-script-os",
     "cmake_configure:win32": "cmake-js configure -O build --CDENABLE_SHARED=on --CDENABLE_JS_WRAPPER=off",
