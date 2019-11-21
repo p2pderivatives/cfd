@@ -81,7 +81,8 @@ CFDC_API int CfdFinalize(bool is_finish_process);
 
 /**
  * @brief cfdのハンドルを取得する。
- * @param[out] handle   handle pointer
+ * @param[out] handle   handle pointer.
+ *   When you are finished using it, release it with 'CfdFreeHandle'.
  * @return CfdErrorCode
  */
 CFDC_API int CfdCreateHandle(void** handle);
@@ -113,14 +114,16 @@ CFDC_API int CfdFreeStringBuffer(char* address);
 /**
  * @brief cfdで最後に発生したエラーコードを取得する。
  * @param[in] handle    handle pointer.
- * @return last error code
+ * @return last error code. (see CfdErrorCode)
  */
 CFDC_API int CfdGetLastErrorCode(void* handle);
 
 /**
  * @brief cfdで最後に発生したエラーのエラーメッセージを取得する。
  * @param[in] handle    handle pointer.
- * @param[in] message   message string.
+ * @param[out] message  message string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @retval kCfdSuccess  success
  * @retval kCfdIllegalArgumentError   message is NULL.
  */

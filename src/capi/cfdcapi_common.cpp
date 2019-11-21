@@ -11,12 +11,17 @@
 
 #include "capi/cfdc_internal.h"
 #include "cfd/cfd_common.h"
+#include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_exception.h"
+#include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 
+using cfd::core::AddressType;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::NetType;
 
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
@@ -26,6 +31,155 @@ using cfd::core::logger::warn;
 // =============================================================================
 namespace cfd {
 namespace capi {
+
+// -----------------------------------------------------------------------------
+// buffer API
+// -----------------------------------------------------------------------------
+void* AllocBuffer(const std::string& prefix, uint32_t size) {
+  if (prefix.empty() || (size <= sizeof(CfdCapiPrefixTemplate))) {
+    warn(CFD_LOG_SOURCE, "parameter error.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "parameter illegal.");
+  }
+  void* result = ::malloc(size);
+  if (result == nullptr) {
+    warn(CFD_LOG_SOURCE, "malloc NG. prefix={}", prefix);
+    throw CfdException(CfdError::kCfdMemoryFullError, "allocate buffer fail.");
+  }
+  ::memset(result, 0, size);
+  CfdCapiPrefixTemplate* buffer = static_cast<CfdCapiPrefixTemplate*>(result);
+  prefix.copy(buffer->prefix, sizeof(buffer->prefix) - 1);
+  return result;
+}
+
+void FreeBuffer(void* address, const std::string& prefix, uint32_t size) {
+  CheckBuffer(address, prefix);
+
+  if (size <= sizeof(CfdCapiPrefixTemplate)) {
+    warn(CFD_LOG_SOURCE, "parameter error.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "parameter illegal.");
+  }
+  ::memset(address, 0, size);
+  ::free(address);
+}
+
+void CheckBuffer(void* address, const std::string& prefix) {
+  if (address == nullptr) {
+    warn(CFD_LOG_SOURCE, "pointer is null.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to parameter. pointer is null.");
+  }
+  if (prefix.empty()) {
+    warn(CFD_LOG_SOURCE, "parameter error.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "parameter illegal.");
+  }
+
+  CfdCapiPrefixTemplate* buffer = static_cast<CfdCapiPrefixTemplate*>(address);
+  size_t len = prefix.length() + 1;
+  if (memcmp(buffer->prefix, prefix.c_str(), len) != 0) {
+    warn(CFD_LOG_SOURCE, "Illegal buffer data. prefix unmatch.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Illegal buffer data.");
+  }
+  ::memset(address, 0, len);
+  ::free(address);
+}
+
+NetType ConvertNetType(int network_type, bool* is_bitcoin) {
+  NetType net_type = NetType::kCustomChain;
+  switch (network_type) {
+    case kCfdNetworkMainnet:
+    case kCfdNetworkTestnet:
+    case kCfdNetworkRegtest:
+      net_type = static_cast<NetType>(network_type);
+      if (is_bitcoin != nullptr) {
+        *is_bitcoin = true;
+      }
+      break;
+    default:
+#ifndef CFD_DISABLE_ELEMENTS
+      if (network_type == kCfdNetworkLiquidv1) {
+        net_type = NetType::kLiquidV1;
+      } else if (network_type == kCfdNetworkElementsRegtest) {
+        net_type = NetType::kElementsRegtest;
+      }
+      if (is_bitcoin != nullptr) {
+        *is_bitcoin = false;
+      }
+      break;
+#else
+      warn(CFD_LOG_SOURCE, "Illegal network type.({})", network_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal network type.");
+#endif  // CFD_DISABLE_ELEMENTS
+  }
+  return net_type;
+}
+
+cfd::core::AddressType ConvertHashToAddressType(int hash_type) {
+  AddressType addr_type;
+  switch (hash_type) {
+    case kCfdP2sh:
+      addr_type = AddressType::kP2shAddress;
+      break;
+    case kCfdP2pkh:
+      addr_type = AddressType::kP2pkhAddress;
+      break;
+    case kCfdP2wsh:
+      addr_type = AddressType::kP2wshAddress;
+      break;
+    case kCfdP2wpkh:
+      addr_type = AddressType::kP2wpkhAddress;
+      break;
+    case kCfdP2shP2wsh:
+      addr_type = AddressType::kP2shP2wshAddress;
+      break;
+    case kCfdP2shP2wpkh:
+      addr_type = AddressType::kP2shP2wpkhAddress;
+      break;
+    default:
+      warn(CFD_LOG_SOURCE, "Illegal hash type.({})", hash_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal hash type.");
+  }
+  return addr_type;
+}
+
+char* CreateString(const std::string& message) {
+  size_t len = message.length();
+  char* addr = static_cast<char*>(::malloc(len + 1));
+  if (addr == nullptr) {
+    warn(CFD_LOG_SOURCE, "malloc NG.");
+    throw CfdException(CfdError::kCfdMemoryFullError, "allocate buffer fail.");
+  }
+  ::memset(addr, 0, len + 1);
+  message.copy(addr, len);
+  return addr;
+}
+
+/**
+ * @brief free heap buffer on error.
+ * @param[in] pointer1  free address.
+ * @param[in] pointer2  free address.
+ * @param[in] pointer3  free address.
+ */
+void FreeBufferOnError(
+    char** pointer1, char** pointer2, char** pointer3, char** pointer4,
+    char** pointer5, char** pointer6) {
+  char** pointer_list[] = {pointer1, pointer2, pointer3,
+                           pointer4, pointer5, pointer6};
+  for (size_t idx = 0; idx < 6; ++idx) {
+    if (pointer_list[idx] != nullptr) {
+      if (*(pointer_list[idx]) != nullptr) {
+        ::free(*(pointer_list[idx]));
+        *(pointer_list[idx]) = nullptr;
+      }
+    }
+  }
+}
 
 // -----------------------------------------------------------------------------
 // CfdCapiManager
@@ -49,19 +203,21 @@ void CfdCapiManager::FreeAllList(std::vector<CfdCapiHandleData*>* list) {
 void* CfdCapiManager::CreateHandle(void) {
   // 排他制御開始
   std::lock_guard<std::mutex> lock(mutex_);
-  CfdCapiHandleData* handle =
-      static_cast<CfdCapiHandleData*>(::malloc(sizeof(CfdCapiHandleData)));
-  if (handle == nullptr) {
-    throw CfdException(
-        CfdError::kCfdIllegalStateError, "CfdCreateHandle fail.");
-  }
-  ::memset(handle, 0, sizeof(CfdCapiHandleData));
+  CfdCapiHandleData* handle = static_cast<CfdCapiHandleData*>(
+      AllocBuffer(kPrefixHandleData, sizeof(CfdCapiHandleData)));
   handle_list_.push_back(handle);
   return handle;
 }
 
 void CfdCapiManager::FreeHandle(void* handle) {
   if (handle != nullptr) {
+    CfdCapiHandleData* handle_data = static_cast<CfdCapiHandleData*>(handle);
+    size_t len = strlen(kPrefixHandleData) + 1;
+    if (memcmp(handle_data->prefix, kPrefixHandleData, len) != 0) {
+      warn(CFD_LOG_SOURCE, "Illegal handle data. prefix unmatch.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal handle data.");
+    }
     // 排他制御開始
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -69,6 +225,7 @@ void CfdCapiManager::FreeHandle(void* handle) {
     for (ite = handle_list_.begin(); ite != handle_list_.end(); ++ite) {
       if (handle == *ite) {
         info(CFD_LOG_SOURCE, "capi FreeHandle. addr={:p}.", handle);
+        memset(handle, 0, sizeof(CfdCapiHandleData));
         ::free(handle);
         handle_list_.erase(ite);
         break;
@@ -134,9 +291,9 @@ int SetLastFatalError(void* handle, const char* message) {
   }
 }
 
-const CfdException& SetLastError(void* handle, const CfdException& exception) {
+int SetLastError(void* handle, const CfdException& exception) {
   SetLastError(handle, exception.GetErrorCode(), exception.what());
-  return exception;
+  return exception.GetErrorCode();
 }
 
 void SetLastFatalError(void* handle, const std::exception& exception) {
