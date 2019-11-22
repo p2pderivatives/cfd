@@ -142,8 +142,12 @@ int CfdCreateAddress(
     Script lock_script;
     Script unlocking_script;
 
-    if (pubkey != nullptr) pubkey_obj = Pubkey(pubkey);
-    if (redeem_script != nullptr) script = Script(redeem_script);
+    if ((pubkey != nullptr) && (*pubkey != '\0')) {
+      pubkey_obj = Pubkey(pubkey);
+    }
+    if ((redeem_script != nullptr) && (*redeem_script != '\0')) {
+      script = Script(redeem_script);
+    }
 
     if (is_bitcoin) {
       AddressApi api;
@@ -376,8 +380,10 @@ int CfdParseDescriptor(
     bool is_bitcoin = false;
     NetType net_type = cfd::capi::ConvertNetType(network_type, &is_bitcoin);
     std::string derive_path;
-    if (bip32_derivation_path != nullptr)
+    if ((bip32_derivation_path != nullptr) &&
+        (*bip32_derivation_path != '\0')) {
       derive_path = std::string(bip32_derivation_path);
+    }
 
     std::vector<DescriptorScriptData> script_list;
     std::vector<DescriptorKeyData> multisig_key_list;
@@ -401,8 +407,9 @@ int CfdParseDescriptor(
     buffer->multisig_key_list = new std::vector<DescriptorKeyData>();
     *(buffer->script_list) = script_list;
     *(buffer->multisig_key_list) = multisig_key_list;
-    if (max_index != nullptr)
+    if (max_index != nullptr) {
       *max_index = static_cast<uint32_t>(script_list.size() - 1);
+    }
     *descriptor_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -631,7 +638,7 @@ int CfdGetAddressesFromMultisig(
     NetType net_type = cfd::capi::ConvertNetType(network_type, &is_bitcoin);
     AddressType addr_type = ConvertHashToAddressType(hash_type);
     Script redeem_script_obj;
-    if (redeem_script != nullptr) {
+    if ((redeem_script != nullptr) && (*redeem_script != '\0')) {
       redeem_script_obj = Script(redeem_script);
     }
 
