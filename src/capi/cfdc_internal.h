@@ -126,15 +126,6 @@ struct CfdCapiHandleData {
 CFDC_API int SetLastError(void* handle, int error_code, const char* message);
 
 /**
- * @brief エラー情報を設定する。
- * @param[in] handle      ハンドル情報
- * @param[in] error_code  エラーコード
- * @param[in] message     エラーメッセージ
- * @return error code
- */
-CFDC_API int SetLastError(void* handle, int error_code, const char* message);
-
-/**
  * @brief 例外エラー情報を設定する。
  * @param[in] handle    ハンドル情報
  * @param[in] message   エラーメッセージ

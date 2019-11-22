@@ -137,6 +137,15 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
    */
   Address CreatePegInAddress(
       AddressType address_type, const Script& tweak_fedpegscript) const;
+
+  /**
+   * @brief check confidential address's network type is valid.
+   * @param[in] conf_addr confidential address which is checked network type
+   * @param[in] net_type check network type (ref: cfd::core::NetType)
+   * @return true: much net_type, false: unmatch
+   */
+  bool CheckConfidentialAddressNetType(
+      const ElementsConfidentialAddress& conf_addr, NetType net_type) const;
 };
 
 }  // namespace cfd

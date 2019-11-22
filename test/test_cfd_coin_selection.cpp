@@ -1355,8 +1355,27 @@ TEST(CoinSelection, SelectCoins_with_multiple_asset_not_consider_fee)
   }
 }
 
-// SelectCoins ErrorCase -----------------------------------------------------------------
-TEST(CoinSelection, SelectCoins_Error_empty_target_value_map) {
+TEST(CoinSelection, SelectCoins_Error_no_target_value_map) {
+  AmountMap map_target_amount;
+  AmountMap map_select_value;
+  Amount fee;
+  Amount tx_fee = Amount::CreateBySatoshiAmount(1500);
+  std::map<std::string, bool> map_searched_bnb;
+  CoinSelectionOption option = GetElementsOption();
+  option.SetFeeAsset(exp_dummy_asset_a);
+  option.SetEffectiveFeeBaserate(0.0);
+  std::vector<Utxo> ret;
+  EXPECT_NO_THROW(ret = exp_selection.SelectCoins(
+      map_target_amount, GetElementsUtxoList(), exp_filter, option,
+      tx_fee, &map_select_value, &fee, &map_searched_bnb));
+
+  EXPECT_EQ(ret.size(), 0);
+  EXPECT_EQ(map_select_value.size(), 0);
+  EXPECT_EQ(fee.GetSatoshiValue(), 0);
+  EXPECT_EQ(map_searched_bnb.size(), 0);
+}
+
+TEST(CoinSelection, SelectCoins_empty_target_value_map_but_calculate_fee) {
   AmountMap map_target_amount;
   AmountMap map_select_value;
   Amount fee;
@@ -1365,15 +1384,26 @@ TEST(CoinSelection, SelectCoins_Error_empty_target_value_map) {
   CoinSelectionOption option = GetElementsOption();
   option.SetFeeAsset(exp_dummy_asset_a);
   std::vector<Utxo> ret;
-  EXPECT_THROW(ret = exp_selection.SelectCoins(
+  EXPECT_NO_THROW(ret = exp_selection.SelectCoins(
       map_target_amount, GetElementsUtxoList(), exp_filter, option,
-      tx_fee, &map_select_value, &fee, &map_searched_bnb), CfdException);
+      tx_fee, &map_select_value, &fee, &map_searched_bnb));
 
-  EXPECT_EQ(ret.size(), 0);
-  EXPECT_EQ(map_select_value.size(), 0);
-  EXPECT_EQ(fee.GetSatoshiValue(), 0);
-  EXPECT_EQ(map_searched_bnb.size(), 0);
+  EXPECT_EQ(ret.size(), 1);
+  if (ret.size() == 1) {
+    EXPECT_EQ(ret[0].amount, static_cast<int64_t>(39062500));
+  }
+  EXPECT_EQ(map_select_value.size(), 1);
+  if (map_select_value.size() == 1) {
+    EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), static_cast<int64_t>(39062500));
+  }
+  EXPECT_EQ(fee.GetSatoshiValue(), 820);
+  EXPECT_EQ(map_searched_bnb.size(), 1);
+  if (map_searched_bnb.size() == 1) {
+    EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
+  }
 }
+
+// SelectCoins ErrorCase -----------------------------------------------------------------
 
 TEST(CoinSelection, SelectCoins_Error_target_asset_not_contains_utxos) {
   AmountMap map_target_amount;
