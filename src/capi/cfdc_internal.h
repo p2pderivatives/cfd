@@ -11,6 +11,7 @@
 #include <exception>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <string>
 #include <vector>
 
 #include "cfdc/cfdcapi_address.h"
