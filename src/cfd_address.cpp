@@ -105,4 +105,42 @@ Address AddressFactory::CreateP2wshMultisigAddress(
   return Address(type_, wit_ver_, script, prefix_list_);
 }
 
+bool AddressFactory::CheckAddressNetType(
+    const Address& address, NetType net_type) const {
+  if (address.GetNetType() == net_type) {
+    return true;
+  }
+
+  // check prefix
+  bool result = false;
+  AddressType addr_type = address.GetAddressType();
+  AddressFormatData addr_format = address.GetAddressFormatData();
+  for (auto& prefix : prefix_list_) {
+    if (prefix.GetNetType() == net_type) {
+      switch (addr_type) {
+        case AddressType::kP2pkhAddress:
+          result = (prefix.GetP2pkhPrefix() == addr_format.GetP2pkhPrefix());
+          break;
+        case AddressType::kP2shP2wpkhAddress:
+          // fall-through
+        case AddressType::kP2shP2wshAddress:
+          // fall-through
+        case AddressType::kP2shAddress:
+          result = (prefix.GetP2shPrefix() == addr_format.GetP2shPrefix());
+          break;
+        case AddressType::kP2wpkhAddress:
+        case AddressType::kP2wshAddress:
+          result = (prefix.GetBech32Hrp() == addr_format.GetBech32Hrp());
+          break;
+        default:
+          result = false;
+          break;
+      }
+      break;
+    }
+  }
+
+  return result;
+}
+
 }  // namespace cfd

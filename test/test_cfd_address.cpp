@@ -19,6 +19,7 @@ using cfd::core::ByteData;
 using cfd::core::ByteData160;
 using cfd::core::CfdException;
 using cfd::core::GetBitcoinAddressFormatList;
+using cfd::core::GetElementsAddressFormatList;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
@@ -301,3 +302,199 @@ TEST(AddressFactory, CreateP2wshMultisigAddress)
    EXPECT_THROW(factory.CreateP2wshMultisigAddress(5, pubkeys), CfdException);
 }
 
+TEST(AddressFactory, CheckAddressNetType_bitcoin)
+{
+  AddressFactory factory(NetType::kMainnet, GetBitcoinAddressFormatList());
+  Pubkey pubkey("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af");
+  Address addr;
+  EXPECT_NO_THROW(addr = factory.CreateP2pkhAddress(pubkey));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wpkhAddress(pubkey));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  Script script = Script("76a914ef286e6af39de178d88b32e120f716b53753808c88ac");
+  EXPECT_NO_THROW(addr = factory.CreateP2shAddress(script));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wshAddress(script));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  factory = AddressFactory(NetType::kTestnet, GetBitcoinAddressFormatList());
+  EXPECT_NO_THROW(addr = factory.CreateP2pkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wpkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2shAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wshAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  factory = AddressFactory(NetType::kRegtest, GetBitcoinAddressFormatList());
+  EXPECT_NO_THROW(addr = factory.CreateP2pkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wpkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2shAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wshAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+}
+
+TEST(AddressFactory, CheckAddressNetType_elements)
+{
+  AddressFactory factory(NetType::kLiquidV1, GetElementsAddressFormatList());
+  Pubkey pubkey("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af");
+  Address addr;
+  EXPECT_NO_THROW(addr = factory.CreateP2pkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wpkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  Script script = Script("76a914ef286e6af39de178d88b32e120f716b53753808c88ac");
+  EXPECT_NO_THROW(addr = factory.CreateP2shAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wshAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  factory = AddressFactory(NetType::kElementsRegtest, GetElementsAddressFormatList());
+  EXPECT_NO_THROW(addr = factory.CreateP2pkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wpkhAddress(pubkey));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2shAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+
+  EXPECT_NO_THROW(addr = factory.CreateP2wshAddress(script));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+}

@@ -42,7 +42,7 @@ struct CfdCapiHandleData {
  * @param[in] message     エラーメッセージ
  * @return error code
  */
-int SetLastError(void* handle, int error_code, const char* message);
+CFDC_API int SetLastError(void* handle, int error_code, const char* message);
 
 /**
  * @brief 例外エラー情報を設定する。
@@ -50,7 +50,7 @@ int SetLastError(void* handle, int error_code, const char* message);
  * @param[in] message   エラーメッセージ
  * @return error code
  */
-int SetLastFatalError(void* handle, const char* message);
+CFDC_API int SetLastFatalError(void* handle, const char* message);
 
 /**
  * @brief エラー情報を設定する。
@@ -58,14 +58,15 @@ int SetLastFatalError(void* handle, const char* message);
  * @param[in] exception  CFD例外オブジェクト
  * @return second parameter object.
  */
-const CfdException& SetLastError(void* handle, const CfdException& exception);
+CFDC_API const CfdException& SetLastError(
+    void* handle, const CfdException& exception);
 
 /**
  * @brief 例外エラー情報を設定する。
  * @param[in] handle     ハンドル情報
  * @param[in] exception  CFD例外オブジェクト
  */
-void SetLastFatalError(void* handle, const std::exception& exception);
+CFDC_API void SetLastFatalError(void* handle, const std::exception& exception);
 
 /**
  * @brief cfd-capi管理クラス。

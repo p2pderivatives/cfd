@@ -99,6 +99,11 @@ Address ElementsAddressFactory::CreatePegInAddress(
   return Address(type_, witness_program);
 }
 
+bool ElementsAddressFactory::CheckConfidentialAddressNetType(
+    const ElementsConfidentialAddress& conf_addr, NetType net_type) const {
+  return CheckAddressNetType(conf_addr.GetUnblindedAddress(), net_type);
+}
+
 }  // namespace cfd
 
 #endif  // CFD_DISABLE_ELEMENTS

@@ -309,4 +309,34 @@ TEST(ElementsAddressFactory, CreatePegInAddress3)
     EXPECT_THROW(factory.CreatePegInAddress(AddressType::kP2wpkhAddress, Script()), CfdException);
   }
 }
+
+TEST(ElementsAddressFactory, CheckConfidentialAddressNetType)
+{
+  ElementsAddressFactory factory(NetType::kLiquidV1, GetElementsAddressFormatList());
+  ConfidentialKey confidential_key = ConfidentialKey("02adc4593dedbc9f03b87f636491d24965b4becb7bd546eb20cc230a7bb9384c59");
+  Pubkey pubkey("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af");
+  Address addr;
+  ElementsConfidentialAddress conf_addr;
+  EXPECT_NO_THROW(addr = factory.CreateP2pkhAddress(pubkey));
+  EXPECT_NO_THROW(conf_addr = factory.GetConfidentialAddress(addr, confidential_key));
+  EXPECT_FALSE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kRegtest));
+  EXPECT_TRUE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kLiquidV1));
+  EXPECT_FALSE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckConfidentialAddressNetType(conf_addr, NetType::kNetTypeNum));
+
+  factory = ElementsAddressFactory(NetType::kElementsRegtest, GetElementsAddressFormatList());
+  Script script = Script("76a914ef286e6af39de178d88b32e120f716b53753808c88ac");
+  EXPECT_NO_THROW(addr = factory.CreateP2shAddress(script));
+  EXPECT_NO_THROW(conf_addr = factory.GetConfidentialAddress(addr, confidential_key));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kMainnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kTestnet));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kLiquidV1));
+  EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
+  EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+}
 #endif
