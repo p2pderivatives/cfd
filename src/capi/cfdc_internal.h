@@ -97,6 +97,9 @@ CFDC_API char* CreateString(const std::string& message);
  * @param[in] pointer1  free address.
  * @param[in] pointer2  free address.
  * @param[in] pointer3  free address.
+ * @param[in] pointer4  free address.
+ * @param[in] pointer5  free address.
+ * @param[in] pointer6  free address.
  */
 CFDC_API void FreeBufferOnError(
     char** pointer1, char** pointer2 = nullptr, char** pointer3 = nullptr,

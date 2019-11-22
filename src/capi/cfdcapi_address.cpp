@@ -59,6 +59,8 @@ constexpr const char* const kPrefixOutputDescriptor = "Descriptor";
 constexpr const char* const kPrefixMultisigAddresses = "MultisigAddr";
 //! multisig max key num
 constexpr const uint32_t kMultisigMaxKeyNum = 16;
+//! pubkey hex size (cfd::core::Pubkey::kPubkeySize * 2)
+constexpr const uint32_t kPubkeyHexSize = 130;
 
 /**
  * @brief cfd-capi MultisigScript構造体.
@@ -68,7 +70,7 @@ struct CfdCapiMultisigScript {
   int network_type;            //!< network type
   int hash_type;               //!< hash type
   //! pubkeys
-  char pubkeys[kMultisigMaxKeyNum][cfd::core::Pubkey::kPubkeySize + 1];
+  char pubkeys[kMultisigMaxKeyNum][kPubkeyHexSize + 1];
   uint32_t current_index;  //!< current index
 };
 
@@ -89,9 +91,9 @@ struct CfdCapiOutputDescriptor {
  */
 struct CfdCapiMultisigAddresses {
   char prefix[kPrefixLength];               //!< buffer prefix
-  char addresses[kMultisigMaxKeyNum][128];  //!< address list
+  char addresses[kMultisigMaxKeyNum][256];  //!< address list
   //! pubkeys
-  char pubkeys[kMultisigMaxKeyNum][cfd::core::Pubkey::kPubkeySize + 1];
+  char pubkeys[kMultisigMaxKeyNum][kPubkeyHexSize + 1];
   uint32_t list_size;  //!< list size
 };
 
@@ -115,6 +117,7 @@ using cfd::capi::kMultisigMaxKeyNum;
 using cfd::capi::kPrefixMultisigAddresses;
 using cfd::capi::kPrefixMultisigScript;
 using cfd::capi::kPrefixOutputDescriptor;
+using cfd::capi::kPubkeyHexSize;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
 
@@ -202,9 +205,9 @@ int CfdInitializeMultisigScript(
     cfd::capi::ConvertNetType(network_type, nullptr);
     AddressType addr_type = ConvertHashToAddressType(hash_type);
     switch (addr_type) {
-      case AddressType::kP2pkhAddress:
-      case AddressType::kP2wpkhAddress:
-      case AddressType::kP2shP2wpkhAddress:
+      case AddressType::kP2shAddress:
+      case AddressType::kP2wshAddress:
+      case AddressType::kP2shP2wshAddress:
         break;
       default:
         warn(CFD_LOG_SOURCE, "pkh is not target.");
@@ -255,8 +258,7 @@ int CfdAddMultisigScriptData(
 
     Pubkey key = Pubkey(std::string(pubkey));
     std::string pubkey_str = key.GetHex();
-    pubkey_str.copy(
-        data->pubkeys[data->current_index], cfd::core::Pubkey::kPubkeySize);
+    pubkey_str.copy(data->pubkeys[data->current_index], kPubkeyHexSize);
     ++(data->current_index);
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -405,8 +407,11 @@ int CfdParseDescriptor(
         AllocBuffer(kPrefixOutputDescriptor, sizeof(CfdCapiOutputDescriptor)));
     buffer->script_list = new std::vector<DescriptorScriptData>();
     buffer->multisig_key_list = new std::vector<DescriptorKeyData>();
-    *(buffer->script_list) = script_list;
-    *(buffer->multisig_key_list) = multisig_key_list;
+    buffer->script_list->assign(script_list.begin(), script_list.end());
+    // *(buffer->script_list) = script_list;
+    buffer->multisig_key_list->assign(
+        multisig_key_list.begin(), multisig_key_list.end());
+    // *(buffer->multisig_key_list) = multisig_key_list;
     if (max_index != nullptr) {
       *max_index = static_cast<uint32_t>(script_list.size() - 1);
     }
@@ -446,7 +451,7 @@ int CfdGetDescriptorData(
           "Failed to parameter. index is maximum over.");
     }
 
-    DescriptorScriptData desc_data = (*buffer->script_list)[index];
+    const DescriptorScriptData& desc_data = buffer->script_list->at(index);
     uint32_t last_index =
         static_cast<uint32_t>(buffer->script_list->size()) - 1;
     if (max_index != nullptr) *max_index = last_index;
@@ -456,8 +461,10 @@ int CfdGetDescriptorData(
       *locking_script = CreateString(desc_data.locking_script.GetHex());
     }
     if ((address != nullptr) &&
+        (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw) &&
         (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw)) {
-      *address = CreateString(desc_data.address.GetAddress());
+      std::string addr = desc_data.address.GetAddress();
+      if (!addr.empty()) *address = CreateString(addr);
     }
     if (hash_type != nullptr) {
       *hash_type = desc_data.address_type;
@@ -656,8 +663,8 @@ int CfdGetAddressesFromMultisig(
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
-    *addr_multisig_keys_handle =
-        AllocBuffer(kPrefixMultisigAddresses, sizeof(CfdCapiMultisigScript));
+    *addr_multisig_keys_handle = AllocBuffer(
+        kPrefixMultisigAddresses, sizeof(CfdCapiMultisigAddresses));
     CfdCapiMultisigAddresses* data =
         static_cast<CfdCapiMultisigAddresses*>(*addr_multisig_keys_handle);
 
@@ -669,7 +676,7 @@ int CfdGetAddressesFromMultisig(
     }
     index = 0;
     for (const auto& key : pubkey_list) {
-      key.GetHex().copy(data->pubkeys[index], cfd::core::Pubkey::kPubkeySize);
+      key.GetHex().copy(data->pubkeys[index], kPubkeyHexSize);
       ++index;
     }
     data->list_size = index;

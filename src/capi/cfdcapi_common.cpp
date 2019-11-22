@@ -84,8 +84,6 @@ void CheckBuffer(void* address, const std::string& prefix) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Illegal buffer data.");
   }
-  ::memset(address, 0, len);
-  ::free(address);
 }
 
 NetType ConvertNetType(int network_type, bool* is_bitcoin) {

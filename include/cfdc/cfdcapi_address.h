@@ -84,6 +84,7 @@ enum CfdDescriptorScriptType {
  * @brief descriptor key type.
  */
 enum CfdDescriptorKeyType {
+  kCfdDescriptorKeyNull,      //!< null
   kCfdDescriptorKeyPublic,    //!< pubkey
   kCfdDescriptorKeyBip32,     //!< bip32 extpubkey
   kCfdDescriptorKeyBip32Priv  //!< bip32 extprivkey
