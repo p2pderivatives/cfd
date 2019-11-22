@@ -105,6 +105,12 @@ NetType ConvertNetType(int network_type, bool* is_bitcoin) {
         net_type = NetType::kLiquidV1;
       } else if (network_type == kCfdNetworkElementsRegtest) {
         net_type = NetType::kElementsRegtest;
+      } else if (network_type == kCfdNetworkCustomChain) {
+        // do nothing
+      } else {
+        warn(CFD_LOG_SOURCE, "Illegal network type.({})", network_type);
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Illegal network type.");
       }
       if (is_bitcoin != nullptr) {
         *is_bitcoin = false;

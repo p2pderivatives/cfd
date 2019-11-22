@@ -22,11 +22,12 @@ extern "C" {
  * @brief network type
  */
 enum CfdNetworkType {
-  kCfdNetworkMainnet = 0,     //!< btc mainnet
-  kCfdNetworkTestnet,         //!< btc testnet
-  kCfdNetworkRegtest,         //!< btc regtest
-  kCfdNetworkLiquidv1 = 10,   //!< liquidv1
-  kCfdNetworkElementsRegtest  //!< elements regtest
+  kCfdNetworkMainnet = 0,      //!< btc mainnet
+  kCfdNetworkTestnet,          //!< btc testnet
+  kCfdNetworkRegtest,          //!< btc regtest
+  kCfdNetworkLiquidv1 = 10,    //!< liquidv1
+  kCfdNetworkElementsRegtest,  //!< elements regtest
+  kCfdNetworkCustomChain,      //!< elements custom chain
 };
 
 /**
