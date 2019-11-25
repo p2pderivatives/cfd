@@ -47,6 +47,26 @@ struct CfdCapiPrefixTemplate {
   char prefix[kPrefixLength];  //!< buffer prefix
 };
 
+//! prefix: MultisigSign
+constexpr const char* const kPrefixMultisigSignData = "MultisigSign";
+//! multisig max key num
+constexpr const uint32_t kMultisigMaxKeyNum = 16;
+//! signature hex size (73 * 2)
+constexpr const uint32_t kSignatureHexSize = 146;
+//! pubkey hex size (cfd::core::Pubkey::kPubkeySize * 2)
+constexpr const uint32_t kPubkeyHexSize = 130;
+/**
+ * @brief cfd-capi MultisigScript構造体.
+ */
+struct CfdCapiMultisigSignData {
+  char prefix[kPrefixLength];  //!< buffer prefix
+  //! pubkeys
+  char signatures[kMultisigMaxKeyNum][kSignatureHexSize + 1];
+  //! pubkeys
+  char pubkeys[kMultisigMaxKeyNum][kPubkeyHexSize + 1];
+  uint32_t current_index;  //!< current index
+};
+
 /**
  * @brief allocate buffer.
  * @param[in] prefix  prefix string (max: 15 char)
@@ -87,8 +107,16 @@ CFDC_API cfd::core::NetType ConvertNetType(int network_type, bool* is_bitcoin);
 CFDC_API cfd::core::AddressType ConvertHashToAddressType(int hash_type);
 
 /**
+ * @brief is empty string.
+ * @param[in] message  string text.
+ * @retval true   empty string
+ * @retval false  exist string
+ */
+CFDC_API bool IsEmptyString(const char* message);
+
+/**
  * @brief create string.
- * @param[in] message  hash type.
+ * @param[in] message  string text.
  * @return string buffer
  */
 CFDC_API char* CreateString(const std::string& message);

@@ -23,5 +23,7 @@ CFD_SOURCES = \
 
 CFD_CAPI_SOURCES = \
   capi/cfdcapi_common.cpp \
-  capi/cfdcapi_address.cpp
+  capi/cfdcapi_address.cpp \
+  capi/cfdcapi_elements_transaction.cpp \
+  capi/cfdcapi_transaction.cpp
 

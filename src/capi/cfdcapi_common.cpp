@@ -152,6 +152,14 @@ cfd::core::AddressType ConvertHashToAddressType(int hash_type) {
   return addr_type;
 }
 
+bool IsEmptyString(const char* message) {
+  if ((message == nullptr) || (*message == '\0')) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 char* CreateString(const std::string& message) {
   size_t len = message.length();
   char* addr = static_cast<char*>(::malloc(len + 1));

@@ -158,6 +158,9 @@ CFDC_API int CfdGetTxInIssuanceInfo(
  * @param[out] nonce             nonce hex.
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] locking_script    locking script
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @param[out] surjection_proof  surjection proof
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
@@ -169,7 +172,8 @@ CFDC_API int CfdGetTxInIssuanceInfo(
 CFDC_API int CfdGetConfidentialTxOut(
     void* handle, const char* tx_hex_string, uint32_t index,
     char** asset_string, int64_t* value_satoshi, char** value_commitment,
-    char** nonce, char** surjection_proof, char** rangeproof);
+    char** nonce, char** locking_script, char** surjection_proof,
+    char** rangeproof);
 
 /**
  * @brief get elements transaction input count.
@@ -218,8 +222,8 @@ CFDC_API int CfdGetConfidentialTxOutCount(
 CFDC_API int CfdSetReissueAsset(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     int64_t asset_amount, const char* blinding_nonce, const char* entropy,
-    const char* address, const char* direct_script_pubkey,
-    char** reissue_entropy, char** asset_string, char** tx_string);
+    const char* address, const char* direct_script_pubkey, char** asset_string,
+    char** tx_string);
 
 /**
  * @brief get issuance blinding key.
@@ -233,8 +237,8 @@ CFDC_API int CfdSetReissueAsset(
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetIssuanceBlindingKey(
-    void* handle, const char* master_blinding_key,
-    const char* txid, uint32_t vout, char** blinding_key);
+    void* handle, const char* master_blinding_key, const char* txid,
+    uint32_t vout, char** blinding_key);
 
 /**
  * @brief initialize blinding handle.
@@ -243,8 +247,7 @@ CFDC_API int CfdGetIssuanceBlindingKey(
  *   Call 'CfdFreeBlindHandle' after you are finished using it.
  * @return CfdErrorCode
  */
-CFDC_API int CfdInitializeBlindTx(
-    void* handle, void** blind_handle);
+CFDC_API int CfdInitializeBlindTx(void* handle, void** blind_handle);
 
 /**
  * @brief add blinding data of txin.
@@ -289,7 +292,8 @@ CFDC_API int CfdAddBlindTxOutData(
  * @return CfdErrorCode
  */
 CFDC_API int CfdFinalizeBlindTx(
-    void* handle, void* blind_handle, const char* tx_hex_string, char** tx_string);
+    void* handle, void* blind_handle, const char* tx_hex_string,
+    char** tx_string);
 
 /**
  * @brief free blinding handle.
@@ -339,6 +343,9 @@ CFDC_API int CfdAddConfidentialTxDerSign(
  * @param[in] tx_hex_string           tx hex.
  * @param[in] txid                    txin txid.
  * @param[in] vout                    txin vout.
+ * @param[in] hash_type       hash type.
+ * @param[in] witness_script  witness script for segwit.
+ * @param[in] redeem_script   redeem script for p2sh.
  * @param[out] tx_string              signed tx hex.
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
@@ -346,26 +353,32 @@ CFDC_API int CfdAddConfidentialTxDerSign(
  */
 CFDC_API int CfdFinalizeElementsMultisigSign(
     void* handle, void* multisign_handle, const char* tx_hex_string,
-    const char* txid, uint32_t vout, char** tx_string);
+    const char* txid, uint32_t vout, int hash_type, const char* witness_script,
+    const char* redeem_script, char** tx_string);
 
 /**
  * @brief create confidential transaction sighash.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     tx hex.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
  * @param[in] hash_type         hash type.
  * @param[in] pubkey            pubkey. (Specify null if disabled)
  * @param[in] redeem_script     redeem script. (Specify null if disabled)
  * @param[in] value_satoshi     satoshi value. (Specify 0 if disabled)
  * @param[in] value_commitment  value commitment. (Specify null if disabled)
+ * @param[in] sighash_type            sighash type.
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
  * @param[out] sighash          sighash.
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
 CFDC_API int CfdCreateConfidentialSighash(
-    void* handle, const char* tx_hex_string, int hash_type, const char* pubkey,
-    const char* redeem_script, int64_t value_satoshi,
-    const char* value_commitment, char** sighash);
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    int hash_type, const char* pubkey, const char* redeem_script,
+    int64_t value_satoshi, const char* value_commitment, int sighash_type,
+    bool sighash_anyone_can_pay, char** sighash);
 
 /**
  * @brief get unblind txout.
@@ -387,8 +400,8 @@ CFDC_API int CfdCreateConfidentialSighash(
  */
 CFDC_API int CfdUnblindTxOut(
     void* handle, const char* tx_hex_string, uint32_t tx_out_index,
-    const char* blinding_key,
-    char** asset, int64_t* value, char** asset_blind_factor, char** value_blind_factor);
+    const char* blinding_key, char** asset, int64_t* value,
+    char** asset_blind_factor, char** value_blind_factor);
 
 /**
  * @brief get unblind issuance.
@@ -423,9 +436,8 @@ CFDC_API int CfdUnblindIssuance(
     void* handle, const char* tx_hex_string, uint32_t tx_in_index,
     const char* asset_blinding_key, const char* token_blinding_key,
     char** asset, int64_t* asset_value, char** asset_blind_factor,
-    char** asset_value_blind_factor,
-    char** token, int64_t* token_value, char** token_blind_factor,
-    char** token_value_blind_factor);
+    char** asset_value_blind_factor, char** token, int64_t* token_value,
+    char** token_blind_factor, char** token_value_blind_factor);
 
 /* 後回し
 CFDC_API int CfdAddElementsWitnessStack(

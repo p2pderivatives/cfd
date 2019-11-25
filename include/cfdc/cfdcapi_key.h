@@ -33,9 +33,8 @@ extern "C" {
  * @return CfdErrorCode
  */
 CFDC_API int CfdCalcurateEcSignature(
-    void* handle, const char* sighash, const char* privkey,
-    const char* wif, int network_type, bool has_grind_r,
-    char** signature);
+    void* handle, const char* sighash, const char* privkey, const char* wif,
+    int network_type, bool has_grind_r, char** signature);
 
 /**
  * @brief create key pair.
@@ -82,7 +81,8 @@ CFDC_API int CfdGetPrivkeyFromWif(
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetPubkeyFromPrivkey(
-    void* handle, const char* privkey, const char* wif, bool is_compressed, char** pubkey);
+    void* handle, const char* privkey, const char* wif, bool is_compressed,
+    char** pubkey);
 
 /**
  * @brief create extkey from seed.
@@ -96,7 +96,8 @@ CFDC_API int CfdGetPubkeyFromPrivkey(
  * @return CfdErrorCode
  */
 CFDC_API int CfdCreateExtkeyFromSeed(
-    void* handle, const char* seed_hex, int network_type, int key_type, char** extkey);
+    void* handle, const char* seed_hex, int network_type, int key_type,
+    char** extkey);
 
 /**
  * @brief create extkey from parent path.
@@ -140,7 +141,8 @@ CFDC_API int CfdCreateExtPubkey(
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetPrivkeyFromExtkey(
-    void* handle, const char* extkey, int network_type, char** privkey, char** wif);
+    void* handle, const char* extkey, int network_type, char** privkey,
+    char** wif);
 
 /**
  * @brief get pubkey from extkey.
