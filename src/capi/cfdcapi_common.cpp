@@ -164,12 +164,6 @@ char* CreateString(const std::string& message) {
   return addr;
 }
 
-/**
- * @brief free heap buffer on error.
- * @param[in] pointer1  free address.
- * @param[in] pointer2  free address.
- * @param[in] pointer3  free address.
- */
 void FreeBufferOnError(
     char** pointer1, char** pointer2, char** pointer3, char** pointer4,
     char** pointer5, char** pointer6) {
