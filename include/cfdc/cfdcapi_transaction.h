@@ -54,8 +54,7 @@ CFDC_API int CfdAddMultisigSignData(
  */
 CFDC_API int CfdAddMultisigSignDataToDer(
     void* handle, void* multisign_handle, const char* signature,
-    uint8_t sighash_type, bool sighash_anyone_can_pay,
-    const char* related_pubkey);
+    int sighash_type, bool sighash_anyone_can_pay, const char* related_pubkey);
 
 #if 0
 /**
@@ -139,8 +138,6 @@ CFDC_API int CfdCreateSighash(void* handle, const char* tx_hex_string,
           - GetWitnessStackCount
         * CreateSignatureHash
           - CreateSignatureHash
-        * CalcurateEcSignature
-          - CalcurateEcSignature
         * AddSign
           - AddSign
         * AddMultisigSign

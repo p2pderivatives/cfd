@@ -56,9 +56,9 @@ using cfd::core::Txid;
  */
 struct TxInBlindParameters {
   Txid txid;                             //!< txid
-  uint32_t vout;                         //!< vout
+  uint32_t vout = 0;                     //!< vout
   BlindParameter blind_param;            //!< blinding parameter
-  bool is_issuance;                      //!< issuance flag
+  bool is_issuance = false;              //!< issuance flag
   IssuanceBlindingKeyPair issuance_key;  //!< issuance blinding keys
 };
 
@@ -66,7 +66,7 @@ struct TxInBlindParameters {
  * @brief TxOut Blinding keys
  */
 struct TxOutBlindKeys {
-  uint32_t index;       //!< txout index
+  uint32_t index = 0;   //!< txout index
   Pubkey blinding_key;  //!< blinding key
 };
 
@@ -75,7 +75,7 @@ struct TxOutBlindKeys {
  */
 struct TxInPeginParameters {
   Txid txid;                      //!< txid
-  uint32_t vout;                  //!< vout
+  uint32_t vout = 0;              //!< vout
   Amount amount;                  //!< amount
   ConfidentialAssetId asset;      //!< asset
   BlockHash mainchain_blockhash;  //!< mainchain genesis block hash

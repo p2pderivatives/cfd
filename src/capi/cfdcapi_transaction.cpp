@@ -50,6 +50,7 @@ using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
+using cfd::capi::IsEmptyString;
 using cfd::capi::kMultisigMaxKeyNum;
 using cfd::capi::kPrefixMultisigSignData;
 using cfd::capi::kPubkeyHexSize;
@@ -90,11 +91,11 @@ int CfdAddMultisigSignData(
   try {
     cfd::Initialize();
     CheckBuffer(multisign_handle, kPrefixMultisigSignData);
-    if (signature == nullptr) {
-      warn(CFD_LOG_SOURCE, "pubkey is null.");
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. pubkey is null.");
+          "Failed to parameter. signature is null.");
     }
 
     CfdCapiMultisigSignData* data =
@@ -112,7 +113,7 @@ int CfdAddMultisigSignData(
     std::string sig_str = signature_bytes.GetHex();
     sig_str.copy(data->signatures[data->current_index], kSignatureHexSize);
 
-    if (related_pubkey != nullptr) {
+    if (!IsEmptyString(related_pubkey)) {
       Pubkey key = Pubkey(std::string(related_pubkey));
       std::string pubkey_str = key.GetHex();
       pubkey_str.copy(data->pubkeys[data->current_index], kPubkeyHexSize);
@@ -133,15 +134,15 @@ int CfdAddMultisigSignData(
 
 int CfdAddMultisigSignDataToDer(
     void* handle, void* multisign_handle, const char* signature,
-    uint8_t sighash_type, bool sighash_anyone_can_pay,
+    int sighash_type, bool sighash_anyone_can_pay,
     const char* related_pubkey) {
   try {
     cfd::Initialize();
-    if (signature == nullptr) {
-      warn(CFD_LOG_SOURCE, "pubkey is null.");
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. pubkey is null.");
+          "Failed to parameter. signature is null.");
     }
 
     // encode to der

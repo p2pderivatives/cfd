@@ -146,13 +146,13 @@ int CfdAddConfidentialTxIn(
     uint32_t sequence, char** tx_string) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx is null.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -184,10 +184,10 @@ int CfdAddConfidentialTxIn(
 int CfdAddConfidentialTxOut(
     void* handle, const char* tx_hex_string, const char* asset_string,
     int64_t value_satoshi, const char* value_commitment, const char* address,
-    const char* direct_script_pubkey, const char* nonce, char** tx_string) {
+    const char* direct_locking_script, const char* nonce, char** tx_string) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -199,13 +199,13 @@ int CfdAddConfidentialTxOut(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx output is null.");
     }
-    if (asset_string == nullptr) {
+    if (IsEmptyString(asset_string)) {
       warn(CFD_LOG_SOURCE, "asset is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. asset is null.");
     }
-    if ((value_satoshi <= 0) && (value_commitment == nullptr)) {
+    if ((value_satoshi <= 0) && (IsEmptyString(value_commitment))) {
       warn(CFD_LOG_SOURCE, "value is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -215,7 +215,7 @@ int CfdAddConfidentialTxOut(
     ConfidentialTransactionController ctxc(tx_hex_string);
 
     Amount amount;
-    if (value_commitment == nullptr) {
+    if (IsEmptyString(value_commitment)) {
       amount = Amount::CreateBySatoshiAmount(value_satoshi);
     } else {
       ConfidentialValue value = ConfidentialValue(value_commitment);
@@ -227,7 +227,7 @@ int CfdAddConfidentialTxOut(
     ElementsAddressFactory address_factory;
     ConfidentialAssetId asset_obj(asset_string);
     ConfidentialNonce nonce_obj;
-    if (nonce != nullptr) {
+    if (!IsEmptyString(nonce)) {
       nonce_obj = ConfidentialNonce(nonce);
     }
     if (!IsEmptyString(address)) {
@@ -238,8 +238,8 @@ int CfdAddConfidentialTxOut(
       } else {
         ctxc.AddTxOut(address_factory.GetAddress(address), amount, asset_obj);
       }
-    } else if (!IsEmptyString(direct_script_pubkey)) {
-      Script script(direct_script_pubkey);
+    } else if (!IsEmptyString(direct_locking_script)) {
+      Script script(direct_locking_script);
       ctxc.AddTxOut(script, amount, asset_obj, nonce_obj);
     } else if (amount > 0) {
       // fee
@@ -264,10 +264,10 @@ int CfdUpdateConfidentialTxOut(
     void* handle, const char* tx_hex_string, uint32_t index,
     const char* asset_string, int64_t value_satoshi,
     const char* value_commitment, const char* address,
-    const char* direct_script_pubkey, const char* nonce, char** tx_string) {
+    const char* direct_locking_script, const char* nonce, char** tx_string) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -279,13 +279,13 @@ int CfdUpdateConfidentialTxOut(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx output is null.");
     }
-    if (asset_string == nullptr) {
+    if (IsEmptyString(asset_string)) {
       warn(CFD_LOG_SOURCE, "asset is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. asset is null.");
     }
-    if ((value_satoshi <= 0) && (value_commitment == nullptr)) {
+    if ((value_satoshi <= 0) && (IsEmptyString(value_commitment))) {
       warn(CFD_LOG_SOURCE, "value is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -295,7 +295,7 @@ int CfdUpdateConfidentialTxOut(
     ConfidentialTransaction ctx(tx_hex_string);
 
     ConfidentialValue value;
-    if (value_commitment == nullptr) {
+    if (IsEmptyString(value_commitment)) {
       value = ConfidentialValue(Amount::CreateBySatoshiAmount(value_satoshi));
     } else {
       ConfidentialValue temp_value = ConfidentialValue(value_commitment);
@@ -307,7 +307,7 @@ int CfdUpdateConfidentialTxOut(
     ElementsAddressFactory address_factory;
     ConfidentialAssetId asset_obj(asset_string);
     ConfidentialNonce nonce_obj;
-    if (nonce != nullptr) {
+    if (!IsEmptyString(nonce)) {
       nonce_obj = ConfidentialNonce(std::string(nonce));
     }
     Script locking_script;
@@ -320,8 +320,8 @@ int CfdUpdateConfidentialTxOut(
         Address unconfidential_addr = address_factory.GetAddress(addr);
         locking_script = unconfidential_addr.GetLockingScript();
       }
-    } else if (!IsEmptyString(direct_script_pubkey)) {
-      locking_script = Script(std::string(direct_script_pubkey));
+    } else if (!IsEmptyString(direct_locking_script)) {
+      locking_script = Script(std::string(direct_locking_script));
     }
 
     ctx.SetTxOutCommitment(
@@ -345,7 +345,7 @@ int CfdGetConfidentialTxIn(
     uint32_t* vout, uint32_t* sequence, char** script_sig) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -390,7 +390,7 @@ int CfdGetTxInIssuanceInfo(
     char** asset_rangeproof, char** token_rangeproof) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -450,7 +450,7 @@ int CfdGetConfidentialTxOut(
     char** rangeproof) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -508,7 +508,7 @@ int CfdGetConfidentialTxInCount(
     void* handle, const char* tx_hex_string, uint32_t* count) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -537,7 +537,7 @@ int CfdGetConfidentialTxOutCount(
     void* handle, const char* tx_hex_string, uint32_t* count) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -565,11 +565,11 @@ int CfdGetConfidentialTxOutCount(
 int CfdSetRawReissueAsset(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     int64_t asset_amount, const char* blinding_nonce, const char* entropy,
-    const char* address, const char* direct_script_pubkey, char** asset_string,
-    char** tx_string) {
+    const char* address, const char* direct_locking_script,
+    char** asset_string, char** tx_string) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -581,19 +581,19 @@ int CfdSetRawReissueAsset(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. output tx is null.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. txid is null.");
     }
-    if (blinding_nonce == nullptr) {
+    if (IsEmptyString(blinding_nonce)) {
       warn(CFD_LOG_SOURCE, "blinding nonce is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. blinding nonce is null.");
     }
-    if (entropy == nullptr) {
+    if (IsEmptyString(entropy)) {
       warn(CFD_LOG_SOURCE, "entropy is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -614,8 +614,8 @@ int CfdSetRawReissueAsset(
         asset_txout =
             ConfidentialTxOut(unblind_addr, ConfidentialAssetId(), amount);
       }
-    } else if (!IsEmptyString(direct_script_pubkey)) {
-      Script script(direct_script_pubkey);
+    } else if (!IsEmptyString(direct_locking_script)) {
+      Script script(direct_locking_script);
       asset_txout = ConfidentialTxOut(
           script, ConfidentialAssetId(), ConfidentialValue(amount));
     }
@@ -659,13 +659,13 @@ int CfdGetIssuanceBlindingKey(
     uint32_t vout, char** blinding_key) {
   try {
     cfd::Initialize();
-    if (master_blinding_key == nullptr) {
+    if (IsEmptyString(master_blinding_key)) {
       warn(CFD_LOG_SOURCE, "master blinding key is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. master blinding key is null.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -746,13 +746,13 @@ int CfdAddBlindTxInData(
           CfdError::kCfdOutOfRangeError,
           "Failed to parameter. buffer state is illegal.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. txid is null.");
     }
-    if (asset_string == nullptr) {
+    if (IsEmptyString(asset_string)) {
       warn(CFD_LOG_SOURCE, "asset is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -843,7 +843,7 @@ int CfdFinalizeBlindTx(
   try {
     cfd::Initialize();
     CheckBuffer(blind_handle, kPrefixBlindTxData);
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -937,19 +937,19 @@ int CfdAddConfidentialTxSign(
     bool is_witness, const char* sign_data_hex, char** tx_string) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx is null.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. txid is null.");
     }
-    if (sign_data_hex == nullptr) {
+    if (IsEmptyString(sign_data_hex)) {
       warn(CFD_LOG_SOURCE, "sign data is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -990,7 +990,7 @@ int CfdAddConfidentialTxDerSign(
     bool sighash_anyone_can_pay, char** tx_string) {
   try {
     cfd::Initialize();
-    if (signature == nullptr) {
+    if (IsEmptyString(signature)) {
       warn(CFD_LOG_SOURCE, "pubkey is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -1025,13 +1025,13 @@ int CfdFinalizeElementsMultisigSign(
   try {
     cfd::Initialize();
     CheckBuffer(multisign_handle, kPrefixMultisigSignData);
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx is null.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -1049,7 +1049,7 @@ int CfdFinalizeElementsMultisigSign(
     AddressType addr_type = ConvertHashToAddressType(hash_type);
     switch (addr_type) {
       case AddressType::kP2shAddress:
-        if (redeem_script == nullptr) {
+        if (IsEmptyString(redeem_script)) {
           warn(CFD_LOG_SOURCE, "redeemScript is null.");
           throw CfdException(
               CfdError::kCfdIllegalArgumentError,
@@ -1060,7 +1060,7 @@ int CfdFinalizeElementsMultisigSign(
       case AddressType::kP2wshAddress:
         // fall-through
       case AddressType::kP2shP2wshAddress:
-        if (witness_script == nullptr) {
+        if (IsEmptyString(witness_script)) {
           warn(CFD_LOG_SOURCE, "witnessScript is null.");
           throw CfdException(
               CfdError::kCfdIllegalArgumentError,
@@ -1076,7 +1076,7 @@ int CfdFinalizeElementsMultisigSign(
     }
 
     if (addr_type == AddressType::kP2shP2wshAddress) {
-      if (redeem_script == nullptr) {
+      if (IsEmptyString(redeem_script)) {
         redeem_script_obj =
             ScriptUtil::CreateP2shLockingScript(witness_script_obj);
       } else {
@@ -1127,13 +1127,13 @@ int CfdCreateConfidentialSighash(
     bool sighash_anyone_can_pay, char** sighash) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx is null.");
     }
-    if (txid == nullptr) {
+    if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -1175,7 +1175,7 @@ int CfdCreateConfidentialSighash(
     ByteData key_data;
     if ((core_hash_type == HashType::kP2sh) ||
         (core_hash_type == HashType::kP2wsh)) {
-      if (redeem_script == nullptr) {
+      if (IsEmptyString(redeem_script)) {
         warn(CFD_LOG_SOURCE, "redeem script is null.");
         throw CfdException(
             CfdError::kCfdIllegalArgumentError,
@@ -1184,7 +1184,7 @@ int CfdCreateConfidentialSighash(
       Script redeem_script_obj = Script(redeem_script);
       key_data = redeem_script_obj.GetData();
     } else {
-      if (pubkey == nullptr) {
+      if (IsEmptyString(pubkey)) {
         warn(CFD_LOG_SOURCE, "pubkey is null.");
         throw CfdException(
             CfdError::kCfdIllegalArgumentError,
@@ -1195,7 +1195,7 @@ int CfdCreateConfidentialSighash(
     }
 
     ConfidentialValue value;
-    if (value_commitment == nullptr) {
+    if (IsEmptyString(value_commitment)) {
       value = ConfidentialValue(Amount::CreateBySatoshiAmount(value_satoshi));
     } else {
       value = ConfidentialValue(value_commitment);
@@ -1226,13 +1226,13 @@ int CfdUnblindTxOut(
     char** asset_blind_factor, char** value_blind_factor) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tx is null.");
     }
-    if (blinding_key == nullptr) {
+    if (IsEmptyString(blinding_key)) {
       warn(CFD_LOG_SOURCE, "blinding key is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -1280,7 +1280,7 @@ int CfdUnblindIssuance(
     char** token_blind_factor, char** token_value_blind_factor) {
   try {
     cfd::Initialize();
-    if (tx_hex_string == nullptr) {
+    if (IsEmptyString(tx_hex_string)) {
       warn(CFD_LOG_SOURCE, "tx is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,

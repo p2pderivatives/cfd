@@ -58,7 +58,7 @@ CFDC_API int CfdAddConfidentialTxIn(
  * @param[in] value_satoshi     satoshi value. (Specify 0 if disabled)
  * @param[in] value_commitment  value commitment. (Specify null if disabled)
  * @param[in] address           destination address.(Specify null if disabled)
- * @param[in] direct_script_pubkey  locking script for direct.
+ * @param[in] direct_locking_script  locking script for direct.
  *                                  (Specify null if disabled.)
  * @param[in] nonce             confidential nonce.(Specify null if disabled)
  * @param[out] tx_string        transaction hex.
@@ -69,7 +69,7 @@ CFDC_API int CfdAddConfidentialTxIn(
 CFDC_API int CfdAddConfidentialTxOut(
     void* handle, const char* tx_hex_string, const char* asset_string,
     int64_t value_satoshi, const char* value_commitment, const char* address,
-    const char* direct_script_pubkey, const char* nonce, char** tx_string);
+    const char* direct_locking_script, const char* nonce, char** tx_string);
 
 /**
  * @brief update elements transaction output.
@@ -80,7 +80,7 @@ CFDC_API int CfdAddConfidentialTxOut(
  * @param[in] value_satoshi     satoshi value. (Specify 0 if disabled)
  * @param[in] value_commitment  value commitment. (Specify null if disabled)
  * @param[in] address           destination address.(Specify null if disabled)
- * @param[in] direct_script_pubkey  locking script for direct.
+ * @param[in] direct_locking_script  locking script for direct.
  *                                  (Specify null if disabled.)
  * @param[in] nonce             confidential nonce.(Specify null if disabled)
  * @param[out] tx_string        transaction hex.
@@ -92,7 +92,7 @@ CFDC_API int CfdUpdateConfidentialTxOut(
     void* handle, const char* tx_hex_string, uint32_t index,
     const char* asset_string, int64_t value_satoshi,
     const char* value_commitment, const char* address,
-    const char* direct_script_pubkey, const char* nonce, char** tx_string);
+    const char* direct_locking_script, const char* nonce, char** tx_string);
 
 /**
  * @brief get elements transaction input.
@@ -206,7 +206,7 @@ CFDC_API int CfdGetConfidentialTxOutCount(
  * @param[in] entropy               entropy.
  * @param[in] address               asset destination address.
  *    (either address or lockingScript)
- * @param[in] direct_script_pubkey  asset for direct locking script.
+ * @param[in] direct_locking_script  asset for direct locking script.
  *    (either address or lockingScript)
  * @param[out] reissue_entropy      entropy.
  *   If 'CfdFreeStringBuffer' is implemented,
@@ -222,8 +222,8 @@ CFDC_API int CfdGetConfidentialTxOutCount(
 CFDC_API int CfdSetRawReissueAsset(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     int64_t asset_amount, const char* blinding_nonce, const char* entropy,
-    const char* address, const char* direct_script_pubkey, char** asset_string,
-    char** tx_string);
+    const char* address, const char* direct_locking_script,
+    char** asset_string, char** tx_string);
 
 /**
  * @brief get issuance blinding key.

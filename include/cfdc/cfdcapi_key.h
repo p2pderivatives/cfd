@@ -32,7 +32,7 @@ extern "C" {
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
-CFDC_API int CfdCalcurateEcSignature(
+CFDC_API int CfdCalculateEcSignature(
     void* handle, const char* sighash, const char* privkey, const char* wif,
     int network_type, bool has_grind_r, char** signature);
 

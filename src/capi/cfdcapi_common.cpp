@@ -245,8 +245,10 @@ void CfdCapiManager::SetLastError(
   // TODO(k-matsuzawa): handle存在チェックすべきかどうか
   if (handle != nullptr) {
     CfdCapiHandleData* data = static_cast<CfdCapiHandleData*>(handle);
+    memset(data->error_message, 0, sizeof(data->error_message));
     if (message != nullptr) {
-      std::string err_str(message, sizeof(data->error_message));
+      std::string err_str(
+          message, strnlen(message, sizeof(data->error_message)));
       err_str.copy(data->error_message, sizeof(data->error_message) - 1);
       data->error_message[sizeof(data->error_message) - 1] = '\0';
     }
