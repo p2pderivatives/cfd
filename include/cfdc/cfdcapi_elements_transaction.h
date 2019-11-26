@@ -124,10 +124,10 @@ CFDC_API int CfdGetConfidentialTxIn(
  * @param[out] nonce            nonce hex
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
- * @param[out] asset_string     asset
+ * @param[out] asset_value      asset value
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
- * @param[out] token_string     token asset
+ * @param[out] token_value      token value
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @param[out] asset_rangeproof  asset rangeproof
@@ -140,7 +140,7 @@ CFDC_API int CfdGetConfidentialTxIn(
  */
 CFDC_API int CfdGetTxInIssuanceInfo(
     void* handle, const char* tx_hex_string, uint32_t index, char** entropy,
-    char** nonce, char** asset_string, char** token_string,
+    char** nonce, char** asset_value, char** token_value,
     char** asset_rangeproof, char** token_rangeproof);
 
 /**
@@ -219,7 +219,7 @@ CFDC_API int CfdGetConfidentialTxOutCount(
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
-CFDC_API int CfdSetReissueAsset(
+CFDC_API int CfdSetRawReissueAsset(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     int64_t asset_amount, const char* blinding_nonce, const char* entropy,
     const char* address, const char* direct_script_pubkey, char** asset_string,

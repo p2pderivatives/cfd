@@ -35,6 +35,10 @@ namespace capi {
 
 using cfd::core::CfdException;
 
+//! empty 32byte data
+constexpr const char* const kEmpty32Bytes =
+    "0000000000000000000000000000000000000000000000000000000000000000";
+
 //! prefix size
 constexpr const uint32_t kPrefixLength = 16;
 //! prefix: handle data

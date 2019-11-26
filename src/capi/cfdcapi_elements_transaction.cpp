@@ -34,7 +34,9 @@ using cfd::ElementsAddressFactory;
 using cfd::SignParameter;
 using cfd::api::ElementsTransactionApi;
 using cfd::api::IssuanceOutput;
+using cfd::api::TxInBlindParameters;
 using cfd::api::TxInReissuanceParameters;
+using cfd::api::TxOutBlindKeys;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
@@ -70,13 +72,31 @@ using cfd::core::logger::warn;
 // internal c-api
 // =============================================================================
 namespace cfd {
-namespace capi {}  // namespace capi
+namespace capi {
+
+//! prefix: Blind Transaction Data
+constexpr const char* const kPrefixBlindTxData = "BlindTxData";
+
+/**
+ * @brief cfd-capi Blind Transaction Data構造体.
+ * @details 最大情報量が多すぎるため、flat structにはしない。
+ */
+struct CfdCapiBlindTxData {
+  char prefix[kPrefixLength];  //!< buffer prefix
+  //! txin list
+  std::vector<TxInBlindParameters>* txin_blind_keys;
+  //! txout list
+  std::vector<TxOutBlindKeys>* txout_blind_keys;
+};
+
+}  // namespace capi
 }  // namespace cfd
 
 // =============================================================================
 // extern c-api
 // =============================================================================
 using cfd::capi::AllocBuffer;
+using cfd::capi::CfdCapiBlindTxData;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertHashToAddressType;
@@ -84,7 +104,9 @@ using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
 using cfd::capi::IsEmptyString;
+using cfd::capi::kEmpty32Bytes;
 using cfd::capi::kMultisigMaxKeyNum;
+using cfd::capi::kPrefixBlindTxData;
 using cfd::capi::kPrefixMultisigSignData;
 using cfd::capi::kPubkeyHexSize;
 using cfd::capi::SetLastError;
@@ -364,7 +386,7 @@ int CfdGetConfidentialTxIn(
 
 int CfdGetTxInIssuanceInfo(
     void* handle, const char* tx_hex_string, uint32_t index, char** entropy,
-    char** nonce, char** asset_string, char** token_string,
+    char** nonce, char** asset_value, char** token_value,
     char** asset_rangeproof, char** token_rangeproof) {
   try {
     cfd::Initialize();
@@ -380,16 +402,16 @@ int CfdGetTxInIssuanceInfo(
     const ConfidentialTxInReference ref = tx.GetTxIn(index);
 
     if (entropy != nullptr) {
-      *entropy = CreateString(ref.GetAssetEntropy().GetHex());
+      *entropy = CreateString(BlindFactor(ref.GetAssetEntropy()).GetHex());
     }
     if (nonce != nullptr) {
-      *nonce = CreateString(ref.GetBlindingNonce().GetHex());
+      *nonce = CreateString(BlindFactor(ref.GetBlindingNonce()).GetHex());
     }
-    if (asset_string != nullptr) {
-      *asset_string = CreateString(ref.GetIssuanceAmount().GetHex());
+    if (asset_value != nullptr) {
+      *asset_value = CreateString(ref.GetIssuanceAmount().GetHex());
     }
-    if (token_string != nullptr) {
-      *token_string = CreateString(ref.GetInflationKeys().GetHex());
+    if (token_value != nullptr) {
+      *token_value = CreateString(ref.GetInflationKeys().GetHex());
     }
     if (asset_rangeproof != nullptr) {
       *asset_rangeproof =
@@ -403,18 +425,18 @@ int CfdGetTxInIssuanceInfo(
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     FreeBufferOnError(
-        entropy, nonce, asset_string, token_string, asset_rangeproof,
+        entropy, nonce, asset_value, token_value, asset_rangeproof,
         token_rangeproof);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     FreeBufferOnError(
-        entropy, nonce, asset_string, token_string, asset_rangeproof,
+        entropy, nonce, asset_value, token_value, asset_rangeproof,
         token_rangeproof);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     FreeBufferOnError(
-        entropy, nonce, asset_string, token_string, asset_rangeproof,
+        entropy, nonce, asset_value, token_value, asset_rangeproof,
         token_rangeproof);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
@@ -446,7 +468,7 @@ int CfdGetConfidentialTxOut(
     if ((value_satoshi != nullptr) && (!value.HasBlinding())) {
       *value_satoshi = value.GetAmount().GetSatoshiValue();
     }
-    if ((value_commitment != nullptr) && value.HasBlinding()) {
+    if (value_commitment != nullptr) {
       *value_commitment = CreateString(value.GetHex());
     }
     if (nonce != nullptr) {
@@ -540,7 +562,7 @@ int CfdGetConfidentialTxOutCount(
   }
 }
 
-int CfdSetReissueAsset(
+int CfdSetRawReissueAsset(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     int64_t asset_amount, const char* blinding_nonce, const char* entropy,
     const char* address, const char* direct_script_pubkey, char** asset_string,
@@ -676,8 +698,35 @@ int CfdGetIssuanceBlindingKey(
 }
 
 int CfdInitializeBlindTx(void* handle, void** blind_handle) {
-  // FIXME please implement.
-  return -1;
+  CfdCapiBlindTxData* buffer = nullptr;
+  try {
+    cfd::Initialize();
+    if (blind_handle == nullptr) {
+      warn(CFD_LOG_SOURCE, "blind handle is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. blind handle is null.");
+    }
+
+    buffer = static_cast<CfdCapiBlindTxData*>(
+        AllocBuffer(kPrefixBlindTxData, sizeof(CfdCapiBlindTxData)));
+    buffer->txin_blind_keys = new std::vector<TxInBlindParameters>();
+    buffer->txout_blind_keys = new std::vector<TxOutBlindKeys>();
+
+    *blind_handle = buffer;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (buffer != nullptr) CfdFreeBlindHandle(handle, buffer);
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    if (buffer != nullptr) CfdFreeBlindHandle(handle, buffer);
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    if (buffer != nullptr) CfdFreeBlindHandle(handle, buffer);
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
 }
 
 int CfdAddBlindTxInData(
@@ -685,27 +734,202 @@ int CfdAddBlindTxInData(
     const char* asset_string, const char* asset_blind_factor,
     const char* value_blind_vactor, int64_t value_satoshi,
     const char* asset_key, const char* token_key) {
-  // FIXME please implement.
-  return -1;
+  try {
+    cfd::Initialize();
+    CheckBuffer(blind_handle, kPrefixBlindTxData);
+
+    CfdCapiBlindTxData* buffer =
+        static_cast<CfdCapiBlindTxData*>(blind_handle);
+    if (buffer->txin_blind_keys == nullptr) {
+      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. buffer state is illegal.");
+    }
+    if (txid == nullptr) {
+      warn(CFD_LOG_SOURCE, "txid is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null.");
+    }
+    if (asset_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "asset is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset is null.");
+    }
+
+    TxInBlindParameters params;
+    params.txid = Txid(txid);
+    params.vout = vout;
+    params.blind_param.asset = ConfidentialAssetId(asset_string);
+    params.blind_param.value =
+        ConfidentialValue(Amount::CreateBySatoshiAmount(value_satoshi));
+    if (IsEmptyString(asset_blind_factor)) {
+      params.blind_param.abf = BlindFactor(kEmpty32Bytes);
+    } else {
+      params.blind_param.abf = BlindFactor(asset_blind_factor);
+    }
+    if (IsEmptyString(value_blind_vactor)) {
+      params.blind_param.vbf = BlindFactor(kEmpty32Bytes);
+    } else {
+      params.blind_param.vbf = BlindFactor(value_blind_vactor);
+    }
+
+    if (!IsEmptyString(asset_key)) {
+      params.is_issuance = true;
+      params.issuance_key.asset_key = Privkey(asset_key);
+    }
+    if (!IsEmptyString(token_key)) {
+      params.is_issuance = true;
+      params.issuance_key.token_key = Privkey(token_key);
+    }
+
+    buffer->txin_blind_keys->push_back(params);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
 }
 
 int CfdAddBlindTxOutData(
     void* handle, void* blind_handle, uint32_t index,
     const char* confidential_key) {
-  // FIXME please implement.
-  return -1;
+  try {
+    cfd::Initialize();
+    CheckBuffer(blind_handle, kPrefixBlindTxData);
+
+    CfdCapiBlindTxData* buffer =
+        static_cast<CfdCapiBlindTxData*>(blind_handle);
+    if (buffer->txout_blind_keys == nullptr) {
+      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. buffer state is illegal.");
+    }
+    if (confidential_key == nullptr) {
+      warn(CFD_LOG_SOURCE, "confidential key is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. confidential key is null.");
+    }
+
+    TxOutBlindKeys params;
+    params.index = index;
+    params.blinding_key = Pubkey(confidential_key);
+
+    buffer->txout_blind_keys->push_back(params);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
 }
 
 int CfdFinalizeBlindTx(
     void* handle, void* blind_handle, const char* tx_hex_string,
     char** tx_string) {
-  // FIXME please implement.
-  return -1;
+  try {
+    cfd::Initialize();
+    CheckBuffer(blind_handle, kPrefixBlindTxData);
+    if (tx_hex_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "tx is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null.");
+    }
+    if (tx_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "tx is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. output tx is null.");
+    }
+
+    CfdCapiBlindTxData* buffer =
+        static_cast<CfdCapiBlindTxData*>(blind_handle);
+    if ((buffer->txin_blind_keys == nullptr) ||
+        (buffer->txout_blind_keys == nullptr)) {
+      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. buffer state is illegal.");
+    }
+    if (buffer->txin_blind_keys->empty()) {
+      warn(CFD_LOG_SOURCE, "txin blind data is empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txin blind data is empty.");
+    }
+    if (buffer->txout_blind_keys->empty()) {
+      warn(CFD_LOG_SOURCE, "txout blind data is empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txout blind data is empty.");
+    }
+
+    bool is_issuance_blinding = false;
+    for (const auto& txin_blind_data : *buffer->txin_blind_keys) {
+      if (txin_blind_data.is_issuance) {
+        is_issuance_blinding = true;
+        break;
+      }
+    }
+
+    ElementsTransactionApi api;
+    ConfidentialTransactionController ctxc = api.BlindTransaction(
+        tx_hex_string, *buffer->txin_blind_keys, *buffer->txout_blind_keys,
+        is_issuance_blinding);
+    *tx_string = CreateString(ctxc.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
 }
 
 int CfdFreeBlindHandle(void* handle, void* blind_handle) {
-  // FIXME please implement.
-  return -1;
+  try {
+    cfd::Initialize();
+    if (blind_handle != nullptr) {
+      CfdCapiBlindTxData* blind_tx_struct =
+          static_cast<CfdCapiBlindTxData*>(blind_handle);
+      if (blind_tx_struct->txin_blind_keys != nullptr) {
+        delete blind_tx_struct->txin_blind_keys;
+        blind_tx_struct->txin_blind_keys = nullptr;
+      }
+      if (blind_tx_struct->txout_blind_keys != nullptr) {
+        delete blind_tx_struct->txout_blind_keys;
+        blind_tx_struct->txout_blind_keys = nullptr;
+      }
+    }
+    FreeBuffer(blind_handle, kPrefixBlindTxData, sizeof(CfdCapiBlindTxData));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
 }
 
 int CfdAddConfidentialTxSign(
