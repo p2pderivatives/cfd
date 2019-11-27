@@ -934,7 +934,7 @@ int CfdFreeBlindHandle(void* handle, void* blind_handle) {
 
 int CfdAddConfidentialTxSign(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    bool is_witness, const char* sign_data_hex, char** tx_string) {
+    bool is_witness, const char* sign_data_hex, bool clear_stack, char** tx_string) {
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -969,7 +969,7 @@ int CfdAddConfidentialTxSign(
     ElementsTransactionApi api;
     ConfidentialTransactionController ctxc = api.AddSign(
         std::string(tx_hex_string), Txid(std::string(txid)), vout, sign_list,
-        is_witness);
+        is_witness, clear_stack);
     *tx_string = CreateString(ctxc.GetHex());
 
     return CfdErrorCode::kCfdSuccess;
@@ -987,7 +987,7 @@ int CfdAddConfidentialTxSign(
 int CfdAddConfidentialTxDerSign(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     bool is_witness, const char* signature, int sighash_type,
-    bool sighash_anyone_can_pay, char** tx_string) {
+    bool sighash_anyone_can_pay, bool clear_stack, char** tx_string) {
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
@@ -1006,7 +1006,7 @@ int CfdAddConfidentialTxDerSign(
 
     return CfdAddConfidentialTxSign(
         handle, tx_hex_string, txid, vout, is_witness,
-        signature_der.GetHex().c_str(), tx_string);
+        signature_der.GetHex().c_str(), clear_stack, tx_string);
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
@@ -1021,7 +1021,7 @@ int CfdAddConfidentialTxDerSign(
 int CfdFinalizeElementsMultisigSign(
     void* handle, void* multisign_handle, const char* tx_hex_string,
     const char* txid, uint32_t vout, int hash_type, const char* witness_script,
-    const char* redeem_script, char** tx_string) {
+    const char* redeem_script, bool clear_stack, char** tx_string) {
   try {
     cfd::Initialize();
     CheckBuffer(multisign_handle, kPrefixMultisigSignData);
@@ -1105,7 +1105,7 @@ int CfdFinalizeElementsMultisigSign(
     ElementsTransactionApi api;
     ConfidentialTransactionController ctxc = api.AddMultisigSign(
         std::string(tx_hex_string), Txid(std::string(txid)), vout, sign_list,
-        addr_type, witness_script_obj, redeem_script_obj);
+        addr_type, witness_script_obj, redeem_script_obj, clear_stack);
     *tx_string = CreateString(ctxc.GetHex());
 
     return CfdErrorCode::kCfdSuccess;

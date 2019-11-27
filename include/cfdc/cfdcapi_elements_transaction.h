@@ -311,12 +311,13 @@ CFDC_API int CfdFreeBlindHandle(void* handle, void* blind_handle);
  * @param[in] vout            txin vout.
  * @param[in] is_witness      insert to witness stack.
  * @param[in] sign_data_hex   add sign data.
+ * @param[in] clear_stack     cleanup scriptSig stack data.
  * @param[out] tx_string      signed transaction hex.
  * @return CfdErrorCode
  */
 CFDC_API int CfdAddConfidentialTxSign(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    bool is_witness, const char* sign_data_hex, char** tx_string);
+    bool is_witness, const char* sign_data_hex, bool clear_stack, char** tx_string);
 
 /**
  * @brief sign convert to der, and add sign to confidential transaction.
@@ -328,25 +329,27 @@ CFDC_API int CfdAddConfidentialTxSign(
  * @param[in] signature       add sign data signature.
  * @param[in] sighash_type            sighash type.
  * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[in] clear_stack     cleanup scriptSig stack data.
  * @param[out] tx_string      signed transaction hex.
  * @return CfdErrorCode
  */
 CFDC_API int CfdAddConfidentialTxDerSign(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     bool is_witness, const char* signature, int sighash_type,
-    bool sighash_anyone_can_pay, char** tx_string);
+    bool sighash_anyone_can_pay, bool clear_stack, char** tx_string);
 
 /**
  * @brief append multisig sign to transaction.
- * @param[in] handle                  cfd handle.
- * @param[in] multisign_handle        multisig sign handle.
- * @param[in] tx_hex_string           tx hex.
- * @param[in] txid                    txin txid.
- * @param[in] vout                    txin vout.
- * @param[in] hash_type       hash type.
- * @param[in] witness_script  witness script for segwit.
- * @param[in] redeem_script   redeem script for p2sh.
- * @param[out] tx_string              signed tx hex.
+ * @param[in] handle            cfd handle.
+ * @param[in] multisign_handle  multisig sign handle.
+ * @param[in] tx_hex_string     tx hex.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.
+ * @param[in] witness_script    witness script for segwit.
+ * @param[in] redeem_script     redeem script for p2sh.
+ * @param[in] clear_stack       cleanup scriptSig stack data.
+ * @param[out] tx_string        signed tx hex.
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
@@ -354,7 +357,7 @@ CFDC_API int CfdAddConfidentialTxDerSign(
 CFDC_API int CfdFinalizeElementsMultisigSign(
     void* handle, void* multisign_handle, const char* tx_hex_string,
     const char* txid, uint32_t vout, int hash_type, const char* witness_script,
-    const char* redeem_script, char** tx_string);
+    const char* redeem_script, bool clear_stack, char** tx_string);
 
 /**
  * @brief create confidential transaction sighash.
