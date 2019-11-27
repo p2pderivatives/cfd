@@ -26,9 +26,6 @@ TEST(cfdcapi_elements_address, ConfidentialAddress) {
   EXPECT_EQ(kCfdSuccess, ret);
   EXPECT_FALSE((NULL == handle));
 
-  char* tx_string = nullptr;
-  char* tx_string2 = nullptr;
-  int64_t satoshi;
   static const char* kAddress = "Q7wegLt2qMGhm28vch6VTzvpzs8KXvs4X7";
   static const char* kConfidentialKey = "025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357";
   static const char* kConfidentialAddr = "VTpvKKc1SNmLG4H8CnR1fGJdHdyWGEQEvdP9gfeneJR7n81S5kiwNtgF7vrZjC8mp63HvwxM81nEbTxU";

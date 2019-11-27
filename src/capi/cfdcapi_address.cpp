@@ -159,6 +159,9 @@ int CfdCreateAddress(
       addr = e_api.CreateAddress(
           net_type, addr_type, &pubkey_obj, &script, &lock_script,
           &unlocking_script);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
@@ -309,6 +312,9 @@ int CfdFinalizeMultisigScript(
       addr = e_api.CreateMultisig(
           net_type, addr_type, require_num, pubkeys, &redeem_script_obj,
           &witness_script_obj);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
@@ -656,6 +662,9 @@ int CfdGetAddressesFromMultisig(
       ElementsAddressApi e_api;
       addr_list = e_api.GetAddressesFromMultisig(
           net_type, addr_type, redeem_script_obj, &pubkey_list);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
