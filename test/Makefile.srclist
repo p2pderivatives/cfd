@@ -11,6 +11,8 @@ TEST_CFD_SOURCES= \
 TEST_CFD_STATIC_SOURCES= 
 
 TEST_CFD_CAPI_SOURCES= \
+    capi/test_cfdcapi_elements_address.cpp \
     capi/test_cfdcapi_elements_transaction.cpp \
+    capi/test_cfdcapi_key.cpp \
     capi/test_cfdcapi_common.cpp
 
