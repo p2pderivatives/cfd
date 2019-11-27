@@ -16,42 +16,10 @@ extern "C" {
 #endif  // 0
 #endif  // __cplusplus
 
+#include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
 
 // FIXME elementsを先に作る
-
-/**
- * @brief address type
- */
-enum CfdAddressType {
-  kCfdP2shAddress = 1,   //!< Legacy address (Script Hash)
-  kCfdP2pkhAddress,      //!< Legacy address (PublicKey Hash)
-  kCfdP2wshAddress,      //!< Native segwit address (Script Hash)
-  kCfdP2wpkhAddress,     //!< Native segwit address (PublicKey Hash)
-  kCfdP2shP2wshAddress,  //!< P2sh wrapped address (Script Hash)
-  kCfdP2shP2wpkhAddress  //!< P2sh wrapped address (Pubkey Hash)
-};
-
-/**
- * @brief hash type
- */
-enum CfdHashType {
-  kCfdP2sh = 1,   //!< Legacy address (Script Hash)
-  kCfdP2pkh,      //!< Legacy address (PublicKey Hash)
-  kCfdP2wsh,      //!< Native segwit address (Script Hash)
-  kCfdP2wpkh,     //!< Native segwit address (PublicKey Hash)
-  kCfdP2shP2wsh,  //!< P2sh wrapped address (Script Hash)
-  kCfdP2shP2wpkh  //!< P2sh wrapped address (Pubkey Hash)
-};
-
-/**
- * @brief sighash type
- */
-enum CfdSighashType {
-  kCfdSigHashAll = 0x01,     //!< SIGHASH_ALL
-  kCfdSigHashNone = 0x02,    //!< SIGHASH_NONE
-  kCfdSigHashSingle = 0x03,  //!< SIGHASH_SINGLE
-};
 
 /*
 CFDC_API int CfdInitializeMultisigSign(
