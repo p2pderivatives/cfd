@@ -19,4 +19,6 @@ fi
 
 cd `git rev-parse --show-toplevel`
 search_lint $py_exe include/cfd ../..
+search_lint $py_exe include/cfdc ../..
 search_lint $py_exe src ..
+search_lint $py_exe src/capi ../..

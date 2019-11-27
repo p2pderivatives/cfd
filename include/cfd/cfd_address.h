@@ -144,6 +144,14 @@ class CFD_EXPORT AddressFactory {
   Address CreateP2wshMultisigAddress(
       uint32_t require_num, const std::vector<Pubkey>& pubkeys) const;
 
+  /**
+   * @brief check address's network type is valid.
+   * @param[in] address address which is checked network type
+   * @param[in] net_type check network type (ref: cfd::core::NetType)
+   * @return true: much net_type, false: unmatch
+   */
+  bool CheckAddressNetType(const Address& address, NetType net_type) const;
+
  protected:
   NetType type_;                                //!< network type
   WitnessVersion wit_ver_;                      //!< witness version
