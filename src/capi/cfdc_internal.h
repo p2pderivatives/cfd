@@ -120,7 +120,7 @@ CFDC_API bool IsEmptyString(const char* message);
 
 /**
  * @brief create string.
- * @param[in] message  string text.
+ * @param[in] message  message string.
  * @return string buffer
  */
 CFDC_API char* CreateString(const std::string& message);
