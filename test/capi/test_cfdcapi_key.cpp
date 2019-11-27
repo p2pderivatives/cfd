@@ -197,17 +197,6 @@ TEST(cfdcapi_key, ExtkeyTest) {
   CfdFreeStringBuffer(wif);
   CfdFreeStringBuffer(pubkey);
 
-  ret = CfdCreateKeyPair(handle, false, kNetwork, &pubkey, &privkey, &wif);
-  EXPECT_EQ(kCfdSuccess, ret);
-  if (ret == kCfdSuccess) {
-    EXPECT_EQ(130, strlen(pubkey));
-    EXPECT_EQ(64, strlen(privkey));
-    EXPECT_EQ(51, strlen(wif));
-    CfdFreeStringBuffer(pubkey);
-    CfdFreeStringBuffer(privkey);
-    CfdFreeStringBuffer(wif);
-  }
-
   ret = CfdGetLastErrorCode(handle);
   if (ret != kCfdSuccess) {
     char* str_buffer = NULL;
