@@ -75,7 +75,7 @@ CFDC_API int CfdAddMultisigSignDataToDer(
 CFDC_API int CfdFinalizeMultisigSign(
     void* handle, void* multisign_handle,
     const char* tx_hex_string, const char* txid, uint32_t vout,
-    int hash_type, const char* witness_script, const char* redeem_script, 
+    int hash_type, const char* witness_script, const char* redeem_script,
     char** tx_string);
 #endif
 

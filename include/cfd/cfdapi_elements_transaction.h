@@ -314,9 +314,9 @@ class CFD_EXPORT ElementsTransactionApi {
    * @brief Multisig署名情報を追加する.
    * @details 追加するsignatureの順序は、redeem
    * scriptのpubkeyとsign_list内のrelatedPubkeyで
-   *   対応をとって自動的に整列される.
+   * 対応をとって自動的に整列される.
    * (relatedPubkeyが設定されていない場合は、relatedPubkeyが
-   *   設定されているsignatureを追加した後にsignParamの順序でsignatureを追加)
+   *  設定されているsignatureを追加した後にsignParamの順序でsignatureを追加)
    * @param[in] tx_hex          tx hex string
    * @param[in] txin            target tx input
    * @param[in] sign_list       sign data list

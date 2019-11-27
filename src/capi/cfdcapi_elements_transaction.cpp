@@ -934,7 +934,8 @@ int CfdFreeBlindHandle(void* handle, void* blind_handle) {
 
 int CfdAddConfidentialTxSign(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    bool is_witness, const char* sign_data_hex, bool clear_stack, char** tx_string) {
+    bool is_witness, const char* sign_data_hex, bool clear_stack,
+    char** tx_string) {
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {

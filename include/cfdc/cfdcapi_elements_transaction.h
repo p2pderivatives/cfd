@@ -208,9 +208,6 @@ CFDC_API int CfdGetConfidentialTxOutCount(
  *    (either address or lockingScript)
  * @param[in] direct_locking_script  asset for direct locking script.
  *    (either address or lockingScript)
- * @param[out] reissue_entropy      entropy.
- *   If 'CfdFreeStringBuffer' is implemented,
- *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @param[out] asset_string         asset hex.
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
@@ -317,7 +314,8 @@ CFDC_API int CfdFreeBlindHandle(void* handle, void* blind_handle);
  */
 CFDC_API int CfdAddConfidentialTxSign(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    bool is_witness, const char* sign_data_hex, bool clear_stack, char** tx_string);
+    bool is_witness, const char* sign_data_hex, bool clear_stack,
+    char** tx_string);
 
 /**
  * @brief sign convert to der, and add sign to confidential transaction.
