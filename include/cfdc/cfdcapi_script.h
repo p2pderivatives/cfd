@@ -41,7 +41,8 @@ CFDC_API int CfdParseScript(
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetScriptItem(
-    void* handle, void* script_item_handle, uint32_t index, char** script_item);
+    void* handle, void* script_item_handle, uint32_t index,
+    char** script_item);
 
 /**
  * @brief free script item handle.

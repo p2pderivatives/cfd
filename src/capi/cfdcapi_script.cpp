@@ -124,7 +124,8 @@ CFDC_API int CfdParseScript(
 }
 
 int CfdGetScriptItem(
-    void* handle, void* script_item_handle, uint32_t index, char** script_item) {
+    void* handle, void* script_item_handle, uint32_t index,
+    char** script_item) {
   try {
     cfd::Initialize();
     CheckBuffer(script_item_handle, kPrefixScriptItem);
