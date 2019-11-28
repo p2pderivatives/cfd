@@ -22,7 +22,7 @@ using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::Script;
 using cfd::core::ScriptElement;
-
+using cfd::core::ScriptElementType;
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
 
@@ -41,7 +41,8 @@ constexpr const char* const kPrefixScriptItem = "ScriptItem";
  */
 struct CfdCapiScriptItemHandleData {
   char prefix[kPrefixLength];  //!< buffer prefix
-  std::vector<std::string>* script_items;  //! elements
+  //! script item hex list
+  std::vector<std::string>* script_items;
 };
 
 }  // namespace capi
@@ -95,7 +96,14 @@ CFDC_API int CfdParseScript(
     buffer->script_items = new std::vector<std::string>;
     buffer->script_items->reserve(script_elems.size());
     for(const auto& elem : script_elems) {
-      buffer->script_items->push_back(elem.GetData().GetHex());
+      std::string data;
+      if (elem.IsOpCode()) {
+        // OP_CODE をHEXに変換
+        data = elem.GetData().GetHex();
+      } else {
+        data = elem.ToString();
+      }
+      buffer->script_items->push_back(data);
     }
     *script_item_handle = buffer;
     *script_item_num = static_cast<int>(buffer->script_items->size());
