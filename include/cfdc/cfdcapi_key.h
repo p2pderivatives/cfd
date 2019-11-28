@@ -20,6 +20,14 @@ extern "C" {
 #include "cfdc/cfdcapi_common.h"
 
 /**
+ * @brief extkey type.
+ */
+enum CfdExtKeyType {
+  kCfdExtPrivkey = 0,  //!< extended privkey
+  kCfdExtPubkey        //!< extended pubkey
+};
+
+/**
  * @brief calcurate ec signature.
  * @param[in] handle        cfd handle.
  * @param[in] sighash       sighash.
@@ -159,16 +167,6 @@ CFDC_API int CfdGetPubkeyFromExtkey(
 
 #if 0
 /*
-      - key
-        * CreateExtkeyFromParent
-
-
-class CFD_EXPORT KeyApi {
- public:
-
-  std::string GetPubkeyFromPrivkey(
-      const std::string& privkey, bool is_compressed = true) const;
-};
 class CFD_EXPORT HDWalletApi {
  public:
   std::vector<std::string> GetMnemonicWordlist(

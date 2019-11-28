@@ -114,6 +114,21 @@ CFDC_API int CfdGetConfidentialTxIn(
     uint32_t* vout, uint32_t* sequence, char** script_sig);
 
 /**
+ * @brief get elements transaction input witness stack.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txin_index        txin index.
+ * @param[in] stack_index       witness stack index.
+ * @param[out] stack_data       witness stack data.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInWitness(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t stack_index, char** stack_data);
+
+/**
  * @brief get elements issuance information.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     transaction hex.
@@ -124,10 +139,12 @@ CFDC_API int CfdGetConfidentialTxIn(
  * @param[out] nonce            nonce hex
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
- * @param[out] asset_value      asset value
+ * @param[out] asset_amount     asset amount value
+ * @param[out] asset_value      asset commitment value
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
- * @param[out] token_value      token value
+ * @param[out] token_amount     token amount value
+ * @param[out] token_value      token commitment value
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @param[out] asset_rangeproof  asset rangeproof
@@ -140,8 +157,9 @@ CFDC_API int CfdGetConfidentialTxIn(
  */
 CFDC_API int CfdGetTxInIssuanceInfo(
     void* handle, const char* tx_hex_string, uint32_t index, char** entropy,
-    char** nonce, char** asset_value, char** token_value,
-    char** asset_rangeproof, char** token_rangeproof);
+    char** nonce, int64_t* asset_amount, char** asset_value,
+    int64_t* token_amount, char** token_value, char** asset_rangeproof,
+    char** token_rangeproof);
 
 /**
  * @brief get elements transaction output.
@@ -184,6 +202,18 @@ CFDC_API int CfdGetConfidentialTxOut(
  */
 CFDC_API int CfdGetConfidentialTxInCount(
     void* handle, const char* tx_hex_string, uint32_t* count);
+
+/**
+ * @brief get elements transaction input witness stack count.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txin_index        txin index.
+ * @param[out] count            witness stack count.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInWitnessCount(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t* count);
 
 /**
  * @brief get elements transaction output count.
