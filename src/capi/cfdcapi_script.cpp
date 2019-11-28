@@ -52,16 +52,16 @@ struct CfdCapiScriptItemHandleData {
 // extern c-api
 // =============================================================================
 using cfd::capi::AllocBuffer;
+using cfd::capi::CfdCapiScriptItemHandleData;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
 using cfd::capi::IsEmptyString;
+using cfd::capi::kPrefixScriptItem;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
-using cfd::capi::CfdCapiScriptItemHandleData;
-using cfd::capi::kPrefixScriptItem;
 
 // API
 extern "C" {
@@ -95,7 +95,7 @@ CFDC_API int CfdParseScript(
         AllocBuffer(kPrefixScriptItem, sizeof(CfdCapiScriptItemHandleData)));
     buffer->script_items = new std::vector<std::string>;
     buffer->script_items->reserve(script_elems.size());
-    for(const auto& elem : script_elems) {
+    for (const auto& elem : script_elems) {
       std::string data;
       if (elem.IsOpCode()) {
         // OP_CODE をHEXに変換

@@ -40,8 +40,8 @@ CFDC_API int CfdParseScript(
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
-CFDC_API int CfdGetScriptItem(void* handle, void* script_item_handle,
-    int index, char** script_item);
+CFDC_API int CfdGetScriptItem(
+    void* handle, void* script_item_handle, int index, char** script_item);
 
 /**
  * @brief free script item handle.
@@ -58,4 +58,4 @@ CFDC_API int CfdFreeScriptItemHandle(void* handle, void* script_item_handle);
 }
 #endif  // __cplusplus
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_
+#endif  // CFD_INCLUDE_CFDC_CFDCAPI_SCRIPT_H_
