@@ -64,7 +64,7 @@ constexpr const uint32_t kPubkeyHexSize = 130;
  */
 struct CfdCapiMultisigSignData {
   char prefix[kPrefixLength];  //!< buffer prefix
-  //! pubkeys
+  //! signatures
   char signatures[kMultisigMaxKeyNum][kSignatureHexSize + 1];
   //! pubkeys
   char pubkeys[kMultisigMaxKeyNum][kPubkeyHexSize + 1];
