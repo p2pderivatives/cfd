@@ -168,15 +168,19 @@ TEST(cfdcapi_elements_transaction, GetTransactionData) {
     char* nonce = nullptr;
     char* asset_value = nullptr;
     char* token_value = nullptr;
+    int64_t asset_amount = 0;
+    int64_t token_amount = 0;
     ret = CfdGetTxInIssuanceInfo(
-        handle, tx_data, 1, &entropy, &nonce, &asset_value, &token_value,
-        nullptr, nullptr);
+        handle, tx_data, 1, &entropy, &nonce, &asset_amount, &asset_value,
+        &token_amount, &token_value, nullptr, nullptr);
     EXPECT_EQ(kCfdSuccess, ret);
     if (ret == kCfdSuccess) {
       EXPECT_STREQ("6f9ccf5949eba5d6a08bff7a015e825c97824e82d57c8a0c77f9a41908fe8306", entropy);
       EXPECT_STREQ("0b8954757234fd3ec9cf0dd6ef0a89d825ec56a9532e7da4b6cb90c51be3bbd8", nonce);
       EXPECT_STREQ("010000000023c34600", asset_value);
       EXPECT_STREQ("", token_value);
+      EXPECT_EQ(600000000, asset_amount);
+      EXPECT_EQ(0, token_amount);
 
       CfdFreeStringBuffer(entropy);
       CfdFreeStringBuffer(nonce);
@@ -531,6 +535,17 @@ TEST(cfdcapi_elements_transaction, AddSignConfidentialTx) {
     }
     if (ret == kCfdSuccess) {
       EXPECT_STREQ("0200000001020f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570000000000ffffffff0f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c346000004017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b947f6002200d8510dfcf8e2330c0795c771d1e6064daab2f274ac32a6e2708df9bfa893d17a914ef3e40882e17d6e477082fcafeb0f09dc32d377b87010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b9270002cc645552109331726c0ffadccab21620dd7a5a33260c6ac7bd1c78b98cb1e35a1976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000000000c350000001cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c3460003ce4c4eac09fe317f365e45c00ffcf2e9639bc0fd792c10f72cdc173c4e5ed8791976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac0000000000000247304402200268633a57723c6612ef217c49bdf804c632a14be2967c76afec4fd5781ad4c20220131f358b2381a039c8c502959c64fbfeccf287be7dae710b4446968553aefbea012103f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d600000000000000000000000000", tx_string2);
+
+      uint32_t count = 0;
+      ret = CfdGetConfidentialTxInWitnessCount(handle, tx_string2, 0, &count);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_EQ(2, count);
+
+      char* stack = nullptr;
+      ret = CfdGetConfidentialTxInWitness(handle, tx_string2, 0, 1, &stack);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_STREQ("03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6", stack);
+
       CfdFreeStringBuffer(tx_string2);
     }
 

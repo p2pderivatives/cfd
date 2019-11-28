@@ -137,9 +137,11 @@ TEST(cfdcapi_common, CfdGetLastErrorMessage) {
 }
 
 // last test.
+/* comment out.
 TEST(cfdcapi_common, CfdFinalize) {
   int ret = CfdInitialize();
   EXPECT_EQ(kCfdSuccess, ret);
   ret = CfdFinalize(false);
   EXPECT_EQ(kCfdSuccess, ret);
 }
+*/

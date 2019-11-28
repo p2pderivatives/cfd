@@ -343,6 +343,8 @@ int CfdUpdateConfidentialTxOut(
 int CfdGetConfidentialTxIn(
     void* handle, const char* tx_hex_string, uint32_t index, char** txid,
     uint32_t* vout, uint32_t* sequence, char** script_sig) {
+  char* work_txid = nullptr;
+  char* work_script_sig = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -357,7 +359,7 @@ int CfdGetConfidentialTxIn(
     const ConfidentialTxInReference ref = tx.GetTxIn(index);
 
     if (txid != nullptr) {
-      *txid = CreateString(ref.GetTxid().GetHex());
+      work_txid = CreateString(ref.GetTxid().GetHex());
     }
     if (vout != nullptr) {
       *vout = ref.GetVout();
@@ -366,19 +368,65 @@ int CfdGetConfidentialTxIn(
       *sequence = ref.GetSequence();
     }
     if (script_sig != nullptr) {
-      *script_sig = CreateString(ref.GetUnlockingScript().GetHex());
+      work_script_sig = CreateString(ref.GetUnlockingScript().GetHex());
     }
 
+    if (work_txid != nullptr) *txid = work_txid;
+    if (work_script_sig != nullptr) *script_sig = work_script_sig;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(txid, script_sig);
+    FreeBufferOnError(&work_txid, &work_script_sig);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(txid, script_sig);
+    FreeBufferOnError(&work_txid, &work_script_sig);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(txid, script_sig);
+    FreeBufferOnError(&work_txid, &work_script_sig);
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdGetConfidentialTxInWitness(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t stack_index, char** stack_data) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null.");
+    }
+    if (stack_data == nullptr) {
+      warn(CFD_LOG_SOURCE, "stack data is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. stack data is null.");
+    }
+
+    ConfidentialTransactionController ctxc(tx_hex_string);
+    const ConfidentialTransaction& tx = ctxc.GetTransaction();
+    const ConfidentialTxInReference ref = tx.GetTxIn(txin_index);
+
+    const std::vector<ByteData> witness_stack =
+        ref.GetScriptWitness().GetWitness();
+    if (witness_stack.size() <= stack_index) {
+      warn(CFD_LOG_SOURCE, "stackIndex is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. stackIndex out of witness stack.");
+    }
+    *stack_data = CreateString(witness_stack[stack_index].GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -386,8 +434,15 @@ int CfdGetConfidentialTxIn(
 
 int CfdGetTxInIssuanceInfo(
     void* handle, const char* tx_hex_string, uint32_t index, char** entropy,
-    char** nonce, char** asset_value, char** token_value,
-    char** asset_rangeproof, char** token_rangeproof) {
+    char** nonce, int64_t* asset_amount, char** asset_value,
+    int64_t* token_amount, char** token_value, char** asset_rangeproof,
+    char** token_rangeproof) {
+  char* work_entropy = nullptr;
+  char* work_nonce = nullptr;
+  char* work_asset_value = nullptr;
+  char* work_token_value = nullptr;
+  char* work_asset_rangeproof = nullptr;
+  char* work_token_rangeproof = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -402,42 +457,62 @@ int CfdGetTxInIssuanceInfo(
     const ConfidentialTxInReference ref = tx.GetTxIn(index);
 
     if (entropy != nullptr) {
-      *entropy = CreateString(BlindFactor(ref.GetAssetEntropy()).GetHex());
+      work_entropy = CreateString(BlindFactor(ref.GetAssetEntropy()).GetHex());
     }
     if (nonce != nullptr) {
-      *nonce = CreateString(BlindFactor(ref.GetBlindingNonce()).GetHex());
+      work_nonce = CreateString(BlindFactor(ref.GetBlindingNonce()).GetHex());
+    }
+    const ConfidentialValue& asset_obj = ref.GetIssuanceAmount();
+    const ConfidentialValue& token_obj = ref.GetInflationKeys();
+    if ((asset_amount != nullptr) && (!asset_obj.HasBlinding())) {
+      *asset_amount = (asset_obj.HasBlinding())
+                          ? 0
+                          : asset_obj.GetAmount().GetSatoshiValue();
     }
     if (asset_value != nullptr) {
-      *asset_value = CreateString(ref.GetIssuanceAmount().GetHex());
+      work_asset_value = CreateString(asset_obj.GetHex());
+    }
+    if ((token_amount != nullptr) && (!token_obj.HasBlinding())) {
+      *token_amount = (token_obj.HasBlinding())
+                          ? 0
+                          : token_obj.GetAmount().GetSatoshiValue();
     }
     if (token_value != nullptr) {
-      *token_value = CreateString(ref.GetInflationKeys().GetHex());
+      work_token_value = CreateString(token_obj.GetHex());
     }
     if (asset_rangeproof != nullptr) {
-      *asset_rangeproof =
+      work_asset_rangeproof =
           CreateString(ref.GetIssuanceAmountRangeproof().GetHex());
     }
     if (token_rangeproof != nullptr) {
-      *token_rangeproof =
+      work_token_rangeproof =
           CreateString(ref.GetInflationKeysRangeproof().GetHex());
     }
 
+    if (work_entropy != nullptr) *entropy = work_entropy;
+    if (work_nonce != nullptr) *nonce = work_nonce;
+    if (work_asset_value != nullptr) *asset_value = work_asset_value;
+    if (work_token_value != nullptr) *token_value = work_token_value;
+    if (work_asset_rangeproof != nullptr)
+      *asset_rangeproof = work_asset_rangeproof;
+    if (work_token_rangeproof != nullptr)
+      *token_rangeproof = work_token_rangeproof;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     FreeBufferOnError(
-        entropy, nonce, asset_value, token_value, asset_rangeproof,
-        token_rangeproof);
+        &work_entropy, &work_nonce, &work_asset_value, &work_token_value,
+        &work_asset_rangeproof, &work_token_rangeproof);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     FreeBufferOnError(
-        entropy, nonce, asset_value, token_value, asset_rangeproof,
-        token_rangeproof);
+        &work_entropy, &work_nonce, &work_asset_value, &work_token_value,
+        &work_asset_rangeproof, &work_token_rangeproof);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     FreeBufferOnError(
-        entropy, nonce, asset_value, token_value, asset_rangeproof,
-        token_rangeproof);
+        &work_entropy, &work_nonce, &work_asset_value, &work_token_value,
+        &work_asset_rangeproof, &work_token_rangeproof);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -448,6 +523,12 @@ int CfdGetConfidentialTxOut(
     char** asset_string, int64_t* value_satoshi, char** value_commitment,
     char** nonce, char** locking_script, char** surjection_proof,
     char** rangeproof) {
+  char* work_asset_string = nullptr;
+  char* work_value_commitment = nullptr;
+  char* work_nonce = nullptr;
+  char* work_locking_script = nullptr;
+  char* work_surjection_proof = nullptr;
+  char* work_rangeproof = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -462,43 +543,52 @@ int CfdGetConfidentialTxOut(
     const ConfidentialTxOutReference ref = tx.GetTxOut(index);
 
     if (asset_string != nullptr) {
-      *asset_string = CreateString(ref.GetAsset().GetHex());
+      work_asset_string = CreateString(ref.GetAsset().GetHex());
     }
     ConfidentialValue value = ref.GetConfidentialValue();
     if ((value_satoshi != nullptr) && (!value.HasBlinding())) {
       *value_satoshi = value.GetAmount().GetSatoshiValue();
     }
     if (value_commitment != nullptr) {
-      *value_commitment = CreateString(value.GetHex());
+      work_value_commitment = CreateString(value.GetHex());
     }
     if (nonce != nullptr) {
-      *nonce = CreateString(ref.GetNonce().GetHex());
+      work_nonce = CreateString(ref.GetNonce().GetHex());
     }
     if (locking_script != nullptr) {
-      *locking_script = CreateString(ref.GetLockingScript().GetHex());
+      work_locking_script = CreateString(ref.GetLockingScript().GetHex());
     }
     if (surjection_proof != nullptr) {
-      *surjection_proof = CreateString(ref.GetSurjectionProof().GetHex());
+      work_surjection_proof = CreateString(ref.GetSurjectionProof().GetHex());
     }
     if (rangeproof != nullptr) {
-      *rangeproof = CreateString(ref.GetRangeProof().GetHex());
+      work_rangeproof = CreateString(ref.GetRangeProof().GetHex());
     }
+
+    if (work_asset_string != nullptr) *asset_string = work_asset_string;
+    if (work_value_commitment != nullptr)
+      *value_commitment = work_value_commitment;
+    if (work_nonce != nullptr) *nonce = work_nonce;
+    if (work_locking_script != nullptr) *locking_script = work_locking_script;
+    if (work_surjection_proof != nullptr)
+      *surjection_proof = work_surjection_proof;
+    if (work_rangeproof != nullptr) *rangeproof = work_rangeproof;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     FreeBufferOnError(
-        asset_string, value_commitment, nonce, locking_script,
-        surjection_proof, rangeproof);
+        &work_asset_string, &work_value_commitment, &work_nonce,
+        &work_locking_script, &work_surjection_proof, &work_rangeproof);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     FreeBufferOnError(
-        asset_string, value_commitment, nonce, locking_script,
-        surjection_proof, rangeproof);
+        &work_asset_string, &work_value_commitment, &work_nonce,
+        &work_locking_script, &work_surjection_proof, &work_rangeproof);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     FreeBufferOnError(
-        asset_string, value_commitment, nonce, locking_script,
-        surjection_proof, rangeproof);
+        &work_asset_string, &work_value_commitment, &work_nonce,
+        &work_locking_script, &work_surjection_proof, &work_rangeproof);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -520,6 +610,37 @@ int CfdGetConfidentialTxInCount(
 
     if (count != nullptr) {
       *count = tx.GetTxInCount();
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdGetConfidentialTxInWitnessCount(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t* count) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null.");
+    }
+
+    ConfidentialTransactionController ctxc(tx_hex_string);
+    const ConfidentialTransaction& tx = ctxc.GetTransaction();
+    const ConfidentialTxInReference ref = tx.GetTxIn(txin_index);
+
+    if (count != nullptr) {
+      *count = ref.GetScriptWitnessStackNum();
     }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -567,6 +688,8 @@ int CfdSetRawReissueAsset(
     int64_t asset_amount, const char* blinding_nonce, const char* entropy,
     const char* address, const char* direct_locking_script,
     char** asset_string, char** tx_string) {
+  char* work_asset_string = nullptr;
+  char* work_tx_string = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -635,20 +758,22 @@ int CfdSetRawReissueAsset(
         api.SetRawReissueAsset(tx_hex_string, issuances, &outputs);
 
     if (!outputs.empty() && (asset_string != nullptr)) {
-      *asset_string = CreateString(outputs[0].output.asset.GetHex());
+      work_asset_string = CreateString(outputs[0].output.asset.GetHex());
     }
-    *tx_string = CreateString(ctxc.GetHex());
+    work_tx_string = CreateString(ctxc.GetHex());
 
+    if (work_asset_string != nullptr) *asset_string = work_asset_string;
+    *tx_string = work_tx_string;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(asset_string, tx_string);
+    FreeBufferOnError(&work_asset_string, &work_tx_string);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(asset_string, tx_string);
+    FreeBufferOnError(&work_asset_string, &work_tx_string);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(asset_string, tx_string);
+    FreeBufferOnError(&work_asset_string, &work_tx_string);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -1225,6 +1350,9 @@ int CfdUnblindTxOut(
     void* handle, const char* tx_hex_string, uint32_t tx_out_index,
     const char* blinding_key, char** asset, int64_t* value,
     char** asset_blind_factor, char** value_blind_factor) {
+  char* work_asset = nullptr;
+  char* work_asset_blind_factor = nullptr;
+  char* work_value_blind_factor = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -1246,28 +1374,37 @@ int CfdUnblindTxOut(
 
     if (!unblind_data.asset.IsEmpty()) {
       if (asset != nullptr) {
-        *asset = CreateString(unblind_data.asset.GetHex());
+        work_asset = CreateString(unblind_data.asset.GetHex());
       }
       if (value != nullptr) {
         *value = unblind_data.value.GetAmount().GetSatoshiValue();
       }
       if (asset_blind_factor != nullptr) {
-        *asset_blind_factor = CreateString(unblind_data.abf.GetHex());
+        work_asset_blind_factor = CreateString(unblind_data.abf.GetHex());
       }
       if (value_blind_factor != nullptr) {
-        *value_blind_factor = CreateString(unblind_data.vbf.GetHex());
+        work_value_blind_factor = CreateString(unblind_data.vbf.GetHex());
       }
     }
+
+    if (work_asset != nullptr) *asset = work_asset;
+    if (work_asset_blind_factor != nullptr)
+      *asset_blind_factor = work_asset_blind_factor;
+    if (work_value_blind_factor != nullptr)
+      *value_blind_factor = work_value_blind_factor;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(asset, asset_blind_factor, value_blind_factor);
+    FreeBufferOnError(
+        &work_asset, &work_asset_blind_factor, &work_value_blind_factor);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(asset, asset_blind_factor, value_blind_factor);
+    FreeBufferOnError(
+        &work_asset, &work_asset_blind_factor, &work_value_blind_factor);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(asset, asset_blind_factor, value_blind_factor);
+    FreeBufferOnError(
+        &work_asset, &work_asset_blind_factor, &work_value_blind_factor);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -1279,6 +1416,12 @@ int CfdUnblindIssuance(
     char** asset, int64_t* asset_value, char** asset_blind_factor,
     char** asset_value_blind_factor, char** token, int64_t* token_value,
     char** token_blind_factor, char** token_value_blind_factor) {
+  char* work_asset = nullptr;
+  char* work_asset_blind_factor = nullptr;
+  char* work_asset_value_blind_factor = nullptr;
+  char* work_token = nullptr;
+  char* work_token_blind_factor = nullptr;
+  char* work_token_value_blind_factor = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
@@ -1310,48 +1453,61 @@ int CfdUnblindIssuance(
 
     if (!unblind_asset.asset.IsEmpty()) {
       if (asset != nullptr) {
-        *asset = CreateString(unblind_asset.asset.GetHex());
+        work_asset = CreateString(unblind_asset.asset.GetHex());
       }
       if (asset_value != nullptr) {
         *asset_value = unblind_asset.value.GetAmount().GetSatoshiValue();
       }
       if (asset_blind_factor != nullptr) {
-        *asset_blind_factor = CreateString(unblind_asset.abf.GetHex());
+        work_asset_blind_factor = CreateString(unblind_asset.abf.GetHex());
       }
       if (asset_value_blind_factor != nullptr) {
-        *asset_value_blind_factor = CreateString(unblind_asset.vbf.GetHex());
+        work_asset_value_blind_factor =
+            CreateString(unblind_asset.vbf.GetHex());
       }
     }
     if (!unblind_token.asset.IsEmpty()) {
       if (token != nullptr) {
-        *token = CreateString(unblind_token.asset.GetHex());
+        work_token = CreateString(unblind_token.asset.GetHex());
       }
       if (token_value != nullptr) {
         *token_value = unblind_token.value.GetAmount().GetSatoshiValue();
       }
       if (token_blind_factor != nullptr) {
-        *token_blind_factor = CreateString(unblind_token.abf.GetHex());
+        work_token_blind_factor = CreateString(unblind_token.abf.GetHex());
       }
       if (token_value_blind_factor != nullptr) {
-        *token_value_blind_factor = CreateString(unblind_token.vbf.GetHex());
+        work_token_value_blind_factor =
+            CreateString(unblind_token.vbf.GetHex());
       }
     }
+
+    if (work_asset != nullptr) *asset = work_asset;
+    if (work_asset_blind_factor != nullptr)
+      *asset_blind_factor = work_asset_blind_factor;
+    if (work_asset_value_blind_factor != nullptr)
+      *asset_value_blind_factor = work_asset_value_blind_factor;
+    if (work_token != nullptr) *token = work_token;
+    if (work_token_blind_factor != nullptr)
+      *token_blind_factor = work_token_blind_factor;
+    if (work_token_value_blind_factor != nullptr)
+      *token_value_blind_factor = work_token_value_blind_factor;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     FreeBufferOnError(
-        asset, asset_blind_factor, asset_value_blind_factor, token,
-        token_blind_factor, token_value_blind_factor);
+        &work_asset, &work_asset_blind_factor, &work_asset_value_blind_factor,
+        &work_token, &work_token_blind_factor, &work_token_value_blind_factor);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     FreeBufferOnError(
-        asset, asset_blind_factor, asset_value_blind_factor, token,
-        token_blind_factor, token_value_blind_factor);
+        &work_asset, &work_asset_blind_factor, &work_asset_value_blind_factor,
+        &work_token, &work_token_blind_factor, &work_token_value_blind_factor);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     FreeBufferOnError(
-        asset, asset_blind_factor, asset_value_blind_factor, token,
-        token_blind_factor, token_value_blind_factor);
+        &work_asset, &work_asset_blind_factor, &work_asset_value_blind_factor,
+        &work_token, &work_token_blind_factor, &work_token_value_blind_factor);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }

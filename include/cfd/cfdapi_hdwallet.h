@@ -112,6 +112,18 @@ class CFD_EXPORT HDWalletApi {
       const std::vector<uint32_t>& child_number_list) const;
 
   /**
+   * @brief 拡張鍵から派生拡張鍵を生成する.
+   * @param[in] extkey            extended key
+   * @param[in] net_type          network type
+   * @param[in] output_key_type   output extkey type
+   * @param[in] path              path
+   * @return extkey
+   */
+  std::string CreateExtkeyFromPathString(
+      const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
+      const std::string& path) const;
+
+  /**
    * @brief 拡張秘密鍵から同階層の拡張公開鍵を生成する.
    * @param[in] extkey            extended key
    * @param[in] net_type          network type
