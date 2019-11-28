@@ -110,11 +110,14 @@ CFDC_API int CfdParseScript(
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
+    if (buffer != nullptr) CfdFreeScriptItemHandle(handle, buffer);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
+    if (buffer != nullptr) CfdFreeScriptItemHandle(handle, buffer);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
+    if (buffer != nullptr) CfdFreeScriptItemHandle(handle, buffer);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
