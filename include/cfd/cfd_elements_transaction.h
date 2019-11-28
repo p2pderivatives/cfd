@@ -246,6 +246,15 @@ class CFD_EXPORT ConfidentialTransactionController
   const ConfidentialTxOutReference RemoveTxOut(uint32_t index);
 
   /**
+   * @brief Unlocking Scriptに挿入する.
+   * @param[in] txid 設定対象のTxInのtxid
+   * @param[in] vout 設定対象のTxInのvout
+   * @param[in] unlocking_scripts  署名を含むscriptリスト
+   */
+  void InsertUnlockingScript(
+      const Txid& txid, uint32_t vout,
+      const std::vector<ByteData>& unlocking_scripts);
+  /**
    * @brief TxInにUnlocking Scriptを設定する.
    * @param[in] txid 設定対象のTxInのtxid
    * @param[in] vout 設定対象のTxInのvout
