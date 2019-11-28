@@ -149,7 +149,6 @@ std::string HDWalletApi::CreateExtkeyFromParentPath(
   }
 
   ExtPrivkey privkey;
-  ExtPubkey pubkey;
   try {
     privkey = ExtPrivkey(extkey);
   } catch (const CfdException& except) {
@@ -170,6 +169,7 @@ std::string HDWalletApi::CreateExtkeyFromParentPath(
     check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
 
   } else {
+    ExtPubkey pubkey;
     try {
       pubkey = ExtPubkey(extkey);
     } catch (const CfdException& pub_except) {
@@ -223,7 +223,6 @@ std::string HDWalletApi::CreateExtkeyFromPathString(
 
   // TODO(k-matsuzawa): child_number_listの方とロジック同じなので統合したい
   ExtPrivkey privkey;
-  ExtPubkey pubkey;
   try {
     privkey = ExtPrivkey(extkey);
   } catch (const CfdException& except) {
@@ -246,6 +245,7 @@ std::string HDWalletApi::CreateExtkeyFromPathString(
     check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
 
   } else {
+    ExtPubkey pubkey;
     try {
       pubkey = ExtPubkey(extkey);
     } catch (const CfdException& pub_except) {
