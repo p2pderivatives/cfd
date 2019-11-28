@@ -102,6 +102,8 @@ int CfdCreateConfidentialAddress(
 int CfdParseConfidentialAddress(
     void* handle, const char* confidential_address, char** address,
     char** confidential_key, int* network_type) {
+  char* work_address = nullptr;
+  char* work_confidential_key = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(confidential_address)) {
@@ -139,23 +141,26 @@ int CfdParseConfidentialAddress(
       }
     }
     if (address != nullptr) {
-      *address = CreateString(addr.GetAddress());
+      work_address = CreateString(addr.GetAddress());
     }
     if (confidential_key != nullptr) {
-      *confidential_key =
+      work_confidential_key =
           CreateString(confidential_addr.GetConfidentialKey().GetHex());
     }
 
+    if (work_address != nullptr) *address = work_address;
+    if (work_confidential_key != nullptr)
+      *confidential_key = work_confidential_key;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(address, confidential_key);
+    FreeBufferOnError(&work_address, &work_confidential_key);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(address, confidential_key);
+    FreeBufferOnError(&work_address, &work_confidential_key);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(address, confidential_key);
+    FreeBufferOnError(&work_address, &work_confidential_key);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }

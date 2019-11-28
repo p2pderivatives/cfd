@@ -123,6 +123,9 @@ int CfdCreateAddress(
     void* handle, int hash_type, const char* pubkey, const char* redeem_script,
     int network_type, char** address, char** locking_script,
     char** p2sh_segwit_locking_script) {
+  char* work_address = nullptr;
+  char* work_locking_script = nullptr;
+  char* work_p2sh_segwit_locking_script = nullptr;
   try {
     cfd::Initialize();
     if (address == nullptr) {
@@ -165,27 +168,36 @@ int CfdCreateAddress(
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
-    *address = CreateString(addr.GetAddress());
+    work_address = CreateString(addr.GetAddress());
     if (locking_script != nullptr) {
       if (!lock_script.IsEmpty()) {
-        *locking_script = CreateString(lock_script.GetHex());
+        work_locking_script = CreateString(lock_script.GetHex());
       }
     }
     if (p2sh_segwit_locking_script != nullptr) {
       if (!unlocking_script.IsEmpty()) {
-        *p2sh_segwit_locking_script = CreateString(unlocking_script.GetHex());
+        work_p2sh_segwit_locking_script =
+            CreateString(unlocking_script.GetHex());
       }
     }
+
+    *address = work_address;
+    if (work_locking_script != nullptr) *locking_script = work_locking_script;
+    if (work_p2sh_segwit_locking_script != nullptr)
+      *p2sh_segwit_locking_script = work_p2sh_segwit_locking_script;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(address, locking_script, p2sh_segwit_locking_script);
+    FreeBufferOnError(
+        &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(address, locking_script, p2sh_segwit_locking_script);
+    FreeBufferOnError(
+        &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(address, locking_script, p2sh_segwit_locking_script);
+    FreeBufferOnError(
+        &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -274,6 +286,9 @@ int CfdAddMultisigScriptData(
 int CfdFinalizeMultisigScript(
     void* handle, void* multisig_handle, uint32_t require_num, char** address,
     char** redeem_script, char** witness_script) {
+  char* work_address = nullptr;
+  char* work_redeem_script = nullptr;
+  char* work_witness_script = nullptr;
   try {
     cfd::Initialize();
     CheckBuffer(multisig_handle, kPrefixMultisigScript);
@@ -318,27 +333,34 @@ int CfdFinalizeMultisigScript(
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
-    *address = CreateString(addr.GetAddress());
+    work_address = CreateString(addr.GetAddress());
     if (redeem_script != nullptr) {
       if (!redeem_script_obj.IsEmpty()) {
-        *redeem_script = CreateString(redeem_script_obj.GetHex());
+        work_redeem_script = CreateString(redeem_script_obj.GetHex());
       }
     }
     if (witness_script != nullptr) {
       if (!witness_script_obj.IsEmpty()) {
-        *witness_script = CreateString(witness_script_obj.GetHex());
+        work_witness_script = CreateString(witness_script_obj.GetHex());
       }
     }
+
+    *address = work_address;
+    if (work_redeem_script != nullptr) *redeem_script = work_redeem_script;
+    if (work_witness_script != nullptr) *witness_script = work_witness_script;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(address, redeem_script, witness_script);
+    FreeBufferOnError(
+        &work_address, &work_redeem_script, &work_witness_script);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(address, redeem_script, witness_script);
+    FreeBufferOnError(
+        &work_address, &work_redeem_script, &work_witness_script);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(address, redeem_script, witness_script);
+    FreeBufferOnError(
+        &work_address, &work_redeem_script, &work_witness_script);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -439,6 +461,12 @@ int CfdGetDescriptorData(
     int* hash_type, char** redeem_script, int* key_type, char** pubkey,
     char** ext_pubkey, char** ext_privkey, bool* is_multisig,
     uint32_t* max_key_num) {
+  char* work_locking_script = nullptr;
+  char* work_address = nullptr;
+  char* work_redeem_script = nullptr;
+  char* work_pubkey = nullptr;
+  char* work_ext_pubkey = nullptr;
+  char* work_ext_privkey = nullptr;
   try {
     cfd::Initialize();
     CheckBuffer(descriptor_handle, kPrefixOutputDescriptor);
@@ -460,19 +488,19 @@ int CfdGetDescriptorData(
     if (depth != nullptr) *depth = desc_data.depth;
     if (script_type != nullptr) *script_type = desc_data.type;
     if ((locking_script != nullptr) && (!desc_data.locking_script.IsEmpty())) {
-      *locking_script = CreateString(desc_data.locking_script.GetHex());
+      work_locking_script = CreateString(desc_data.locking_script.GetHex());
     }
     if ((address != nullptr) &&
         (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw) &&
         (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw)) {
       std::string addr = desc_data.address.GetAddress();
-      if (!addr.empty()) *address = CreateString(addr);
+      if (!addr.empty()) work_address = CreateString(addr);
     }
     if (hash_type != nullptr) {
       *hash_type = desc_data.address_type;
     }
     if ((redeem_script != nullptr) && (!desc_data.redeem_script.IsEmpty())) {
-      *redeem_script = CreateString(desc_data.redeem_script.GetHex());
+      work_redeem_script = CreateString(desc_data.redeem_script.GetHex());
     }
     if (key_type != nullptr) {
       *key_type = desc_data.key_type;
@@ -497,13 +525,13 @@ int CfdGetDescriptorData(
         break;
     }
     if ((pubkey != nullptr) && (pubkey_obj.IsValid())) {
-      *pubkey = CreateString(pubkey_obj.GetHex());
+      work_pubkey = CreateString(pubkey_obj.GetHex());
     }
     if ((ext_pubkey != nullptr) && (ext_pubkey_obj.IsValid())) {
-      *ext_pubkey = CreateString(ext_pubkey_obj.ToString());
+      work_ext_pubkey = CreateString(ext_pubkey_obj.ToString());
     }
     if ((ext_privkey != nullptr) && (ext_privkey_obj.IsValid())) {
-      *ext_privkey = CreateString(ext_privkey_obj.ToString());
+      work_ext_privkey = CreateString(ext_privkey_obj.ToString());
     }
     if (is_multisig != nullptr) {
       if ((!buffer->multisig_key_list->empty()) && (index == last_index)) {
@@ -516,22 +544,28 @@ int CfdGetDescriptorData(
       }
     }
 
+    if (work_locking_script != nullptr) *locking_script = work_locking_script;
+    if (work_address != nullptr) *address = work_address;
+    if (work_redeem_script != nullptr) *redeem_script = work_redeem_script;
+    if (work_pubkey != nullptr) *pubkey = work_pubkey;
+    if (work_ext_pubkey != nullptr) *ext_pubkey = work_ext_pubkey;
+    if (work_ext_privkey != nullptr) *ext_privkey = work_ext_privkey;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     FreeBufferOnError(
-        locking_script, address, redeem_script, pubkey, ext_pubkey,
-        ext_privkey);
+        &work_locking_script, &work_address, &work_redeem_script, &work_pubkey,
+        &work_ext_pubkey, &work_ext_privkey);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     FreeBufferOnError(
-        locking_script, address, redeem_script, pubkey, ext_pubkey,
-        ext_privkey);
+        &work_locking_script, &work_address, &work_redeem_script, &work_pubkey,
+        &work_ext_pubkey, &work_ext_privkey);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     FreeBufferOnError(
-        locking_script, address, redeem_script, pubkey, ext_pubkey,
-        ext_privkey);
+        &work_locking_script, &work_address, &work_redeem_script, &work_pubkey,
+        &work_ext_pubkey, &work_ext_privkey);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -540,6 +574,9 @@ int CfdGetDescriptorData(
 int CfdGetDescriptorMultisigKey(
     void* handle, void* descriptor_handle, uint32_t key_index, int* key_type,
     char** pubkey, char** ext_pubkey, char** ext_privkey) {
+  char* work_pubkey = nullptr;
+  char* work_ext_pubkey = nullptr;
+  char* work_ext_privkey = nullptr;
   try {
     cfd::Initialize();
     CheckBuffer(descriptor_handle, kPrefixOutputDescriptor);
@@ -578,24 +615,28 @@ int CfdGetDescriptorMultisigKey(
         break;
     }
     if ((pubkey != nullptr) && (pubkey_obj.IsValid())) {
-      *pubkey = CreateString(pubkey_obj.GetHex());
+      work_pubkey = CreateString(pubkey_obj.GetHex());
     }
     if ((ext_pubkey != nullptr) && (ext_pubkey_obj.IsValid())) {
-      *ext_pubkey = CreateString(ext_pubkey_obj.ToString());
+      work_ext_pubkey = CreateString(ext_pubkey_obj.ToString());
     }
     if ((ext_privkey != nullptr) && (ext_privkey_obj.IsValid())) {
-      *ext_privkey = CreateString(ext_privkey_obj.ToString());
+      work_ext_privkey = CreateString(ext_privkey_obj.ToString());
     }
+
+    if (work_pubkey != nullptr) *pubkey = work_pubkey;
+    if (work_ext_pubkey != nullptr) *ext_pubkey = work_ext_pubkey;
+    if (work_ext_privkey != nullptr) *ext_privkey = work_ext_privkey;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(pubkey, ext_pubkey, ext_privkey);
+    FreeBufferOnError(&work_pubkey, &work_ext_pubkey, &work_ext_privkey);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(pubkey, ext_pubkey, ext_privkey);
+    FreeBufferOnError(&work_pubkey, &work_ext_pubkey, &work_ext_privkey);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(pubkey, ext_pubkey, ext_privkey);
+    FreeBufferOnError(&work_pubkey, &work_ext_pubkey, &work_ext_privkey);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -702,6 +743,8 @@ int CfdGetAddressesFromMultisig(
 int CfdGetAddressFromMultisigKey(
     void* handle, void* addr_multisig_keys_handle, uint32_t index,
     char** address, char** pubkey) {
+  char* work_address = nullptr;
+  char* work_pubkey = nullptr;
   try {
     cfd::Initialize();
     CheckBuffer(addr_multisig_keys_handle, kPrefixMultisigAddresses);
@@ -714,20 +757,25 @@ int CfdGetAddressFromMultisigKey(
           CfdError::kCfdOutOfRangeError,
           "Failed to parameter. index is maximum over.");
     }
-    if (address)
-      *address = CreateString(std::string(buffer->addresses[index]));
-    if (pubkey) *pubkey = CreateString(std::string(buffer->pubkeys[index]));
+    if (address != nullptr) {
+      work_address = CreateString(std::string(buffer->addresses[index]));
+    }
+    if (pubkey != nullptr) {
+      work_pubkey = CreateString(std::string(buffer->pubkeys[index]));
+    }
 
+    if (work_address != nullptr) *address = work_address;
+    if (work_pubkey != nullptr) *pubkey = work_pubkey;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(pubkey, address);
+    FreeBufferOnError(&work_pubkey, &work_address);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(pubkey, address);
+    FreeBufferOnError(&work_pubkey, &work_address);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(pubkey, address);
+    FreeBufferOnError(&work_pubkey, &work_address);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }

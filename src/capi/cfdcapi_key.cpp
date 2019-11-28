@@ -112,6 +112,9 @@ int CfdCalculateEcSignature(
 int CfdCreateKeyPair(
     void* handle, bool is_compressed, int network_type, char** pubkey,
     char** privkey, char** wif) {
+  char* work_pubkey = nullptr;
+  char* work_privkey = nullptr;
+  char* work_wif = nullptr;
   try {
     cfd::Initialize();
 
@@ -124,25 +127,28 @@ int CfdCreateKeyPair(
         api.CreateKeyPair(is_compressed, &pubkey_obj, &privkey_wif, net_type);
 
     if (wif != nullptr) {
-      *wif = CreateString(privkey_wif);
+      work_wif = CreateString(privkey_wif);
     }
     if (privkey != nullptr) {
-      *privkey = CreateString(key.GetHex());
+      work_privkey = CreateString(key.GetHex());
     }
     if (pubkey != nullptr) {
-      *pubkey = CreateString(pubkey_obj.GetHex());
+      work_pubkey = CreateString(pubkey_obj.GetHex());
     }
 
+    if (work_privkey != nullptr) *privkey = work_privkey;
+    if (work_wif != nullptr) *wif = work_wif;
+    if (work_pubkey != nullptr) *pubkey = work_pubkey;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(privkey, wif, pubkey);
+    FreeBufferOnError(&work_privkey, &work_wif, &work_pubkey);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(privkey, wif, pubkey);
+    FreeBufferOnError(&work_privkey, &work_wif, &work_pubkey);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(privkey, wif, pubkey);
+    FreeBufferOnError(&work_privkey, &work_wif, &work_pubkey);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
@@ -336,6 +342,8 @@ int CfdCreateExtPubkey(
 int CfdGetPrivkeyFromExtkey(
     void* handle, const char* extkey, int network_type, char** privkey,
     char** wif) {
+  char* work_privkey = nullptr;
+  char* work_wif = nullptr;
   try {
     cfd::Initialize();
     if (IsEmptyString(extkey)) {
@@ -350,23 +358,25 @@ int CfdGetPrivkeyFromExtkey(
     std::string key;
     if (privkey != nullptr) {
       key = api.GetPrivkeyFromExtkey(extkey, net_type, false);
-      *privkey = CreateString(key);
+      work_privkey = CreateString(key);
     }
     if (wif != nullptr) {
       key = api.GetPrivkeyFromExtkey(extkey, net_type, true);
-      *wif = CreateString(key);
+      work_wif = CreateString(key);
     }
 
+    if (work_privkey != nullptr) *privkey = work_privkey;
+    if (work_wif != nullptr) *wif = work_wif;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(privkey, wif);
+    FreeBufferOnError(&work_privkey, &work_wif);
     return SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(privkey, wif);
+    FreeBufferOnError(&work_privkey, &work_wif);
     SetLastFatalError(handle, std_except.what());
     return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(privkey, wif);
+    FreeBufferOnError(&work_privkey, &work_wif);
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
