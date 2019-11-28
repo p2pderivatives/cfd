@@ -65,14 +65,6 @@ using cfd::capi::kPrefixScriptItem;
 // API
 extern "C" {
 
-/**
- * @brief parse script to script item array.
- * @param[in] handle            cfd handle.
- * @param[in] script            script string.
- * @param[out] script_handle    script item hex string array.
- * @param[out] script_item_num  num of items contains script.
- * @return CfdErrorCode
- */
 CFDC_API int CfdParseScript(
     void* handle, const char* script, void** script_item_handle,
     int* script_item_num) {
