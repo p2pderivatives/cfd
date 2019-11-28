@@ -28,7 +28,7 @@ extern "C" {
  */
 CFDC_API int CfdParseScript(
     void* handle, const char* script, void** script_item_handle,
-    int* script_item_num);
+    uint32_t* script_item_num);
 
 /**
  * @brief get script item from script item handle.
@@ -41,7 +41,7 @@ CFDC_API int CfdParseScript(
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetScriptItem(
-    void* handle, void* script_item_handle, int index, char** script_item);
+    void* handle, void* script_item_handle, uint32_t index, char** script_item);
 
 /**
  * @brief free script item handle.

@@ -68,7 +68,7 @@ extern "C" {
 
 CFDC_API int CfdParseScript(
     void* handle, const char* script, void** script_item_handle,
-    int* script_item_num) {
+    uint32_t* script_item_num) {
   CfdCapiScriptItemHandleData* buffer = nullptr;
   try {
     cfd::Initialize();
@@ -106,7 +106,7 @@ CFDC_API int CfdParseScript(
       buffer->script_items->push_back(data);
     }
     *script_item_handle = buffer;
-    *script_item_num = static_cast<int>(buffer->script_items->size());
+    *script_item_num = static_cast<uint32_t>(buffer->script_items->size());
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -124,14 +124,14 @@ CFDC_API int CfdParseScript(
 }
 
 int CfdGetScriptItem(
-    void* handle, void* script_item_handle, int index, char** script_item) {
+    void* handle, void* script_item_handle, uint32_t index, char** script_item) {
   try {
     cfd::Initialize();
     CheckBuffer(script_item_handle, kPrefixScriptItem);
 
     CfdCapiScriptItemHandleData* buffer =
         static_cast<CfdCapiScriptItemHandleData*>(script_item_handle);
-    int item_num = static_cast<int>(buffer->script_items->size());
+    int item_num = static_cast<uint32_t>(buffer->script_items->size());
     if ((buffer->script_items == nullptr) || (index >= item_num)) {
       warn(CFD_LOG_SOURCE, "index is out of range.");
       throw CfdException(
