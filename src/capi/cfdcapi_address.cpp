@@ -57,10 +57,6 @@ constexpr const char* const kPrefixMultisigScript = "MultisigScript";
 constexpr const char* const kPrefixOutputDescriptor = "Descriptor";
 //! prefix: MultisigAddresses
 constexpr const char* const kPrefixMultisigAddresses = "MultisigAddr";
-//! multisig max key num
-constexpr const uint32_t kMultisigMaxKeyNum = 16;
-//! pubkey hex size (cfd::core::Pubkey::kPubkeySize * 2)
-constexpr const uint32_t kPubkeyHexSize = 130;
 
 /**
  * @brief cfd-capi MultisigScript構造体.

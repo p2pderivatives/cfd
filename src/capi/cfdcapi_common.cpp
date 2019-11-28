@@ -152,6 +152,14 @@ cfd::core::AddressType ConvertHashToAddressType(int hash_type) {
   return addr_type;
 }
 
+bool IsEmptyString(const char* message) {
+  if ((message == nullptr) || (*message == '\0')) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 char* CreateString(const std::string& message) {
   size_t len = message.length();
   char* addr = static_cast<char*>(::malloc(len + 1));
@@ -164,12 +172,6 @@ char* CreateString(const std::string& message) {
   return addr;
 }
 
-/**
- * @brief free heap buffer on error.
- * @param[in] pointer1  free address.
- * @param[in] pointer2  free address.
- * @param[in] pointer3  free address.
- */
 void FreeBufferOnError(
     char** pointer1, char** pointer2, char** pointer3, char** pointer4,
     char** pointer5, char** pointer6) {
@@ -243,8 +245,10 @@ void CfdCapiManager::SetLastError(
   // TODO(k-matsuzawa): handle存在チェックすべきかどうか
   if (handle != nullptr) {
     CfdCapiHandleData* data = static_cast<CfdCapiHandleData*>(handle);
+    memset(data->error_message, 0, sizeof(data->error_message));
     if (message != nullptr) {
-      std::string err_str(message, sizeof(data->error_message));
+      std::string err_str(
+          message, strnlen(message, sizeof(data->error_message)));
       err_str.copy(data->error_message, sizeof(data->error_message) - 1);
       data->error_message[sizeof(data->error_message) - 1] = '\0';
     }

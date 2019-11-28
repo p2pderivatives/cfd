@@ -19,30 +19,152 @@ extern "C" {
 
 #include "cfdc/cfdcapi_common.h"
 
-/*
-CFDC_API int CfdCalcurateEcSignature(
-    void* handle, const char* sighash, const char* privkey, bool has_grind_r,
-    char** signature);
-*/
+/**
+ * @brief calcurate ec signature.
+ * @param[in] handle        cfd handle.
+ * @param[in] sighash       sighash.
+ * @param[in] privkey       privkey hex.
+ * @param[in] wif           privkey wif.
+ * @param[in] network_type  privkey wif network type.
+ * @param[in] has_grind_r   grind_r flag.
+ * @param[out] signature    signature.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCalculateEcSignature(
+    void* handle, const char* sighash, const char* privkey, const char* wif,
+    int network_type, bool has_grind_r, char** signature);
+
+/**
+ * @brief create key pair.
+ * @param[in] handle          cfd handle.
+ * @param[in] is_compressed   pubkey compressed.
+ * @param[in] network_type    privkey wif network type.
+ * @param[out] pubkey         pubkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] privkey        privkey hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wif            privkey wif.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateKeyPair(
+    void* handle, bool is_compressed, int network_type, char** pubkey,
+    char** privkey, char** wif);
+
+/**
+ * @brief get privkey from WIF.
+ * @param[in] handle          cfd handle.
+ * @param[in] wif             privkey wif.
+ * @param[in] network_type    privkey wif network type.
+ * @param[out] privkey        privkey hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPrivkeyFromWif(
+    void* handle, const char* wif, int network_type, char** privkey);
+
+/**
+ * @brief get pubkey from privkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] privkey         privkey hex. (or wif)
+ * @param[in] wif             privkey wif. (or privkey)
+ * @param[in] is_compressed   pubkey compressed.
+ * @param[out] pubkey         pubkey hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPubkeyFromPrivkey(
+    void* handle, const char* privkey, const char* wif, bool is_compressed,
+    char** pubkey);
+
+/**
+ * @brief create extkey from seed.
+ * @param[in] handle          cfd handle.
+ * @param[in] seed_hex        seed data(hex).
+ * @param[in] network_type    network type.
+ * @param[in] key_type        extkey type.
+ * @param[out] extkey         extkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateExtkeyFromSeed(
+    void* handle, const char* seed_hex, int network_type, int key_type,
+    char** extkey);
+
+/**
+ * @brief create extkey from parent path.
+ * @param[in] handle          cfd handle.
+ * @param[in] extkey          parent extkey.
+ * @param[in] path            create key path.(ex: 0/0h/0'/0)
+ * @param[in] network_type    network type.
+ * @param[in] key_type        extkey type.
+ * @param[out] child_extkey   child extkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateExtkeyFromParentPath(
+    void* handle, const char* extkey, const char* path, int network_type,
+    int key_type, char** child_extkey);
+
+/**
+ * @brief create extpubkey from extprivkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] extkey          ext privkey.
+ * @param[in] network_type    network type.
+ * @param[out] ext_pubkey     ext pubkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateExtPubkey(
+    void* handle, const char* extkey, int network_type, char** ext_pubkey);
+/**
+ * @brief get privkey from extprivkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] extkey          ext privkey.
+ * @param[in] network_type    network type.
+ * @param[out] privkey        privkey hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wif            privkey wif.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPrivkeyFromExtkey(
+    void* handle, const char* extkey, int network_type, char** privkey,
+    char** wif);
+
+/**
+ * @brief get pubkey from extkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] extkey          extkey.
+ * @param[in] network_type    network type.
+ * @param[out] pubkey         pubkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPubkeyFromExtkey(
+    void* handle, const char* extkey, int network_type, char** pubkey);
 
 #if 0
 /*
       - key
-        * CreateKeyPair
-        * GetPubkeyFromPrivkey
-        * CreateExtkeyFromSeed
         * CreateExtkeyFromParent
-        * CreateExtkeyFromParentPath
-        * CreateExtPubkey
-        * GetPrivkeyFromExtkey
-        * GetPubkeyFromExtkey
 
 
 class CFD_EXPORT KeyApi {
  public:
-  Privkey CreateKeyPair(
-      bool is_compressed, Pubkey* pubkey, std::string* wif = nullptr,
-      NetType net_type = NetType::kMainnet);
 
   std::string GetPubkeyFromPrivkey(
       const std::string& privkey, bool is_compressed = true) const;
@@ -60,27 +182,9 @@ class CFD_EXPORT HDWalletApi {
   std::vector<std::string> ConvertEntropyToMnemonic(
       const ByteData& entropy, const std::string& language) const;
 
-  std::string CreateExtkeyFromSeed(
-      const ByteData& seed, NetType net_type,
-      ExtKeyType output_key_type) const;
-
   std::string CreateExtkeyFromParent(
       const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
       uint32_t child_number, bool hardened) const;
-
-  std::string CreateExtkeyFromParentPath(
-      const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
-      const std::vector<uint32_t>& child_number_list) const;
-
-  std::string CreateExtPubkey(
-      const std::string& extkey, NetType net_type) const;
-
-  std::string GetPrivkeyFromExtkey(
-      const std::string& extkey, NetType net_type, bool wif = true,
-      bool is_compressed = true) const;
-
-  std::string GetPubkeyFromExtkey(
-      const std::string& extkey, NetType net_type) const;
 };
 */
 #endif
