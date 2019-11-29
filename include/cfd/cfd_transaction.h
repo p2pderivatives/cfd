@@ -163,6 +163,7 @@ class CFD_EXPORT TransactionController
 
   /**
    * @brief Unlocking Scriptに挿入する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 設定対象のTxInのtxid
    * @param[in] vout 設定対象のTxInのvout
    * @param[in] unlocking_scripts  署名を含むscriptリスト
@@ -180,6 +181,7 @@ class CFD_EXPORT TransactionController
       const Txid& txid, uint32_t vout, const Script& unlocking_script);
   /**
    * @brief Unlocking Scriptを設定する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 設定対象のTxInのtxid
    * @param[in] vout 設定対象のTxInのvout
    * @param[in] unlocking_scripts  署名を含むscriptリスト
@@ -190,6 +192,7 @@ class CFD_EXPORT TransactionController
 
   /**
    * @brief WitnessStackを追加する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 追加対象のTxInのtxid
    * @param[in] vout 追加対象のTxInのvout
    * @param[in] witness_datas   WitnessStack追加情報リスト
@@ -248,6 +251,7 @@ class CFD_EXPORT TransactionController
       const Script& redeem_script);
   /**
    * @brief WitnessStackの指定Indexのデータを更新する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 更新対象のTxInのtxid
    * @param[in] vout 更新対象のTxInのvout
    * @param[in] witness_index   WitnessStackのindex
