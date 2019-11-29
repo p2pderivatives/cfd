@@ -8,6 +8,7 @@
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
+#ifndef CFD_DISABLE_ELEMENTS
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,4 +65,5 @@ class CFD_EXPORT ElementsAddressApi {
 }
 #endif  // __cplusplus
 
+#endif  // CFD_DISABLE_ELEMENTS
 #endif  // CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_

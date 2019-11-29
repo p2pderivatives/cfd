@@ -262,7 +262,7 @@ CFDC_API int CfdFreeDescriptorHandle(void* handle, void* descriptor_handle);
  * @param[in] handle           handle pointer.
  * @param[in] redeem_script    redeem script.
  * @param[in] network_type     network type. (see CfdNetworkType)
- * @param[out] hash_type       hash type. (see CfdHashType)
+ * @param[in] hash_type       hash type. (see CfdHashType)
  * @param[out] addr_multisig_keys_handle  handle of getting multisig keys addr.
  *   Call 'CfdFreeAddressesMultisigHandle' after you are finished using it.
  * @param[out] max_key_num     multisig pubkey num.

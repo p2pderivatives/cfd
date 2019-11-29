@@ -134,6 +134,25 @@ const TxOutReference TransactionController::RemoveTxOut(uint32_t index) {
   return ref;
 }
 
+void TransactionController::InsertUnlockingScript(
+    const Txid& txid, uint32_t vout,
+    const std::vector<ByteData>& unlocking_scripts) {
+  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
+  Script script = transaction_.GetTxIn(txin_index).GetUnlockingScript();
+  if (script.IsEmpty()) {
+    transaction_.SetUnlockingScript(txin_index, unlocking_scripts);
+  } else {
+    ScriptBuilder builder;
+    for (const auto& element : script.GetElementList()) {
+      builder.AppendElement(element);
+    }
+    for (const ByteData& data : unlocking_scripts) {
+      builder.AppendData(data);
+    }
+    transaction_.SetUnlockingScript(txin_index, builder.Build());
+  }
+}
+
 void TransactionController::SetUnlockingScript(
     const Txid& txid, uint32_t vout, const Script& unlocking_script) {
   uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);

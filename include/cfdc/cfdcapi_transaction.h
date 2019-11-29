@@ -21,23 +21,71 @@ extern "C" {
 
 // FIXME elementsを先に作る
 
-/*
-CFDC_API int CfdInitializeMultisigSign(
-    void* handle, int address_type, const Script& witness_script,
-    const Script redeem_script, void** multisign_handle);
+/**
+ * @brief initialized for multisig sign.
+ * @param[in] handle          cfd handle.
+ * @param[out] multisign_handle  multisig sign handle.
+ *   Call 'CfdFreeMultisigSignHandle' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdInitializeMultisigSign(void* handle, void** multisign_handle);
+
+/**
+ * @brief append for multisig signature data.
+ * @param[in] handle            cfd handle.
+ * @param[in] multisign_handle  multisig sign handle.
+ * @param[in] signature         signature hex.
+ * @param[in] related_pubkey    pubkey hex.
+ * @return CfdErrorCode
+ */
 CFDC_API int CfdAddMultisigSignData(
-    void* handle, void* multisign_handle, const uint8_t* signature,
-    uint32_t signature_size, const char* related_pubkey);
-CFDC_API int CfdAddMultisigSignDataToDer(
-    void* handle, void* multisign_handle, const uint8_t* signature,
-    uint32_t signature_size, uint8_t sighashType, bool sighash_anyone_can_pay,
+    void* handle, void* multisign_handle, const char* signature,
     const char* related_pubkey);
-CFDC_API int CfdFreeMultisigSignHandle(void* handle, void* multisign_handle);
+
+/**
+ * @brief append for multisig signature data.
+ * @param[in] handle                  cfd handle.
+ * @param[in] multisign_handle        multisig sign handle.
+ * @param[in] signature               signature hex.
+ * @param[in] sighash_type            sighash type.
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pey flag.
+ * @param[in] related_pubkey          pubkey hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddMultisigSignDataToDer(
+    void* handle, void* multisign_handle, const char* signature,
+    int sighash_type, bool sighash_anyone_can_pay, const char* related_pubkey);
+
+#if 0
+/**
+ * @brief append multisig sign to transaction.
+ * @param[in] handle                  cfd handle.
+ * @param[in] multisign_handle        multisig sign handle.
+ * @param[in] tx_hex_string           tx hex.
+ * @param[in] txid                    txin txid.
+ * @param[in] vout                    txin vout.
+ * @param[in] hash_type       hash type.
+ * @param[in] witness_script  witness script for segwit.
+ * @param[in] redeem_script   redeem script for p2sh.
+ * @param[out] tx_string              signed tx hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
 CFDC_API int CfdFinalizeMultisigSign(
-    void* handle, void* multisign_handle,  // BTC
-    const char* tx_hex_string, const Txid& txid, uint32_t vout,
-    bool is_witness, char** tx_string);
-*/
+    void* handle, void* multisign_handle,
+    const char* tx_hex_string, const char* txid, uint32_t vout,
+    int hash_type, const char* witness_script, const char* redeem_script,
+    char** tx_string);
+#endif
+
+/**
+ * @brief free multisig sign handle.
+ * @param[in] handle            handle pointer.
+ * @param[in] multisign_handle  multisig sign handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFreeMultisigSignHandle(void* handle, void* multisign_handle);
 
 #if 0
 /*
@@ -90,8 +138,6 @@ CFDC_API int CfdCreateSighash(void* handle, const char* tx_hex_string,
           - GetWitnessStackCount
         * CreateSignatureHash
           - CreateSignatureHash
-        * CalcurateEcSignature
-          - CalcurateEcSignature
         * AddSign
           - AddSign
         * AddMultisigSign

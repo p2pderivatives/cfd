@@ -95,3 +95,17 @@ set(includedir        ${prefix}/include)
 configure_file(pc/cfd.pc.in  cfd.pc  @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cfd.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+####################
+# uninstall
+####################
+if(NOT TARGET uninstall)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/pc/cmake_uninstall.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+  IMMEDIATE @ONLY)
+
+add_custom_target(uninstall
+  COMMAND ${CMAKE_COMMAND} -P
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+endif()

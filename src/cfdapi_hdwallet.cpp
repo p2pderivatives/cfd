@@ -149,7 +149,6 @@ std::string HDWalletApi::CreateExtkeyFromParentPath(
   }
 
   ExtPrivkey privkey;
-  ExtPubkey pubkey;
   try {
     privkey = ExtPrivkey(extkey);
   } catch (const CfdException& except) {
@@ -170,6 +169,7 @@ std::string HDWalletApi::CreateExtkeyFromParentPath(
     check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
 
   } else {
+    ExtPubkey pubkey;
     try {
       pubkey = ExtPubkey(extkey);
     } catch (const CfdException& pub_except) {
@@ -202,6 +202,76 @@ std::string HDWalletApi::CreateExtkeyFromParentPath(
       }
     }
     result = pubkey.DerivePubkey(child_number_list).ToString();
+    version = pubkey.GetVersion();
+    check_version = GetExtkeyVersion(ExtKeyType::kExtPubkey, net_type);
+  }
+
+  if (version != check_version) {
+    warn(CFD_LOG_SOURCE, "Version unmatch. key version: {}", version);
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "extkey networkType unmatch.");
+  }
+  return result;
+}
+
+std::string HDWalletApi::CreateExtkeyFromPathString(
+    const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
+    const std::string& path) const {
+  std::string result;
+  uint32_t check_version;
+  uint32_t version;
+
+  // TODO(k-matsuzawa): child_number_listの方とロジック同じなので統合したい
+  ExtPrivkey privkey;
+  try {
+    privkey = ExtPrivkey(extkey);
+  } catch (const CfdException& except) {
+    std::string errmsg(except.what());
+    if ((errmsg.find(kBase58Error) == std::string::npos) &&
+        (errmsg.find(kKeyTypeError) == std::string::npos)) {
+      throw except;
+    }
+  }
+
+  if (privkey.IsValid()) {
+    if (path.empty()) {
+      result = privkey.ToString();
+    } else if (output_key_type == ExtKeyType::kExtPrivkey) {
+      result = privkey.DerivePrivkey(path).ToString();
+    } else {
+      result = privkey.DerivePubkey(path).ToString();
+    }
+    version = privkey.GetVersion();
+    check_version = GetExtkeyVersion(ExtKeyType::kExtPrivkey, net_type);
+
+  } else {
+    ExtPubkey pubkey;
+    try {
+      pubkey = ExtPubkey(extkey);
+    } catch (const CfdException& pub_except) {
+      std::string errmsg(pub_except.what());
+      if (errmsg.find(kBase58Error) != std::string::npos) {
+        warn(CFD_LOG_SOURCE, "Illegal extkey. base58 decode error.");
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Illegal extkey. base58 decode error.");
+      }
+      throw pub_except;
+    }
+
+    if (output_key_type == ExtKeyType::kExtPrivkey) {
+      warn(
+          CFD_LOG_SOURCE,
+          "Illegal output_key_type. Cannot create privkey from pubkey.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Illegal output_key_type. Cannot create privkey from pubkey.");
+    }
+    if (path.empty()) {
+      result = pubkey.ToString();
+    } else {
+      result = pubkey.DerivePubkey(path).ToString();
+    }
     version = pubkey.GetVersion();
     check_version = GetExtkeyVersion(ExtKeyType::kExtPubkey, net_type);
   }
