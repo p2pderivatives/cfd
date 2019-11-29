@@ -132,7 +132,7 @@ int CfdGetScriptItem(
 
     CfdCapiScriptItemHandleData* buffer =
         static_cast<CfdCapiScriptItemHandleData*>(script_item_handle);
-    int item_num = static_cast<uint32_t>(buffer->script_items->size());
+    uint32_t item_num = static_cast<uint32_t>(buffer->script_items->size());
     if ((buffer->script_items == nullptr) || (index >= item_num)) {
       warn(CFD_LOG_SOURCE, "index is out of range.");
       throw CfdException(
