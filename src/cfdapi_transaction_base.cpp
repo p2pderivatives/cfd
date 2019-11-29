@@ -255,8 +255,10 @@ T TransactionApiBase::AddSign(
       txc.RemoveWitnessStackAll(txid, vout);
     }
     txc.AddWitnessStack(txid, vout, sign_stack);
-  } else {
+  } else if (clear_stack) {
     txc.SetUnlockingScript(txid, vout, sign_stack);
+  } else {
+    txc.InsertUnlockingScript(txid, vout, sign_stack);
   }
 
   return txc;
