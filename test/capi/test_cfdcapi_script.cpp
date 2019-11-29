@@ -27,7 +27,7 @@ TEST(cfdcapi_script, CfdParseScriptTest_LockingScript_Test) {
   // OP_DUP OP_HASH160 <HASH160(038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301)> OP_EQUALVERIFY OP_CHECKSIG
   const char* locking_script = "76a9142e3f2c7e30abce5b22451184c5e531a1e23c6e1288ac";
   void* item_handle = nullptr;
-  int item_num = 0;;
+  uint32_t item_num = 0;;
 
   ret = CfdParseScript(handle, locking_script, &item_handle, &item_num);
   EXPECT_EQ(kCfdSuccess, ret);
@@ -37,7 +37,7 @@ TEST(cfdcapi_script, CfdParseScriptTest_LockingScript_Test) {
   if (ret == kCfdSuccess) {
     std::vector<std::string> script_items;
     script_items.reserve(item_num);
-    for (int i = 0; i < item_num; ++i) {
+    for (uint32_t i = 0; i < item_num; ++i) {
       char* pitem = nullptr;
       ret = CfdGetScriptItem(handle, item_handle, i, &pitem);
       EXPECT_EQ(kCfdSuccess, ret);
@@ -82,7 +82,7 @@ TEST(cfdcapi_script, CfdParseScript_ScriptSig_TEST) {
   // <signature(304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d[ALL])> <pubkey(038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301)>
   const char* locking_script = "47304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d0121038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301";
   void* item_handle = nullptr;
-  int item_num = 0;;
+  uint32_t item_num = 0;;
 
   ret = CfdParseScript(handle, locking_script, &item_handle, &item_num);
   EXPECT_EQ(kCfdSuccess, ret);
@@ -92,7 +92,7 @@ TEST(cfdcapi_script, CfdParseScript_ScriptSig_TEST) {
   if (ret == kCfdSuccess) {
     std::vector<std::string> script_items;
     script_items.reserve(item_num);
-    for (int i = 0; i < item_num; ++i) {
+    for (uint32_t i = 0; i < item_num; ++i) {
       char* pitem = nullptr;
       ret = CfdGetScriptItem(handle, item_handle, i, &pitem);
       EXPECT_EQ(kCfdSuccess, ret);
