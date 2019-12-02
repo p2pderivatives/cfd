@@ -102,12 +102,12 @@ class CFD_EXPORT CoinSelectionOption {
    * @brief 出力変更サイズを取得します.
    * @return 出力変更サイズ
    */
-  size_t GetChangeOutputSize() const;
+  uint32_t GetChangeOutputSize() const;
   /**
    * @brief 出力変更サイズを取得します.
    * @return 出力変更サイズ
    */
-  size_t GetChangeSpendSize() const;
+  uint32_t GetChangeSpendSize() const;
   /**
    * @brief 効果的なfeeのbaserateを取得します.
    * @return 効果的なfeeのbaserate
@@ -197,8 +197,8 @@ class CFD_EXPORT CoinSelectionOption {
 
  private:
   bool use_bnb_ = true;              //!< BnB 使用フラグ
-  size_t change_output_size_ = 0;    //!< 出力変更サイズ
-  size_t change_spend_size_ = 0;     //!< 受入変更サイズ
+  uint32_t change_output_size_ = 0;  //!< 出力変更サイズ
+  uint32_t change_spend_size_ = 0;   //!< 受入変更サイズ
   uint64_t effective_fee_baserate_;  //!< fee baserate
   uint64_t long_term_fee_baserate_;  //!< longterm fee baserate
   int64_t knapsack_minimum_change_;  //!< knapsack min change
