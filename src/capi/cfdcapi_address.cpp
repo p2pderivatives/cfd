@@ -537,7 +537,8 @@ int CfdGetDescriptorData(
       if ((!buffer->multisig_key_list->empty()) && (index == last_index)) {
         *is_multisig = true;
         if (max_key_num != nullptr) {
-          *max_key_num = buffer->multisig_key_list->size();
+          *max_key_num =
+              static_cast<uint32_t>(buffer->multisig_key_list->size());
         }
       } else {
         *is_multisig = false;
