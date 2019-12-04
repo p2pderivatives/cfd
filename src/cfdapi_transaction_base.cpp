@@ -245,7 +245,11 @@ T TransactionApiBase::AddSign(
   T txc = create_controller(hex);
 
   std::vector<ByteData> sign_stack;
+  bool has_op_code = false;
   for (const SignParameter& sign_param : sign_params) {
+    if (sign_param.IsOpCode()) {
+      has_op_code = true;
+    }
     sign_stack.push_back(sign_param.ConvertToSignature());
   }
 
@@ -255,10 +259,29 @@ T TransactionApiBase::AddSign(
       txc.RemoveWitnessStackAll(txid, vout);
     }
     txc.AddWitnessStack(txid, vout, sign_stack);
-  } else if (clear_stack) {
-    txc.SetUnlockingScript(txid, vout, sign_stack);
+  } else if (!has_op_code) {
+    if (clear_stack) {
+      txc.SetUnlockingScript(txid, vout, sign_stack);
+    } else {
+      txc.InsertUnlockingScript(txid, vout, sign_stack);
+    }
   } else {
-    txc.InsertUnlockingScript(txid, vout, sign_stack);
+    Script script;
+    if (!clear_stack) {
+      script = txc.GetTxIn(txid, vout).GetUnlockingScript();
+    }
+    ScriptBuilder builder;
+    for (const auto& element : script.GetElementList()) {
+      builder.AppendElement(element);
+    }
+    for (const SignParameter& sign_param : sign_params) {
+      if (sign_param.IsOpCode()) {
+        builder.AppendOperator(sign_param.GetOpCode());
+      } else {
+        builder.AppendData(sign_param.ConvertToSignature());
+      }
+    }
+    txc.SetUnlockingScript(txid, vout, builder.Build());
   }
 
   return txc;

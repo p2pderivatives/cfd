@@ -59,8 +59,27 @@ SignParameter::SignParameter()
       data_type_(SignDataType::kBinary),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
+}
+
+SignParameter::SignParameter(const std::string& text_message)
+    : data_(),
+      data_type_(SignDataType::kBinary),
+      related_pubkey_(),
+      der_encode_(false),
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
+  if (ScriptOperator::IsValid(text_message)) {
+    data_type_ = SignDataType::kOpCode;
+    op_code_ = ScriptOperator::Get(text_message);
+    std::vector<uint8_t> list(1);
+    list[0] = static_cast<uint8_t>(op_code_.GetDataType());
+    data_ = ByteData(list);
+  } else {
+    data_ = ByteData(text_message);
+  }
 }
 
 SignParameter::SignParameter(
@@ -69,7 +88,8 @@ SignParameter::SignParameter(
       data_type_(SignDataType::kSign),
       related_pubkey_(),
       der_encode_(der_encode),
-      sighash_type_(sighash_type) {
+      sighash_type_(sighash_type),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -78,7 +98,8 @@ SignParameter::SignParameter(const ByteData& data)
       data_type_(SignDataType::kBinary),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -87,7 +108,8 @@ SignParameter::SignParameter(const Pubkey& pubkey)
       data_type_(SignDataType::kPubkey),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -96,7 +118,8 @@ SignParameter::SignParameter(const Script& redeem_script)
       data_type_(SignDataType::kRedeemScript),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -113,6 +136,12 @@ void SignParameter::SetRelatedPubkey(const Pubkey& pubkey) {
   if (pubkey.IsValid()) {
     related_pubkey_ = pubkey;
   }
+}
+
+ScriptOperator SignParameter::GetOpCode() const { return op_code_; }
+
+bool SignParameter::IsOpCode() const {
+  return data_type_ == SignDataType::kOpCode;
 }
 
 ByteData SignParameter::GetData() const { return data_; }
