@@ -174,17 +174,24 @@ ConfidentialTransactionController::AddPegoutTxOut(
     const BlockHash& genesisblock_hash, const Address& btc_address,
     NetType net_type, const Pubkey& online_pubkey,
     const Privkey& master_online_key, const std::string& btc_descriptor,
-    uint32_t bip32_counter, const ByteData& whitelist) {
-  // AddressTypeの種別ごとに、locking_scriptを作成
-  const ByteData hash_data = btc_address.GetHash();
-  Script script = btc_address.GetLockingScript();
-
+    uint32_t bip32_counter, const ByteData& whitelist,
+    NetType elements_net_type, Address* btc_derive_address) {
+  Script script;
   PegoutKeyData key_data;
   if (online_pubkey.IsValid() && !master_online_key.IsInvalid()) {
-    // pubkeys・whitelistproofを算出
+    // generate pubkey and whitelistproof
+    Address derive_addr;
     key_data = ConfidentialTransaction::GetPegoutPubkeyData(
         online_pubkey, master_online_key, btc_descriptor, bip32_counter,
-        whitelist, net_type);
+        whitelist, net_type, ByteData(), elements_net_type, &derive_addr);
+    if (!derive_addr.GetAddress().empty()) {
+      script = derive_addr.GetLockingScript();
+      if (btc_derive_address != nullptr) {
+        *btc_derive_address = derive_addr;
+      }
+    }
+  } else {
+    script = btc_address.GetLockingScript();
   }
 
   Script locking_script = ScriptUtil::CreatePegoutLogkingScript(
