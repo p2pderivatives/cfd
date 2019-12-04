@@ -25,7 +25,7 @@ enum CfdSequenceLockTime {
   kCfdSequenceLockTimeDisable = 0xffffffffU,
   /// enable locktime (maximum time)
   kCfdSequenceLockTimeEnableMax = 0xfffffffeU,
-}
+};
 
 // FIXME elementsを先に作る
 
