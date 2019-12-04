@@ -2,8 +2,8 @@
 /**
  * @file cfd_elements_address.cpp
  *
- * @brief-eng implementation of classes related to address operation for Elements 
- * @brief-jp Elements用Address操作関連クラスの実装
+ * @brief /~english implementation of classes related to address operation for Elements 
+ *   \~japanese Elements用Address操作関連クラスの実装
  */
 #ifndef CFD_DISABLE_ELEMENTS
 #include "cfd/cfd_elements_address.h"
