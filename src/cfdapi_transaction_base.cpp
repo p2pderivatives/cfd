@@ -279,12 +279,8 @@ T TransactionApiBase::AddSign(
     }
     for (const SignParameter& sign_param : sign_params) {
       if (sign_param.IsOpCode()) {
-        ScriptOperator op_code = sign_param.GetOpCode();
-        if (op_code.IsPushOperator()) {
-          builder.AppendOperator(op_code);
-        } else {
-          builder.AppendData(sign_param.ConvertToSignature());
-        }
+        // Checking push-operator is performed at the time of registration.
+        builder.AppendOperator(sign_param.GetOpCode());
       } else {
         builder.AppendData(sign_param.ConvertToSignature());
       }
