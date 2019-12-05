@@ -48,7 +48,6 @@ using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::BlindParameter;
 using cfd::core::ByteData;
-using cfd::core::ByteData160;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::ConfidentialTransaction;
@@ -452,67 +451,15 @@ ElementsTransactionApi::CreateRawPegoutTransaction(
   ConfidentialTransactionController ctxc =
       CreateRawTransaction(version, locktime, txins, txouts, empty_fee);
 
-  // PegoutのTxOut追加
-  const std::string pegout_addr_string = pegout_data.btc_address.GetAddress();
-
   if (pegout_data.online_pubkey.IsValid() &&
       !pegout_data.master_online_key.IsInvalid()) {
-    Address pegout_addr;
-    if (pegout_addr_string.empty()) {
-      // TODO(k-matsuzawa): ExtKeyの正式対応が入るまでの暫定対応
-      // pegoutのtemplateに従い、xpub/counterから生成する
-      // descriptor parse
-      std::string desc = pegout_data.bitcoin_descriptor;
-      std::string::size_type start_point = desc.rfind('(');
-      std::string arg_type;
-      std::string xpub;
-      if (start_point == std::string::npos) {
-        xpub = desc;
-      } else {
-        arg_type = desc.substr(0, start_point);
-        xpub = desc.substr(start_point + 1);
-      }
-      std::string::size_type end_point = xpub.find('/');
-      if (end_point == std::string::npos) {
-        end_point = xpub.find(')');
-        if (end_point != std::string::npos) {
-          xpub = xpub.substr(0, end_point);
-        }
-      } else {
-        xpub = xpub.substr(0, end_point);
-      }
-      // info(CFD_LOG_SOURCE, "arg_type={}, xpub={}", arg_type, xpub);
-      // key生成
-      std::vector<uint32_t> path = {0, pegout_data.bip32_counter};
-      ExtPubkey ext_key = ExtPubkey(xpub).DerivePubkey(path);
-      Pubkey pubkey = ext_key.GetPubkey();
-
-      // Addressクラス生成
-      if (arg_type == "sh(wpkh") {
-        Script wpkh_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
-        ByteData160 wpkh_hash = HashUtil::Hash160(wpkh_script);
-        pegout_addr = Address(
-            pegout_data.net_type, AddressType::kP2shAddress, wpkh_hash);
-      } else if (arg_type == "wpkh") {
-        pegout_addr =
-            Address(pegout_data.net_type, WitnessVersion::kVersion0, pubkey);
-      } else {  // if (arg_type == "pkh(")
-        // pkh
-        pegout_addr = Address(pegout_data.net_type, pubkey);
-      }
-    } else {
-      pegout_addr = pegout_data.btc_address;
-    }
-
+    Address dummy_addr;
     ctxc.AddPegoutTxOut(
         pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
-        pegout_addr, pegout_data.net_type, pegout_data.online_pubkey,
+        dummy_addr, pegout_data.net_type, pegout_data.online_pubkey,
         pegout_data.master_online_key, pegout_data.bitcoin_descriptor,
-        pegout_data.bip32_counter, pegout_data.whitelist);
-    if (pegout_address != nullptr) {
-      *pegout_address = pegout_addr;
-    }
-
+        pegout_data.bip32_counter, pegout_data.whitelist,
+        pegout_data.elements_net_type, pegout_address);
   } else {
     ctxc.AddPegoutTxOut(
         pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
@@ -803,19 +750,21 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
 
   // txoutへ追加するamountのmapを用意
   std::map<std::string, Amount> append_txout_amount_map = amount_map;
-  auto itr = amount_map.begin();
-  while (itr != amount_map.end()) {
-    std::string asset = itr->first;
-    Amount txin_amount = txin_amount_map[asset];
-    Amount txout_amount = tx_amount_map[asset];
-    append_txout_amount_map[itr->first] =
-        itr->second + txin_amount - txout_amount;
+  {  // for warning
+    auto itr = amount_map.begin();
+    while (itr != amount_map.end()) {
+      std::string asset = itr->first;
+      Amount txin_amount = txin_amount_map[asset];
+      Amount txout_amount = tx_amount_map[asset];
+      append_txout_amount_map[itr->first] =
+          itr->second + txin_amount - txout_amount;
 
-    if (use_fee && (itr->first == fee_asset_str)) {
-      /* fee assetは別で計算するため、txout追加対象から除外 */
-      append_txout_amount_map.erase(itr->first);
+      if (use_fee && (itr->first == fee_asset_str)) {
+        /* fee assetは別で計算するため、txout追加対象から除外 */
+        append_txout_amount_map.erase(itr->first);
+      }
+      ++itr;
     }
-    ++itr;
   }
 
   // TxOut追加
