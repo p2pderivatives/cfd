@@ -248,7 +248,10 @@ T TransactionApiBase::AddSign(
   bool has_op_code = false;
   for (const SignParameter& sign_param : sign_params) {
     if (sign_param.IsOpCode()) {
-      has_op_code = true;
+      ScriptOperator op_code = sign_param.GetOpCode();
+      if (op_code.IsPushOperator()) {
+        has_op_code = true;
+      }
     }
     sign_stack.push_back(sign_param.ConvertToSignature());
   }
@@ -276,7 +279,12 @@ T TransactionApiBase::AddSign(
     }
     for (const SignParameter& sign_param : sign_params) {
       if (sign_param.IsOpCode()) {
-        builder.AppendOperator(sign_param.GetOpCode());
+        ScriptOperator op_code = sign_param.GetOpCode();
+        if (op_code.IsPushOperator()) {
+          builder.AppendOperator(op_code);
+        } else {
+          builder.AppendData(sign_param.ConvertToSignature());
+        }
       } else {
         builder.AppendData(sign_param.ConvertToSignature());
       }
