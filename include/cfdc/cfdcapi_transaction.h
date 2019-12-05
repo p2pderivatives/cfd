@@ -19,6 +19,14 @@ extern "C" {
 #include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
 
+//! txin sequence locktime
+enum CfdSequenceLockTime {
+  /// disable locktime
+  kCfdSequenceLockTimeDisable = 0xffffffffU,
+  /// enable locktime (maximum time)
+  kCfdSequenceLockTimeEnableMax = 0xfffffffeU,
+};
+
 // FIXME elementsを先に作る
 
 /**

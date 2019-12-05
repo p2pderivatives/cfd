@@ -2,8 +2,8 @@
 /**
  * @file cfd_manager.h
  *
- * @brief-eng definition file for cfd manager class
- * @brief-jp cfd管理クラス定義ファイルです。
+ * @brief \~english definition file for cfd manager class
+ *   \~japanese cfd管理クラス定義ファイルです。
  *
  */
 #ifndef CFD_SRC_CFD_MANAGER_H_
