@@ -211,7 +211,7 @@ class CFD_EXPORT ConfidentialTransactionController
    * @param[in] bip32_counter descriptor counter by initpegoutwallet
    * @param[in] whitelist whitelist
    * @param[in] elements_net_type elements network type
-   * @param[in] btc_derive_address btc address by derived btc descriptor
+   * @param[out] btc_derive_address btc address by derived btc descriptor
    * @return TxOutReference object with added txout.
    */
   const ConfidentialTxOutReference AddPegoutTxOut(
