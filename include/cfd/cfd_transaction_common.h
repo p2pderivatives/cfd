@@ -85,6 +85,11 @@ class CFD_EXPORT SignParameter {
    */
   explicit SignParameter(const Script& redeem_script);
   /**
+   * @brief コンストラクタ(Type: ScriptOperator)
+   * @param[in] op_code  op code
+   */
+  explicit SignParameter(const ScriptOperator& op_code);
+  /**
    * @brief コピーコンストラクタ.
    * @param[in] sign_parameter     Sign生成情報オブジェクト
    * @return SignParameterオブジェクト

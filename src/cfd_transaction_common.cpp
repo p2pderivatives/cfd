@@ -123,6 +123,18 @@ SignParameter::SignParameter(const Script& redeem_script)
   // do nothing
 }
 
+SignParameter::SignParameter(const ScriptOperator& op_code)
+    : data_(),
+      data_type_(SignDataType::kOpCode),
+      related_pubkey_(),
+      der_encode_(false),
+      sighash_type_(),
+      op_code_(op_code) {
+  std::vector<uint8_t> list(1);
+  list[0] = static_cast<uint8_t>(op_code_.GetDataType());
+  data_ = ByteData(list);
+}
+
 SignParameter& SignParameter::operator=(const SignParameter& sign_parameter) {
   data_ = sign_parameter.GetData();
   data_type_ = sign_parameter.GetDataType();
