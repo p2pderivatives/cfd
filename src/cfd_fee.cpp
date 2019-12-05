@@ -2,8 +2,8 @@
 /**
  * @file cfd_fee.cpp
  *
- * @brief-eng implementation of classes related to fee calculation
- * @brief-jp Fee計算の関連クラスの実装ファイル
+ * @brief \~english implementation of classes related to fee calculation
+ *   \~japanese Fee計算の関連クラスの実装ファイル
  */
 #include <algorithm>
 #include <string>

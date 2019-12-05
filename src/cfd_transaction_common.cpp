@@ -2,8 +2,8 @@
 /**
  * @file cfd_transaction.cpp
  *
- * @brief-eng implementation of common classes related to transaction operation
- * @brief-jp Transaction操作共通の関連クラスの実装ファイル
+ * @brief \~english implementation of common classes related to transaction operation
+ *   \~japanese Transaction操作共通の関連クラスの実装ファイル
  */
 #include "cfd/cfd_transaction_common.h"
 
