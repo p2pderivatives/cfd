@@ -13,14 +13,11 @@ CFD_PKGINCLUDE_FILES = \
   cfd_transaction_common.h \
   cfd_transaction.h \
   cfd_address.h \
+  cfd_utxo.h \
   cfdapi_transaction.h \
-  cfdapi_transaction_base.h \
   cfdapi_address.h \
   cfdapi_hdwallet.h \
   cfdapi_key.h \
-  cfdapi_utility.h \
-  dlc_script.h \
-  dlcapi_transaction.h \
-  dlcapi_address.h \
+  cfdapi_coin.h \
   $(CFD_ELEMENTS_PKGINCLUDE_FILES)
 

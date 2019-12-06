@@ -13,63 +13,9 @@
 #include <vector>
 
 #include "cfd/cfd_common.h"
-#include "cfd/cfdapi_struct.h"
 #include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_key.h"
-
-/**
- * @brief cfdapi名前空間
- */
-namespace cfd {
-namespace js {
-namespace api {
-
-using cfd::core::AddressType;
-
-/**
- * @brief Address関連の関数群クラス
- */
-class CFD_EXPORT AddressStructApi {
- public:
-  /**
-   * @brief JSONパラメータの情報を元に、Addressを作成する
-   * @param[in] request Addressを構築するパラメータ
-   * @return Addressのhexデータを格納した構造体
-   */
-  static CreateAddressResponseStruct CreateAddress(
-      const CreateAddressRequestStruct& request);
-
-  /**
-   * @brief JSONパラメータの情報を元に、Multisigを作成する
-   * @param[in] request Multisigを構築するパラメータ
-   * @return MultisigAddressとredeem scriptのhexデータを格納した構造体
-   */
-  static CreateMultisigResponseStruct CreateMultisig(
-      const CreateMultisigRequestStruct& request);
-
-  /**
-   * @brief bitcoinネットワーク文字列を、NetType構造体へ変換する.
-   * @param[in] network_type ネットワーク文字列
-   * @return 引数に対応するNetType構造体
-   * @throws CfdException 指定文字列以外が渡された場合
-   */
-  static cfd::core::NetType ConvertNetType(const std::string& network_type);
-
-  /**
-   * @brief Convert address type from string to AddressType.
-   * @param[in] address_type the address type as a string.
-   * @return the converted AddressType.
-   * @throws CfdException if address_type does not match any known AddressType.
-   */
-  static AddressType ConvertAddressType(const std::string& address_type);
-
- private:
-  AddressStructApi();
-};
-
-}  // namespace api
-}  // namespace js
-}  // namespace cfd
 
 namespace cfd {
 namespace api {
@@ -77,9 +23,33 @@ namespace api {
 using cfd::core::Address;
 using cfd::core::AddressFormatData;
 using cfd::core::AddressType;
+using cfd::core::DescriptorKeyType;
+using cfd::core::DescriptorScriptType;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
+
+/**
+ * @brief DescriptorのScript系情報構造体
+ */
+struct DescriptorScriptData {
+  DescriptorScriptType type;   //!< script type
+  Script locking_script;       //!< locking script
+  uint32_t depth;              //!< depth
+  Address address;             //!< address
+  AddressType address_type;    //!< address type
+  Script redeem_script;        //!< redeem script
+  DescriptorKeyType key_type;  //!< key type
+  std::string key;             //!< key string
+};
+
+/**
+ * @brief DescriptorのKey系情報構造体
+ */
+struct DescriptorKeyData {
+  DescriptorKeyType type;  //!< key type
+  std::string key;         //!< key string
+};
 
 /**
  * @brief Address関連の関数群クラス
@@ -87,6 +57,11 @@ using cfd::core::Script;
  */
 class CFD_EXPORT AddressApi {
  public:
+  /**
+   * @brief constructor
+   */
+  AddressApi() {}
+
   /**
    * @brief Addressを作成する
    * @param[in] net_type        network type
@@ -98,11 +73,11 @@ class CFD_EXPORT AddressApi {
    * @param[in] prefix_list     address prefix list
    * @return Address
    */
-  static Address CreateAddress(
+  Address CreateAddress(
       NetType net_type, AddressType address_type, const Pubkey* pubkey,
       const Script* script, Script* locking_script = nullptr,
       Script* redeem_script = nullptr,
-      std::vector<AddressFormatData>* prefix_list = nullptr);
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
 
   /**
    * @brief Multisig Addressを作成する
@@ -115,14 +90,42 @@ class CFD_EXPORT AddressApi {
    * @param[in] prefix_list     address prefix list
    * @return Address
    */
-  static Address CreateMultisig(
+  Address CreateMultisig(
       NetType net_type, AddressType address_type, uint32_t req_sig_num,
       const std::vector<Pubkey>& pubkeys, Script* redeem_script = nullptr,
       Script* witness_script = nullptr,
-      std::vector<AddressFormatData>* prefix_list = nullptr);
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
 
- private:
-  AddressApi();
+  /**
+   * @brief Multisig ScriptからPubkey Address一覧を作成する
+   * @param[in] net_type        network type
+   * @param[in] address_type    address type
+   * @param[in] redeem_script   multisig script
+   * @param[out] pubkey_list    pubkey list
+   * @param[in] prefix_list     address prefix list
+   * @return pubkey address list
+   */
+  std::vector<Address> GetAddressesFromMultisig(
+      NetType net_type, AddressType address_type, const Script& redeem_script,
+      std::vector<Pubkey>* pubkey_list = nullptr,
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+
+  /**
+   * @brief Output descriptorから情報を抽出する
+   * @param[in] descriptor              output descriptor
+   * @param[in] net_type                network type
+   * @param[in] bip32_derivation_path   bip32 derivation path
+   * @param[out] script_list            descriptor script list
+   * @param[out] multisig_key_list      descriptor multisig key list
+   * @param[in] prefix_list             address prefix list
+   * @return descriptor script data (top level or high security)
+   */
+  DescriptorScriptData ParseOutputDescriptor(
+      const std::string& descriptor, NetType net_type,
+      const std::string& bip32_derivation_path = "",
+      std::vector<DescriptorScriptData>* script_list = nullptr,
+      std::vector<DescriptorKeyData>* multisig_key_list = nullptr,
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
 };
 
 }  // namespace api

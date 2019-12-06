@@ -42,6 +42,7 @@ using cfd::core::ConfidentialTxOutReference;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
 using cfd::core::IssuanceParameter;
+using cfd::core::NetType;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::Script;
@@ -145,6 +146,13 @@ class CFD_EXPORT ConfidentialTransactionController
    */
   const ConfidentialTxInReference GetTxIn(
       const Txid& txid, uint32_t vout) const;
+  /**
+   * @brief TxInを削除する.
+   * @param[in] txid 取得するTxInのTxId
+   * @param[in] vout 取得するTxInのvout
+   * @return 削除したTxInのTxInReferenceインスタンス
+   */
+  const ConfidentialTxInReference RemoveTxIn(const Txid& txid, uint32_t vout);
 
   /**
    * @brief TxOutを追加する.
@@ -191,18 +199,20 @@ class CFD_EXPORT ConfidentialTransactionController
       const ConfidentialAssetId& asset, const ConfidentialNonce& nonce);
 
   /**
-   * @brief Pegout用のTxOutを追加する.
-   * @param[in] value Pegout金額
+   * @brief Add txout for pegged-out.
+   * @param[in] value Pegout value
    * @param[in] asset AssetID
    * @param[in] genesisblock_hash mainchainのgenesisblock hash
-   * @param[in] btc_address mainchainのアドレス
-   * @param[in] net_type mainchainのnetwork type
-   * @param[in] online_pubkey whitelist proof用のonline pubkey
-   * @param[in] master_online_key  whitelist proof用のonline privkey
-   * @param[in] btc_descriptor initpegoutwallet時に指定するdescriptor string
-   * @param[in] bip32_counter initpegoutwallet時に指定するconter
+   * @param[in] btc_address mainchain address
+   * @param[in] net_type mainchain network type
+   * @param[in] online_pubkey online pubkey for whitelist proof
+   * @param[in] master_online_key  online privkey for whitelist proof
+   * @param[in] btc_descriptor descriptor by initpegoutwallet
+   * @param[in] bip32_counter descriptor counter by initpegoutwallet
    * @param[in] whitelist whitelist
-   * @return 追加したTxOutのTxOutReferenceインスタンス
+   * @param[in] elements_net_type elements network type
+   * @param[out] btc_derive_address btc address by derived btc descriptor
+   * @return TxOutReference object with added txout.
    */
   const ConfidentialTxOutReference AddPegoutTxOut(
       const Amount& value, const ConfidentialAssetId& asset,
@@ -211,7 +221,9 @@ class CFD_EXPORT ConfidentialTransactionController
       const Pubkey& online_pubkey = Pubkey(),
       const Privkey& master_online_key = Privkey(),
       const std::string& btc_descriptor = "", uint32_t bip32_counter = 0,
-      const ByteData& whitelist = ByteData());
+      const ByteData& whitelist = ByteData(),
+      NetType elements_net_type = NetType::kLiquidV1,
+      Address* btc_derive_address = nullptr);
 
   /**
    * @brief TxOut(Fee)を追加する.
@@ -221,7 +233,32 @@ class CFD_EXPORT ConfidentialTransactionController
    */
   const ConfidentialTxOutReference AddTxOutFee(
       const Amount& value, const ConfidentialAssetId& asset);
+  /**
+   * @brief TxOutのFee情報を更新する.
+   * @param[in] index 設定対象のindex
+   * @param[in] value Fee額
+   * @param[in] asset AssetID
+   * @return 更新したTxOutのTxOutReferenceインスタンス
+   */
+  const ConfidentialTxOutReference UpdateTxOutFeeAmount(
+      uint32_t index, const Amount& value, const ConfidentialAssetId& asset);
+  /**
+   * @brief TxOutを削除する.
+   * @param[in] index 削除対象のindex
+   * @return 削除したTxOutのTxOutReferenceインスタンス
+   */
+  const ConfidentialTxOutReference RemoveTxOut(uint32_t index);
 
+  /**
+   * @brief Unlocking Scriptに挿入する.
+   * @details OP_CODEの追加は未対応
+   * @param[in] txid 設定対象のTxInのtxid
+   * @param[in] vout 設定対象のTxInのvout
+   * @param[in] unlocking_scripts  署名を含むscriptリスト
+   */
+  void InsertUnlockingScript(
+      const Txid& txid, uint32_t vout,
+      const std::vector<ByteData>& unlocking_scripts);
   /**
    * @brief TxInにUnlocking Scriptを設定する.
    * @param[in] txid 設定対象のTxInのtxid
@@ -232,6 +269,7 @@ class CFD_EXPORT ConfidentialTransactionController
       const Txid& txid, uint32_t vout, const Script& unlocking_script);
   /**
    * @brief Unlocking Scriptを設定する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 設定対象のTxInのtxid
    * @param[in] vout 設定対象のTxInのvout
    * @param[in] unlocking_scripts  署名を含むscriptリスト
@@ -242,6 +280,7 @@ class CFD_EXPORT ConfidentialTransactionController
 
   /**
    * @brief WitnessStackを追加する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 追加対象のTxInのtxid
    * @param[in] vout 追加対象のTxInのvout
    * @param[in] witness_datas   WitnessStack追加情報リスト
@@ -300,6 +339,7 @@ class CFD_EXPORT ConfidentialTransactionController
       const Script& redeem_script);
   /**
    * @brief WitnessStackの指定Indexのデータを更新する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 更新対象のTxInのtxid
    * @param[in] vout 更新対象のTxInのvout
    * @param[in] witness_index   WitnessStackのindex
@@ -370,6 +410,15 @@ class CFD_EXPORT ConfidentialTransactionController
    * @return Transactionインスタンス
    */
   const ConfidentialTransaction& GetTransaction() const;
+
+  /**
+   * @brief TxInを除外したサイズを取得する。
+   * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
+   * @param[out] witness_stack_size   witness stack size
+   * @return TxInを除外したTxサイズ(Serialize)
+   */
+  uint32_t GetSizeIgnoreTxIn(
+      bool is_blinded = false, uint32_t* witness_stack_size = nullptr) const;
 
   /**
    * @brief IssueAssetの情報を設定する.

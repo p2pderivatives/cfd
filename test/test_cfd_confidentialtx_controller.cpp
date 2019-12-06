@@ -35,10 +35,10 @@ TEST(ConfidentialTransactionController, CalculateSimpleFeeTest)
         "02000000000109c4149d4e59119f2b11b3e160b02694bc4ecbf56f6de4ab587128f86bf4e7d30000000000ffffffff0201f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000005ee3fe00374eb131b54a7b528e5449b3827bcaa5069c259346810f20cf9079bd17b32fe481976a914d753351535a2a55f33ab39bbd6c70a55d46904e788ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000");
     Amount amt;
     EXPECT_NO_THROW((amt = tx.CalculateSimpleFee()));
-    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(2464));
+    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
 
     EXPECT_NO_THROW((amt = tx.CalculateSimpleFee(false)));
-    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(2167));
+    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
 }
 
 TEST(ConfidentialTransactionController, SetAssetIssuanceTest1)
@@ -167,6 +167,7 @@ TEST(ConfidentialTransactionController, UnblindTransaction)
 TEST(ConfidentialTransactionController, AddPegoutTxOut)
 {
     ConfidentialTransactionController txc(2, 0);
+    Address addr;
     txc.AddTxIn(Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3"), 0, 4294967293);
     txc.AddTxOut(
         Address("XBMr6srTXmWuHifFd8gs54xYfiCBsvrksA", cfd::core::GetElementsAddressFormatList()),
@@ -182,13 +183,15 @@ TEST(ConfidentialTransactionController, AddPegoutTxOut)
         Privkey::FromWif("cVPA9nh4bHhKXinBCLkJJTD3UgfiizWRykXfFegwZzKMNYAKG9RL", NetType::kRegtest),
         "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*))",
         0,
-        ByteData("030e07d4f657c0c169e04fac5d5a8096adb099874834be59ad1e681e22d952ccda0214156e4ae9168289b4d0c034da94025121d33ad8643663454885032d77640e3d"));
+        ByteData("030e07d4f657c0c169e04fac5d5a8096adb099874834be59ad1e681e22d952ccda0214156e4ae9168289b4d0c034da94025121d33ad8643663454885032d77640e3d"),
+        NetType::kElementsRegtest,
+        &addr);
     txc.AddTxOutFee(
         Amount::CreateBySatoshiAmount(7300),
         ConfidentialAssetId("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225"));
 
     EXPECT_STREQ(txc.GetHex().c_str(), "020000000001a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000fdffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000befe33cc397c0017a914001d6db698e75a5a8af771730c4ab258af30546b870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000003b9aca00009e6a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f17a914a722b257cabc3b8e7d46f8fb293f893f368219da872103700dcb030588ed828d85f645b48971de0d31e8c0244da46710d18681627f5a4a4101044e949dcf8ac2daac82a3e4999ee28e2711661793570c4daab34cd38d76a425d6bfe102f3fea8be12109925fad32c78b65afea4de1d17a826e7375d0e2d00660125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000001c84000000000000");
-
+    EXPECT_STREQ(addr.GetAddress().c_str(), "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo");
 }
 
 TEST(ConfidentialTransactionController, AddPegoutTxOut2)

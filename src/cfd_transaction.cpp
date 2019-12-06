@@ -2,8 +2,8 @@
 /**
  * @file cfd_transaction.cpp
  *
- * @brief-eng implementation of classes related to transaction operation
- * @brief-jp Transaction操作の関連クラスの実装ファイル
+ * @brief \~english implementation of classes related to transaction operation
+ *   \~japanese Transaction操作の関連クラスの実装ファイル
  */
 #include "cfd/cfd_transaction.h"
 
@@ -106,6 +106,14 @@ const TxInReference TransactionController::AddTxIn(
   return transaction_.GetTxIn(index);
 }
 
+const TxInReference TransactionController::RemoveTxIn(
+    const Txid& txid, uint32_t vout) {
+  uint32_t index = transaction_.GetTxInIndex(txid, vout);
+  TxInReference ref = transaction_.GetTxIn(index);
+  transaction_.RemoveTxIn(index);
+  return ref;
+}
+
 const TxOutReference TransactionController::AddTxOut(
     const Script& locking_script, const Amount& value) {
   uint32_t index = transaction_.AddTxOut(value, locking_script);
@@ -118,6 +126,31 @@ const TxOutReference TransactionController::AddTxOut(
   Script locking_script = address.GetLockingScript();
   uint32_t index = transaction_.AddTxOut(value, locking_script);
   return transaction_.GetTxOut(index);
+}
+
+const TxOutReference TransactionController::RemoveTxOut(uint32_t index) {
+  TxOutReference ref = transaction_.GetTxOut(index);
+  transaction_.RemoveTxOut(index);
+  return ref;
+}
+
+void TransactionController::InsertUnlockingScript(
+    const Txid& txid, uint32_t vout,
+    const std::vector<ByteData>& unlocking_scripts) {
+  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
+  Script script = transaction_.GetTxIn(txin_index).GetUnlockingScript();
+  if (script.IsEmpty()) {
+    transaction_.SetUnlockingScript(txin_index, unlocking_scripts);
+  } else {
+    ScriptBuilder builder;
+    for (const auto& element : script.GetElementList()) {
+      builder.AppendElement(element);
+    }
+    for (const ByteData& data : unlocking_scripts) {
+      builder.AppendData(data);
+    }
+    transaction_.SetUnlockingScript(txin_index, builder.Build());
+  }
 }
 
 void TransactionController::SetUnlockingScript(
@@ -230,6 +263,15 @@ const Transaction& TransactionController::GetTransaction() const {
   return transaction_;
 }
 
+uint32_t TransactionController::GetSizeIgnoreTxIn() const {
+  uint32_t result = AbstractTransaction::kTransactionMinimumSize;
+  std::vector<TxOutReference> txouts = transaction_.GetTxOutList();
+  for (const auto& txout : txouts) {
+    result += txout.GetSerializeSize();
+  }
+  return result;
+}
+
 const TxInReference TransactionController::GetTxIn(
     const Txid& txid, uint32_t vout) const {
   uint32_t index = transaction_.GetTxInIndex(txid, vout);
@@ -260,26 +302,21 @@ std::string TransactionController::CreateP2wpkhSignatureHash(
     SigHashType sighash_type, const Amount& value) {
   uint32_t index = transaction_.GetTxInIndex(txid, vout);
 
-  const ByteData& witness_program =
-      SignatureUtil::CreateWitnessProgramWPKH(pubkey);
-
+  const Script& locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
   const ByteData256& data = transaction_.GetSignatureHash(
-      index, witness_program, HashType::kP2wpkh, sighash_type, value);
+      index, locking_script.GetData(), HashType::kP2wpkh, sighash_type, value);
   return data.GetHex();
 }
 
 std::string TransactionController::CreateP2wshSignatureHash(
-    const Txid& txid, uint32_t vout, const Script& redeem_script,
+    const Txid& txid, uint32_t vout, const Script& witness_script,
     SigHashType sighash_type, const Amount& value) {
   uint32_t index = transaction_.GetTxInIndex(txid, vout);
 
-  // TODO(soejima): OP_CODESEPARATORの存在時に分割必要。
-  const ByteData& witness_program =
-      SignatureUtil::CreateWitnessProgramWSH(redeem_script);
+  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
 
   const ByteData256& data = transaction_.GetSignatureHash(
-      index, witness_program, HashType::kP2wsh, sighash_type, value);
-
+      index, witness_script.GetData(), HashType::kP2wsh, sighash_type, value);
   return data.GetHex();
 }
 

@@ -1,9 +1,30 @@
 project(external_download NONE)
 
+# load file
+set(EXTERNAL_DEBUG_FILENAME  external_project_debug.config)
+set(DEBUG_VERSION_FILE  ${CMAKE_SOURCE_DIR}/${EXTERNAL_DEBUG_FILENAME})
+if(EXISTS ${DEBUG_VERSION_FILE})
+transform_makefile_srclist(${DEBUG_VERSION_FILE} "${CMAKE_CURRENT_BINARY_DIR}/${EXTERNAL_DEBUG_FILENAME}.cmake")
+include(${CMAKE_CURRENT_BINARY_DIR}/${EXTERNAL_DEBUG_FILENAME}.cmake)
+endif()
+
 # cfd-core
+if(CFDCORE_TARGET_VERSION)
+set(CFDCORE_TARGET_TAG  ${CFDCORE_TARGET_VERSION})
+message(STATUS "[external project debug] cfd-core target=${CFDCORE_TARGET_VERSION}")
+else()
+set(CFDCORE_TARGET_TAG  v0.0.2)
+endif()
+if(CFDCORE_TARGET_URL)
+set(CFDCORE_TARGET_REP  ${CFDCORE_TARGET_URL})
+message(STATUS "[external project debug] cfd-core url=${CFDCORE_TARGET_URL}")
+else()
+set(CFDCORE_TARGET_REP  https://github.com/p2pderivatives/cfd-core.git)
+endif()
+
 set(TEMPLATE_PROJECT_NAME           cfd-core)
-set(TEMPLATE_PROJECT_GIT_REPOSITORY https://github.com/p2pderivatives/cfd-core.git)
-set(TEMPLATE_PROJECT_GIT_TAG        v0.0.1)
+set(TEMPLATE_PROJECT_GIT_REPOSITORY ${CFDCORE_TARGET_REP})
+set(TEMPLATE_PROJECT_GIT_TAG        ${CFDCORE_TARGET_TAG})
 set(PROJECT_EXTERNAL  "${CMAKE_SOURCE_DIR}/external/${TEMPLATE_PROJECT_NAME}/external")
 set(DIR_PATH "${CFD_ROOT_BINARY_DIR}/${TEMPLATE_PROJECT_NAME}")
 set(DL_PATH "${CFD_ROOT_BINARY_DIR}/external/${TEMPLATE_PROJECT_NAME}/download")
@@ -39,9 +60,17 @@ endif()
 
 
 # googletest
+if(ENABLE_TESTS)
+if(GTEST_TARGET_VERSION)
+set(GTEST_TARGET_TAG  ${GTEST_TARGET_VERSION})
+message(STATUS "[external project debug] google-test target=${GTEST_TARGET_VERSION}")
+else()
+set(GTEST_TARGET_TAG  release-1.8.1)
+endif()
+
 set(TEMPLATE_PROJECT_NAME           googletest)
 set(TEMPLATE_PROJECT_GIT_REPOSITORY https://github.com/google/googletest.git)
-set(TEMPLATE_PROJECT_GIT_TAG        release-1.8.1)
+set(TEMPLATE_PROJECT_GIT_TAG        ${GTEST_TARGET_TAG})
 set(PROJECT_EXTERNAL  "${CMAKE_SOURCE_DIR}/external/${TEMPLATE_PROJECT_NAME}/external")
 set(DL_PATH "${CFD_ROOT_BINARY_DIR}/external/${TEMPLATE_PROJECT_NAME}/download")
 
@@ -66,8 +95,10 @@ endif()
 # Prevent overriding the parent project's compiler/linker
 # settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/${TEMPLATE_PROJECT_NAME}
                  ${CFD_ROOT_BINARY_DIR}/${TEMPLATE_PROJECT_NAME}/build)
 set_property(GLOBAL PROPERTY ${TEMPLATE_PROJECT_NAME} 1)
 endif()
+endif() # MSVC OR ENABLE_TESTS

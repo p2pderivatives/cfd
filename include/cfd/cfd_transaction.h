@@ -132,6 +132,14 @@ class CFD_EXPORT TransactionController
   const TxInReference GetTxIn(const Txid& txid, uint32_t vout) const;
 
   /**
+   * @brief TxInを削除する.
+   * @param[in] txid 取得するTxInのTxId
+   * @param[in] vout 取得するTxInのvout
+   * @return 削除したTxInのTxInReferenceインスタンス
+   */
+  const TxInReference RemoveTxIn(const Txid& txid, uint32_t vout);
+
+  /**
    * @brief TxOutを追加する.
    * @param[in] address  送金先アドレス
    * @param[in] value  送金額
@@ -146,7 +154,23 @@ class CFD_EXPORT TransactionController
    */
   const TxOutReference AddTxOut(
       const Script& locking_script, const Amount& value);
+  /**
+   * @brief TxOutを削除する.
+   * @param[in] index 削除対象のindex
+   * @return 削除したTxOutのTxOutReferenceインスタンス
+   */
+  const TxOutReference RemoveTxOut(uint32_t index);
 
+  /**
+   * @brief Unlocking Scriptに挿入する.
+   * @details OP_CODEの追加は未対応
+   * @param[in] txid 設定対象のTxInのtxid
+   * @param[in] vout 設定対象のTxInのvout
+   * @param[in] unlocking_scripts  署名を含むscriptリスト
+   */
+  void InsertUnlockingScript(
+      const Txid& txid, uint32_t vout,
+      const std::vector<ByteData>& unlocking_scripts);
   /**
    * @brief TxInにUnlocking Scriptを設定する.
    * @param[in] txid 設定対象のTxInのtxid
@@ -157,6 +181,7 @@ class CFD_EXPORT TransactionController
       const Txid& txid, uint32_t vout, const Script& unlocking_script);
   /**
    * @brief Unlocking Scriptを設定する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 設定対象のTxInのtxid
    * @param[in] vout 設定対象のTxInのvout
    * @param[in] unlocking_scripts  署名を含むscriptリスト
@@ -167,6 +192,7 @@ class CFD_EXPORT TransactionController
 
   /**
    * @brief WitnessStackを追加する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 追加対象のTxInのtxid
    * @param[in] vout 追加対象のTxInのvout
    * @param[in] witness_datas   WitnessStack追加情報リスト
@@ -225,6 +251,7 @@ class CFD_EXPORT TransactionController
       const Script& redeem_script);
   /**
    * @brief WitnessStackの指定Indexのデータを更新する.
+   * @details OP_CODEの追加は未対応
    * @param[in] txid 更新対象のTxInのtxid
    * @param[in] vout 更新対象のTxInのvout
    * @param[in] witness_index   WitnessStackのindex
@@ -264,6 +291,12 @@ class CFD_EXPORT TransactionController
   const Transaction& GetTransaction() const;
 
   /**
+   * @brief TxInを除外したサイズを取得する。
+   * @return TxInを除外したTxサイズ(Serialize)
+   */
+  uint32_t GetSizeIgnoreTxIn() const;
+
+  /**
    * @brief 指定されたP2PKH形式のTxInのSignatureHashを計算する.
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
@@ -298,16 +331,17 @@ class CFD_EXPORT TransactionController
       const Txid& txid, uint32_t vout, const Pubkey& pubkey,
       SigHashType sighash_type, const Amount& value);
   /**
-   * @brief 指定されたP2SH形式のTxInのSignatureHashを計算する.
+   * @brief 指定されたP2WSH形式のTxInのSignatureHashを計算する.
+   * @details OP_CODESEPARATORが存在するScriptについては未対応
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] redeem_script Redeem Script
+   * @param[in] witness_script WSHのWitness Script
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
    * @return 算出されたSignatureHashのHex文字列
    */
   std::string CreateP2wshSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& redeem_script,
+      const Txid& txid, uint32_t vout, const Script& witness_script,
       SigHashType sighash_type, const Amount& value);
 
  private:

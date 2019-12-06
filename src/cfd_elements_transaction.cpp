@@ -2,8 +2,8 @@
 /**
  * @file cfd_elements_transaction.cpp
  *
- * @brief-eng implementation of Elements Transaction operation related class
- * @brief-jp Elements Transaction操作の関連クラスの実装ファイル
+ * @brief \~english implementation of Elements Transaction operation related class
+ *   \~japanese Elements Transaction操作の関連クラスの実装ファイル
  */
 #ifndef CFD_DISABLE_ELEMENTS
 #include "cfd/cfd_elements_transaction.h"
@@ -41,6 +41,7 @@ using cfd::core::ConfidentialNonce;
 using cfd::core::ConfidentialTransaction;
 using cfd::core::ConfidentialTxInReference;
 using cfd::core::ConfidentialTxOutReference;
+using cfd::core::ConfidentialValue;
 using cfd::core::ElementsAddressType;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
@@ -123,6 +124,14 @@ const ConfidentialTxInReference ConfidentialTransactionController::GetTxIn(
   return transaction_.GetTxIn(index);
 }
 
+const ConfidentialTxInReference ConfidentialTransactionController::RemoveTxIn(
+    const Txid& txid, uint32_t vout) {
+  uint32_t index = transaction_.GetTxInIndex(txid, vout);
+  ConfidentialTxInReference ref = transaction_.GetTxIn(index);
+  transaction_.RemoveTxIn(index);
+  return ref;
+}
+
 const ConfidentialTxOutReference ConfidentialTransactionController::AddTxOut(
     const Address& address, const Amount& value,
     const ConfidentialAssetId& asset) {
@@ -165,17 +174,24 @@ ConfidentialTransactionController::AddPegoutTxOut(
     const BlockHash& genesisblock_hash, const Address& btc_address,
     NetType net_type, const Pubkey& online_pubkey,
     const Privkey& master_online_key, const std::string& btc_descriptor,
-    uint32_t bip32_counter, const ByteData& whitelist) {
-  // AddressTypeの種別ごとに、locking_scriptを作成
-  const ByteData hash_data = btc_address.GetHash();
-  Script script = btc_address.GetLockingScript();
-
+    uint32_t bip32_counter, const ByteData& whitelist,
+    NetType elements_net_type, Address* btc_derive_address) {
+  Script script;
   PegoutKeyData key_data;
   if (online_pubkey.IsValid() && !master_online_key.IsInvalid()) {
-    // pubkeys・whitelistproofを算出
+    // generate pubkey and whitelistproof
+    Address derive_addr;
     key_data = ConfidentialTransaction::GetPegoutPubkeyData(
         online_pubkey, master_online_key, btc_descriptor, bip32_counter,
-        whitelist, net_type);
+        whitelist, net_type, ByteData(), elements_net_type, &derive_addr);
+    if (!derive_addr.GetAddress().empty()) {
+      script = derive_addr.GetLockingScript();
+      if (btc_derive_address != nullptr) {
+        *btc_derive_address = derive_addr;
+      }
+    }
+  } else {
+    script = btc_address.GetLockingScript();
   }
 
   Script locking_script = ScriptUtil::CreatePegoutLogkingScript(
@@ -190,6 +206,46 @@ ConfidentialTransactionController::AddTxOutFee(
     const Amount& value, const ConfidentialAssetId& asset) {
   uint32_t index = transaction_.AddTxOutFee(value, asset);
   return transaction_.GetTxOut(index);
+}
+
+const ConfidentialTxOutReference
+ConfidentialTransactionController::UpdateTxOutFeeAmount(
+    uint32_t index, const Amount& value, const ConfidentialAssetId& asset) {
+  ConfidentialTxOutReference ref = transaction_.GetTxOut(index);
+  if (!ref.GetLockingScript().IsEmpty()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "target is not fee txout.");
+  }
+  transaction_.SetTxOutCommitment(
+      index, asset, ConfidentialValue(value), ConfidentialNonce(), ByteData(),
+      ByteData());
+  return transaction_.GetTxOut(index);
+}
+
+const ConfidentialTxOutReference
+ConfidentialTransactionController::RemoveTxOut(uint32_t index) {
+  ConfidentialTxOutReference ref = transaction_.GetTxOut(index);
+  transaction_.RemoveTxOut(index);
+  return ref;
+}
+
+void ConfidentialTransactionController::InsertUnlockingScript(
+    const Txid& txid, uint32_t vout,
+    const std::vector<ByteData>& unlocking_scripts) {
+  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
+  Script script = transaction_.GetTxIn(txin_index).GetUnlockingScript();
+  if (script.IsEmpty()) {
+    transaction_.SetUnlockingScript(txin_index, unlocking_scripts);
+  } else {
+    ScriptBuilder builder;
+    for (const auto& element : script.GetElementList()) {
+      builder.AppendElement(element);
+    }
+    for (const ByteData& data : unlocking_scripts) {
+      builder.AppendData(data);
+    }
+    transaction_.SetUnlockingScript(txin_index, builder.Build());
+  }
 }
 
 void ConfidentialTransactionController::SetUnlockingScript(
@@ -341,6 +397,24 @@ ConfidentialTransactionController::GetTransaction() const {
   return transaction_;
 }
 
+uint32_t ConfidentialTransactionController::GetSizeIgnoreTxIn(
+    bool is_blinded, uint32_t* witness_stack_size) const {
+  if (witness_stack_size) {
+    *witness_stack_size = 0;
+  }
+
+  uint32_t result = ConfidentialTransaction::kElementsTransactionMinimumSize;
+  std::vector<ConfidentialTxOutReference> txouts = transaction_.GetTxOutList();
+  uint32_t witness_size = 0;
+  for (const auto& txout : txouts) {
+    result += txout.GetSerializeSize(is_blinded, &witness_size);
+    if (witness_stack_size) {
+      *witness_stack_size += witness_size;
+    }
+  }
+  return result;
+}
+
 IssuanceParameter ConfidentialTransactionController::SetAssetIssuance(
     const Txid& txid, uint32_t vout, const Amount& asset_amount,
     const Script& asset_locking_script, const ByteData& asset_nonce,
@@ -471,7 +545,7 @@ Amount ConfidentialTransactionController::CalculateSimpleFee(
   // 簡易計算
   uint32_t size = transaction_.GetTotalSize();
   uint32_t vsize = transaction_.GetVsize();
-  uint32_t rate = FeeCalculator::kBaseRate;
+  uint32_t rate = FeeCalculator::kRelayMinimumFee;
   if (append_feature_signed_size) {
     uint32_t weight = transaction_.GetWeight();
     uint32_t count = transaction_.GetTxInCount();

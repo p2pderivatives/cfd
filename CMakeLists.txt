@@ -15,7 +15,7 @@ endif()
 # option(ENABLE_DEBUG "enable debugging (ON or OFF. default:OFF)" OFF)
 option(ENABLE_TESTS "enable code tests (ON or OFF. default:ON)" ON)
 option(ENABLE_ELEMENTS "enable elements code (ON or OFF. default:ON)" ON)
-option(ENABLE_BITCOIN  "enable bitcoin code (ON or OFF. default:ON)" ON)
+option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
 
 if(NOT WIN32)
 #option(TARGET_RPATH "target rpath list (separator is ';') (default:)" "")
@@ -35,6 +35,7 @@ set(CFD_OBJ_BINARY_DIR   ${CMAKE_BINARY_DIR}/${WORK_WINDOWS_BINARY_DIR_NAME})
 set(CFD_ROOT_BINARY_DIR  ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR}) # for linux
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR})
 endif()
 
 
@@ -56,6 +57,7 @@ endfunction()
 ####################
 # test
 ####################
+project(cfd_all_test CXX)
 if(ENABLE_TESTS)
 enable_testing()
 endif()		# ENABLE_TESTS
@@ -73,7 +75,6 @@ add_subdirectory(src)
 # test subdirectories
 ####################
 if(ENABLE_TESTS)
-project(cfd_all_test CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -94,3 +95,17 @@ set(includedir        ${prefix}/include)
 configure_file(pc/cfd.pc.in  cfd.pc  @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cfd.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+####################
+# uninstall
+####################
+if(NOT TARGET uninstall)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/pc/cmake_uninstall.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+  IMMEDIATE @ONLY)
+
+add_custom_target(uninstall
+  COMMAND ${CMAKE_COMMAND} -P
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+endif()

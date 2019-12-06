@@ -14,125 +14,238 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_transaction.h"
-#include "cfd/cfdapi_struct.h"
+#include "cfd/cfd_utxo.h"
+#include "cfd/cfdapi_coin.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_util.h"
 
-/**
- * @brief cfdapi名前空間
- */
 namespace cfd {
-namespace js {
 namespace api {
 
+using cfd::core::AddressFormatData;
+using cfd::core::AddressType;
+using cfd::core::Amount;
+using cfd::core::ByteData;
+using cfd::core::HashType;
+using cfd::core::Pubkey;
+using cfd::core::Script;
+using cfd::core::SigHashType;
+using cfd::core::Txid;
+using cfd::core::TxIn;
+using cfd::core::TxInReference;
+using cfd::core::TxOut;
+
 /**
- * @brief Transaction関連のJSON APIクラス
+ * @brief Transaction関連のAPIクラス
  */
-class CFD_EXPORT TransactionStructApi {
+class CFD_EXPORT TransactionApi {
  public:
   /**
-   * @brief JSONパラメータの情報を元に、Transactionを作成する.
-   * @param[in] request Transactionを構築するパラメータの構造体
-   * @return Transactionのhexデータを格納した構造体
+   * @brief constructor
    */
-  static CreateRawTransactionResponseStruct CreateRawTransaction(
-      const CreateRawTransactionRequestStruct& request);
+  TransactionApi() {}
 
   /**
-   * @brief JSONパラメータの情報を元に、Transactionをデコードして出力する.
-   * @param[in] request Transactionとデコード用の情報を格納した構造体
-   * @return Transactionの表示用JSONデータを格納した構造体
+   * @brief Raw Transactionを作成する.
+   * @param[in] version     tx version
+   * @param[in] locktime    lock time
+   * @param[in] txins       tx input list
+   * @param[in] txouts      tx output list
+   * @return transaction controller
    */
-  static DecodeRawTransactionResponseStruct DecodeRawTransaction(
-      const DecodeRawTransactionRequestStruct& request);
+  TransactionController CreateRawTransaction(
+      uint32_t version, uint32_t locktime, const std::vector<TxIn>& txins,
+      const std::vector<TxOut>& txouts) const;
 
   /**
-   * @brief JSONパラメータの情報を元に、WitnessStack数を出力する.
-   * @param[in] request Transactionと対象TxIn情報を格納した構造体
-   * @return WitnessStack数を格納した構造体
+   * @brief WitnessStack数を出力する.
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txid            target tx input txid
+   * @param[in] vout            target tx input vout
+   * @return WitnessStack数
    */
-  static GetWitnessStackNumResponseStruct GetWitnessStackNum(
-      const GetWitnessStackNumRequestStruct& request);
+  uint32_t GetWitnessStackNum(
+      const std::string& tx_hex, const Txid& txid, uint32_t vout) const;
 
   /**
-   * @brief JSONパラメータの情報を元に、署名情報を追加する.
-   * @param[in] request Transactionと署名情報を格納した構造体
-   * @return Transactionのhexデータを格納した構造体
+   * @brief hexで与えられたtxに、SignDataを付与したTransctionControllerを作成する.
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txid            target tx input txid
+   * @param[in] vout            target tx input vout
+   * @param[in] sign_params     sign data list
+   * @param[in] is_witness      use witness
+   * @param[in] clear_stack     clear stack data before add.
+   * @return SignDataが付与されたTransactionController
    */
-  static AddSignResponseStruct AddSign(const AddSignRequestStruct& request);
+  TransactionController AddSign(
+      const std::string& tx_hex, const Txid& txid, const uint32_t vout,
+      const std::vector<SignParameter>& sign_params, bool is_witness = true,
+      bool clear_stack = false) const;
 
   /**
-   * @brief JSONパラメータの情報を元に、WitnessStackの情報を更新する.
-   * @param[in] request TransactionとWitnessStack追加情報を格納した構造体
-   * @return Transactionのhexデータを格納した構造体
+   * @brief WitnessStackの情報を更新する.
+   * @param[in] tx_hex              tx hex string
+   * @param[in] txid                target tx input txid
+   * @param[in] vout                target tx input vout
+   * @param[in] update_sign_param   sign data
+   * @param[in] stack_index         witness stack index
+   * @return TransactionController
    */
-  static UpdateWitnessStackResponseStruct UpdateWitnessStack(
-      const UpdateWitnessStackRequestStruct& request);
+  TransactionController UpdateWitnessStack(
+      const std::string& tx_hex, const Txid& txid, uint32_t vout,
+      const SignParameter& update_sign_param, uint32_t stack_index) const;
 
   /**
-   * @brief JSONパラメータの情報を元に、SegwitのMultisig署名情報を追加する.
+   * @brief tx情報およびパラメータから、SigHashを作成する.
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txin            target tx input
+   * @param[in] pubkey          public key
+   * @param[in] amount          amount
+   * @param[in] hash_type       hash type
+   * @param[in] sighash_type    sighash type
+   * @return sighash
+   */
+  ByteData CreateSignatureHash(
+      const std::string& tx_hex, const TxInReference& txin,
+      const Pubkey& pubkey, const Amount& amount, HashType hash_type,
+      const SigHashType& sighash_type) const;
+
+  /**
+   * @brief tx情報およびパラメータから、SigHashを作成する.
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txin            target tx input
+   * @param[in] redeem_script   redeem script
+   * @param[in] amount          amount
+   * @param[in] hash_type       hash type
+   * @param[in] sighash_type    sighash type
+   * @return sighash
+   */
+  ByteData CreateSignatureHash(
+      const std::string& tx_hex, const TxInReference& txin,
+      const Script& redeem_script, const Amount& amount, HashType hash_type,
+      const SigHashType& sighash_type) const;
+
+  /**
+   * @brief tx情報およびパラメータから、SigHashを作成する.
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txin            target tx input
+   * @param[in] key_data        key data (pubkey or redeem script)
+   * @param[in] amount          amount
+   * @param[in] hash_type       hash type
+   * @param[in] sighash_type    sighash type
+   * @return sighash
+   */
+  ByteData CreateSignatureHash(
+      const std::string& tx_hex, const TxInReference& txin,
+      const ByteData& key_data, const Amount& amount, HashType hash_type,
+      const SigHashType& sighash_type) const;
+
+  /**
+   * @brief tx情報およびパラメータから、SigHashを作成する.
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txid            target tx input txid
+   * @param[in] vout            target tx input vout
+   * @param[in] key_data        key data (pubkey or redeem script)
+   * @param[in] amount          amount
+   * @param[in] hash_type       hash type
+   * @param[in] sighash_type    sighash type
+   * @return sighash
+   */
+  ByteData CreateSignatureHash(
+      const std::string& tx_hex, const Txid& txid, uint32_t vout,
+      const ByteData& key_data, const Amount& amount, HashType hash_type,
+      const SigHashType& sighash_type) const;
+
+  /**
+   * @brief Multisig署名情報を追加する.
    * @details 追加するsignatureの順序は、redeem
-   * scriptのpubkeyとsignParam内のrelatedPubkeyで
+   * scriptのpubkeyとsign_list内のrelatedPubkeyで
    *   対応をとって自動的に整列される.
    * (relatedPubkeyが設定されていない場合は、relatedPubkeyが
    *   設定されているsignatureを追加した後にsignParamの順序でsignatureを追加)
-   * @param[in] request TransactionとSegwitのMultisig署名情報を格納した構造体
-   * @return Transactionのhexデータを格納した構造体
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txin            target tx input
+   * @param[in] sign_list       value (amount or commitment)
+   * @param[in] address_type    address type. (support is P2sh-P2wsh or P2wsh)
+   * @param[in] witness_script  witness script
+   * @param[in] redeem_script   redeem script
+   * @param[in] clear_stack     clear stack data before add.
+   * @return Transaction
    */
-  static AddMultisigSignResponseStruct AddMultisigSign(
-      const AddMultisigSignRequestStruct& request);
+  TransactionController AddMultisigSign(
+      const std::string& tx_hex, const TxInReference& txin,
+      const std::vector<SignParameter>& sign_list, AddressType address_type,
+      const Script& witness_script, const Script redeem_script = Script(),
+      bool clear_stack = true);
 
   /**
-   * @brief JSONパラメータの情報を元に、SigHashを作成する
-   * @param[in] request sighashを生成するパラメータ
-   * @return sighashのhexデータを格納した構造体
+   * @brief Multisig署名情報を追加する.
+   * @details 追加するsignatureの順序は、redeem
+   * scriptのpubkeyとsign_list内のrelatedPubkeyで
+   *   対応をとって自動的に整列される.
+   * (relatedPubkeyが設定されていない場合は、relatedPubkeyが
+   *   設定されているsignatureを追加した後にsignParamの順序でsignatureを追加)
+   * @param[in] tx_hex          tx hex string
+   * @param[in] txid            target tx input txid
+   * @param[in] vout            target tx input vout
+   * @param[in] sign_list       value (amount or commitment)
+   * @param[in] address_type    address type. (support is P2sh-P2wsh or P2wsh)
+   * @param[in] witness_script  witness script
+   * @param[in] redeem_script   redeem script
+   * @param[in] clear_stack     clear stack data before add.
+   * @return Transaction
    */
-  static CreateSignatureHashResponseStruct CreateSignatureHash(
-      const CreateSignatureHashRequestStruct& request);
+  TransactionController AddMultisigSign(
+      const std::string& tx_hex, const Txid& txid, uint32_t vout,
+      const std::vector<SignParameter>& sign_list, AddressType address_type,
+      const Script& witness_script, const Script redeem_script = Script(),
+      bool clear_stack = true);
 
- private:
-  TransactionStructApi();
+  /**
+   * @brief estimate a fee amount from transaction.
+   * @param[in] tx_hex              tx hex string
+   * @param[in] utxos               using utxo data
+   * @param[in] tx_fee              tx fee amount (ignore utxo)
+   * @param[in] utxo_fee            utxo fee amount
+   * @param[in] effective_fee_rate  effective fee rate (minimum)
+   * @return tx fee (contains utxo)
+   */
+  Amount EstimateFee(
+      const std::string& tx_hex, const std::vector<UtxoData>& utxos,
+      Amount* tx_fee = nullptr, Amount* utxo_fee = nullptr,
+      double effective_fee_rate = 1) const;
 
   /**
-   * @brief MultiSigスクリプトかどうかをチェックする。
-   * @param[in] script    スクリプト
-   * @retval true   MultiSig
-   * @retval false  その他のスクリプト
+   * @brief calculate fund transaction.
+   * @param[in] tx_hex                   tx hex string
+   * @param[in] utxos                    using utxo data
+   * @param[in] target_value             target value
+   * @param[in] selected_txin_utxos      selected txin utxo
+   * @param[in] reserve_txout_address    reserved address
+   * @param[in] effective_fee_rate       effective fee rate (minimum)
+   * @param[out] estimate_fee            estimate fee
+   * @param[in] filter                   utxo search filter
+   * @param[in] option_params            utxo search option
+   * @param[out] append_txout_addresses  used txout additional address
+   * @param[in] net_type                 network type
+   * @param[in] prefix_list              address prefix list
+   * @return tx controller
    */
-  static bool CheckMultiSigScript(const cfd::core::Script& script);
-  /**
-   * @brief P2PKHスクリプトかどうかをチェックする。
-   * @param[in] script    スクリプト
-   * @retval true   P2PKH
-   * @retval false  その他のスクリプト
-   */
-  static bool CheckP2pkhScript(const cfd::core::Script& script);
-  /**
-   * @brief P2SHスクリプトかどうかをチェックする。
-   * @param[in] script    スクリプト
-   * @retval true   P2SH
-   * @retval false  その他のスクリプト
-   */
-  static bool CheckP2shScript(const cfd::core::Script& script);
-  /**
-   * @brief Pubkeyスクリプトかどうかをチェックする。
-   * @param[in] script    スクリプト
-   * @retval true   Pubkeyスクリプト
-   * @retval false  その他のスクリプト
-   */
-  static bool CheckPubkeyScript(const cfd::core::Script& script);
-  /**
-   * @brief NullDataスクリプトかどうかをチェックする。
-   * @param[in] script    スクリプト
-   * @retval true   NullDataスクリプト
-   * @retval false  その他のスクリプト
-   */
-  static bool CheckNullDataScript(const cfd::core::Script& script);
+  TransactionController FundRawTransaction(
+      const std::string& tx_hex, const std::vector<UtxoData>& utxos,
+      const Amount& target_value,
+      const std::vector<UtxoData>& selected_txin_utxos,
+      const std::string& reserve_txout_address,
+      double effective_fee_rate = 20.0, Amount* estimate_fee = nullptr,
+      const UtxoFilter* filter = nullptr,
+      const CoinSelectionOption* option_params = nullptr,
+      std::vector<std::string>* append_txout_addresses = nullptr,
+      NetType net_type = NetType::kMainnet,
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
 };
 
 }  // namespace api
-}  // namespace js
 }  // namespace cfd
 
 #endif  // CFD_INCLUDE_CFD_CFDAPI_TRANSACTION_H_

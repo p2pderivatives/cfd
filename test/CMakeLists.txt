@@ -15,6 +15,7 @@ endif()
 option(ENABLE_DEBUG "enable debugging (ON or OFF. default:OFF)" OFF)
 option(ENABLE_ELEMENTS "enable elements code (ON or OFF. default:ON)" ON)
 option(ENABLE_BITCOIN  "enable bitcoin code (ON or OFF. default:ON)" ON)
+option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
 
 if(NOT WIN32)
 option(TARGET_RPATH "target rpath list (separator is ';') (default:@rpath;./)" OFF)
@@ -55,6 +56,12 @@ set(CFD_ELEMENTS_USE   CFD_DISABLE_ELEMENTS)
 else()
 set(ELEMENTS_COMP_OPT  BUILD_ELEMENTS)
 set(CFD_ELEMENTS_USE   "")
+endif()
+
+if(NOT ENABLE_CAPI)
+set(CFD_CAPI_USE   CFD_DISABLE_CAPI)
+else()
+set(CFD_CAPI_USE   "")
 endif()
 
 if(NOT WIN32)
@@ -103,9 +110,17 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC AND ENABLE_SHARED)
+if(NOT ENABLE_CAPI)
 add_executable(${PROJECT_NAME} ${TEST_CFD_SOURCES})
 else()
+add_executable(${PROJECT_NAME} ${TEST_CFD_SOURCES} ${TEST_CFD_CAPI_SOURCES})
+endif()
+else()
+if(NOT ENABLE_CAPI)
 add_executable(${PROJECT_NAME} ${TEST_CFD_SOURCES} ${TEST_CFD_STATIC_SOURCES})
+else()
+add_executable(${PROJECT_NAME} ${TEST_CFD_SOURCES} ${TEST_CFD_STATIC_SOURCES} ${TEST_CFD_CAPI_SOURCES})
+endif()
 endif()
 
 # using shared library : -DGTEST_LINKED_AS_SHARED_LIBRARY=1
@@ -126,6 +141,7 @@ target_compile_definitions(${PROJECT_NAME}
     CFD_SHARED=1
     CFD_CORE_SHARED=1
     ${ELEMENTS_COMP_OPT}
+    ${CFD_CAPI_USE}
     ${CFD_BITCOIN_USE}
     ${CFD_ELEMENTS_USE}
 )
@@ -143,6 +159,7 @@ target_compile_options(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     ${ELEMENTS_COMP_OPT}
+    ${CFD_CAPI_USE}
     ${CFD_BITCOIN_USE}
     ${CFD_ELEMENTS_USE}
 )

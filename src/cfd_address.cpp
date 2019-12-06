@@ -2,8 +2,8 @@
 /**
  * @file cfd_address.cpp
  *
- * @brief-eng Address操作の関連クラスの実装ファイル
- * @brief-jp implementation of classes related to address operation
+ * @brief \~english implementation of classes related to address operation
+ *   \~japanese Address操作の関連クラスの実装ファイル
  */
 
 #include <string>
@@ -103,6 +103,44 @@ Address AddressFactory::CreateP2wshMultisigAddress(
     uint32_t require_num, const std::vector<Pubkey>& pubkeys) const {
   Script script = ScriptUtil::CreateMultisigRedeemScript(require_num, pubkeys);
   return Address(type_, wit_ver_, script, prefix_list_);
+}
+
+bool AddressFactory::CheckAddressNetType(
+    const Address& address, NetType net_type) const {
+  if (address.GetNetType() == net_type) {
+    return true;
+  }
+
+  // check prefix
+  bool result = false;
+  AddressType addr_type = address.GetAddressType();
+  AddressFormatData addr_format = address.GetAddressFormatData();
+  for (auto& prefix : prefix_list_) {
+    if (prefix.GetNetType() == net_type) {
+      switch (addr_type) {
+        case AddressType::kP2pkhAddress:
+          result = (prefix.GetP2pkhPrefix() == addr_format.GetP2pkhPrefix());
+          break;
+        case AddressType::kP2shP2wpkhAddress:
+          // fall-through
+        case AddressType::kP2shP2wshAddress:
+          // fall-through
+        case AddressType::kP2shAddress:
+          result = (prefix.GetP2shPrefix() == addr_format.GetP2shPrefix());
+          break;
+        case AddressType::kP2wpkhAddress:
+        case AddressType::kP2wshAddress:
+          result = (prefix.GetBech32Hrp() == addr_format.GetBech32Hrp());
+          break;
+        default:
+          result = false;
+          break;
+      }
+      break;
+    }
+  }
+
+  return result;
 }
 
 }  // namespace cfd
