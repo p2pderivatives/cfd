@@ -128,6 +128,15 @@ TEST(SignParameter, StringConstructorTest)
   sign_parameter = SignParameter(expect_pubkey.GetHex());
   CompareSignparameter(sign_parameter, expect_pubkey.GetData(),
       SignDataType::kBinary, Pubkey(), false, SigHashType(), expect_pubkey.GetData());
+
+  const ByteData expect_message("773420c0ded41a55b1f1205cfb632f08f3f911a53e7338a0dac73ec6cbe3ca471907434d046185abedc5afddc2761a642bccc70af6d22b46394f1d04a8b24226");
+  const SigHashType expect_sighashtype(SigHashAlgorithm::kSigHashAll);
+  const ByteData expect_signature("30440220773420c0ded41a55b1f1205cfb632f08f3f911a53e7338a0dac73ec6cbe3ca4702201907434d046185abedc5afddc2761a642bccc70af6d22b46394f1d04a8b2422601");
+  // constructor
+  sign_parameter = SignParameter(expect_message.GetHex(), true);
+  CompareSignparameter(sign_parameter, expect_message,
+      SignDataType::kSign, Pubkey(), true, expect_sighashtype,
+      expect_signature);
 }
 
 TEST(SignParameter, SignDataConstructorTest)

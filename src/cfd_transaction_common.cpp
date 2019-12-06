@@ -64,7 +64,9 @@ SignParameter::SignParameter()
   // do nothing
 }
 
-SignParameter::SignParameter(const std::string& text_message)
+SignParameter::SignParameter(
+    const std::string& text_message, bool der_encode,
+    const SigHashType sighash_type)
     : data_(),
       data_type_(SignDataType::kBinary),
       related_pubkey_(),
@@ -79,6 +81,9 @@ SignParameter::SignParameter(const std::string& text_message)
     data_ = ByteData(list);
   } else {
     data_ = ByteData(text_message);
+    der_encode_ = der_encode;
+    sighash_type_ = sighash_type;
+    if (der_encode) data_type_ = SignDataType::kSign;
   }
 }
 

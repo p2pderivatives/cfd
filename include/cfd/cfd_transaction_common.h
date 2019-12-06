@@ -56,9 +56,14 @@ class CFD_EXPORT SignParameter {
   SignParameter();
   /**
    * @brief コンストラクタ(Type: auto)
-   * @param[in] text_message  text data
+   * @param[in] text_message            text data
+   * @param[in] der_encode              flag of need der encode
+   * @param[in] sighash_type            sighash type (SigHashType)
    */
-  explicit SignParameter(const std::string& text_message);
+  explicit SignParameter(
+      const std::string& text_message, bool der_encode = false,
+      const SigHashType sighash_type =
+          SigHashType(SigHashAlgorithm::kSigHashAll));
   /**
    * @brief コンストラクタ(Type: Sign)
    * @param[in] data                    byte data
