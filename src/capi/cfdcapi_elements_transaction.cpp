@@ -1090,7 +1090,7 @@ int CfdAddConfidentialTxSign(
 
     std::vector<SignParameter> sign_list;
     // SignParameter param();
-    sign_list.emplace_back(ByteData(sign_data_hex));
+    sign_list.emplace_back(std::string(sign_data_hex));
 
     ElementsTransactionApi api;
     ConfidentialTransactionController ctxc = api.AddSign(

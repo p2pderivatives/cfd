@@ -28,6 +28,7 @@ using cfd::core::ByteData;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
+using cfd::core::ScriptOperator;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
 using cfd::core::Txid;
@@ -41,6 +42,7 @@ enum SignDataType {
   kBinary,
   kPubkey,
   kRedeemScript,
+  kOpCode,
 };
 
 /**
@@ -52,6 +54,16 @@ class CFD_EXPORT SignParameter {
    * @brief コンストラクタ(for vector)
    */
   SignParameter();
+  /**
+   * @brief コンストラクタ(Type: auto)
+   * @param[in] text_message            text data
+   * @param[in] der_encode              flag of need der encode
+   * @param[in] sighash_type            sighash type (SigHashType)
+   */
+  explicit SignParameter(
+      const std::string& text_message, bool der_encode = false,
+      const SigHashType sighash_type =
+          SigHashType(SigHashAlgorithm::kSigHashAll));
   /**
    * @brief コンストラクタ(Type: Sign)
    * @param[in] data                    byte data
@@ -78,6 +90,11 @@ class CFD_EXPORT SignParameter {
    */
   explicit SignParameter(const Script& redeem_script);
   /**
+   * @brief コンストラクタ(Type: ScriptOperator)
+   * @param[in] op_code  op code
+   */
+  explicit SignParameter(const ScriptOperator& op_code);
+  /**
    * @brief コピーコンストラクタ.
    * @param[in] sign_parameter     Sign生成情報オブジェクト
    * @return SignParameterオブジェクト
@@ -94,6 +111,17 @@ class CFD_EXPORT SignParameter {
    * @return data
    */
   ByteData GetData() const;
+  /**
+   * @brief get op_code.
+   * @return op_code
+   */
+  ScriptOperator GetOpCode() const;
+  /**
+   * @brief check op_code.
+   * @retval true op_code
+   * @retval false other value
+   */
+  bool IsOpCode() const;
   /**
    * @brief data typeを取得する
    * @return data
@@ -126,6 +154,7 @@ class CFD_EXPORT SignParameter {
   Pubkey related_pubkey_;     //!< need der encode flag
   bool der_encode_;           //!< sighash type
   SigHashType sighash_type_;  //!< AnyoneCanPay flag
+  ScriptOperator op_code_;    //!< op_code
 };
 
 /**

@@ -2,8 +2,8 @@
 /**
  * @file cfd_transaction.cpp
  *
- * @brief-eng implementation of common classes related to transaction operation
- * @brief-jp Transaction操作共通の関連クラスの実装ファイル
+ * @brief \~english implementation of common classes related to transaction operation
+ *   \~japanese Transaction操作共通の関連クラスの実装ファイル
  */
 #include "cfd/cfd_transaction_common.h"
 
@@ -59,8 +59,32 @@ SignParameter::SignParameter()
       data_type_(SignDataType::kBinary),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
+}
+
+SignParameter::SignParameter(
+    const std::string& text_message, bool der_encode,
+    const SigHashType sighash_type)
+    : data_(),
+      data_type_(SignDataType::kBinary),
+      related_pubkey_(),
+      der_encode_(false),
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
+  if (ScriptOperator::IsValid(text_message)) {
+    data_type_ = SignDataType::kOpCode;
+    op_code_ = ScriptOperator::Get(text_message);
+    std::vector<uint8_t> list(1);
+    list[0] = static_cast<uint8_t>(op_code_.GetDataType());
+    data_ = ByteData(list);
+  } else {
+    data_ = ByteData(text_message);
+    der_encode_ = der_encode;
+    sighash_type_ = sighash_type;
+    if (der_encode) data_type_ = SignDataType::kSign;
+  }
 }
 
 SignParameter::SignParameter(
@@ -69,7 +93,8 @@ SignParameter::SignParameter(
       data_type_(SignDataType::kSign),
       related_pubkey_(),
       der_encode_(der_encode),
-      sighash_type_(sighash_type) {
+      sighash_type_(sighash_type),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -78,7 +103,8 @@ SignParameter::SignParameter(const ByteData& data)
       data_type_(SignDataType::kBinary),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -87,7 +113,8 @@ SignParameter::SignParameter(const Pubkey& pubkey)
       data_type_(SignDataType::kPubkey),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
 }
 
@@ -96,8 +123,21 @@ SignParameter::SignParameter(const Script& redeem_script)
       data_type_(SignDataType::kRedeemScript),
       related_pubkey_(),
       der_encode_(false),
-      sighash_type_() {
+      sighash_type_(),
+      op_code_(ScriptOperator::OP_INVALIDOPCODE) {
   // do nothing
+}
+
+SignParameter::SignParameter(const ScriptOperator& op_code)
+    : data_(),
+      data_type_(SignDataType::kOpCode),
+      related_pubkey_(),
+      der_encode_(false),
+      sighash_type_(),
+      op_code_(op_code) {
+  std::vector<uint8_t> list(1);
+  list[0] = static_cast<uint8_t>(op_code_.GetDataType());
+  data_ = ByteData(list);
 }
 
 SignParameter& SignParameter::operator=(const SignParameter& sign_parameter) {
@@ -113,6 +153,12 @@ void SignParameter::SetRelatedPubkey(const Pubkey& pubkey) {
   if (pubkey.IsValid()) {
     related_pubkey_ = pubkey;
   }
+}
+
+ScriptOperator SignParameter::GetOpCode() const { return op_code_; }
+
+bool SignParameter::IsOpCode() const {
+  return data_type_ == SignDataType::kOpCode;
 }
 
 ByteData SignParameter::GetData() const { return data_; }

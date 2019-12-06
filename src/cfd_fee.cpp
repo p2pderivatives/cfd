@@ -2,8 +2,8 @@
 /**
  * @file cfd_fee.cpp
  *
- * @brief-eng implementation of classes related to fee calculation
- * @brief-jp Fee計算の関連クラスの実装ファイル
+ * @brief \~english implementation of classes related to fee calculation
+ *   \~japanese Fee計算の関連クラスの実装ファイル
  */
 #include <algorithm>
 #include <string>
@@ -44,10 +44,6 @@ FeeCalculator::FeeCalculator()
 FeeCalculator::FeeCalculator(uint64_t baserate) : baserate_(baserate) {}
 
 Amount FeeCalculator::GetFee(uint32_t size) const {
-  return GetFee(static_cast<size_t>(size));
-}
-
-Amount FeeCalculator::GetFee(size_t size) const {
   int64_t byte_size = static_cast<int64_t>(size);
   int64_t fee = baserate_ * byte_size / 1000;
   if ((fee == 0) && (byte_size != 0) && (baserate_ != 0)) {

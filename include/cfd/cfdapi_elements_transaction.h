@@ -92,16 +92,17 @@ struct TxInPeginParameters {
  * @brief TxOut pegout parameters
  */
 struct TxOutPegoutParameters {
-  Amount amount;                   //!< amount
-  ConfidentialAssetId asset;       //!< asset
-  BlockHash genesisblock_hash;     //!< mainchain genesis block hash
-  Address btc_address;             //!< mainchain bitcoin address
-  NetType net_type;                //!< mainchain network type
-  Pubkey online_pubkey;            //!< online pubkey
-  Privkey master_online_key;       //!< master online key
-  std::string bitcoin_descriptor;  //!< bitcoin descriptor
-  uint32_t bip32_counter;          //!< bip32 counter
-  ByteData whitelist;              //!< claim script
+  Amount amount;                         //!< amount
+  ConfidentialAssetId asset;             //!< asset
+  BlockHash genesisblock_hash;           //!< mainchain genesis block hash
+  Address btc_address;                   //!< mainchain bitcoin address
+  NetType net_type = NetType::kMainnet;  //!< mainchain network type
+  Pubkey online_pubkey;                  //!< online pubkey
+  Privkey master_online_key;             //!< master online key
+  std::string bitcoin_descriptor;        //!< bitcoin descriptor
+  uint32_t bip32_counter = 0;            //!< bip32 counter
+  ByteData whitelist;                    //!< claim script
+  NetType elements_net_type = NetType::kLiquidV1;  //!< elements network type
 };
 
 /**

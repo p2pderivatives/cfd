@@ -2,8 +2,8 @@
 /**
  * @file cfd_address.cpp
  *
- * @brief-eng implementation of classes related to address operation
- * @brief-jp  Address操作の関連クラスの実装ファイル
+ * @brief \~english implementation of classes related to address operation
+ *   \~japanese Address操作の関連クラスの実装ファイル
  */
 
 #include <string>

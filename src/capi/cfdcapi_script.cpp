@@ -98,8 +98,8 @@ CFDC_API int CfdParseScript(
     for (const auto& elem : script_elems) {
       std::string data;
       if (elem.IsOpCode()) {
-        // OP_CODE をHEXに変換
-        data = elem.GetData().GetHex();
+        // Convert to OpCode string
+        data = elem.GetOpCode().ToCodeString();
       } else {
         data = elem.ToString();
       }

@@ -49,11 +49,11 @@ TEST(cfdcapi_script, CfdParseScriptTest_LockingScript_Test) {
     }
 
     if (script_items.size() == 5) {
-      EXPECT_STREQ(script_items.at(0).c_str(), "76");
-      EXPECT_STREQ(script_items.at(1).c_str(), "a9");
+      EXPECT_STREQ(script_items.at(0).c_str(), "OP_DUP");
+      EXPECT_STREQ(script_items.at(1).c_str(), "OP_HASH160");
       EXPECT_STREQ(script_items.at(2).c_str(), "2e3f2c7e30abce5b22451184c5e531a1e23c6e12");
-      EXPECT_STREQ(script_items.at(3).c_str(), "88");
-      EXPECT_STREQ(script_items.at(4).c_str(), "ac");
+      EXPECT_STREQ(script_items.at(3).c_str(), "OP_EQUALVERIFY");
+      EXPECT_STREQ(script_items.at(4).c_str(), "OP_CHECKSIG");
     }
   }
   ret = CfdFreeScriptItemHandle(handle, item_handle);

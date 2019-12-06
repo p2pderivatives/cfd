@@ -88,11 +88,11 @@ CoinSelectionOption::CoinSelectionOption()
 
 bool CoinSelectionOption::IsUseBnB() const { return use_bnb_; }
 
-size_t CoinSelectionOption::GetChangeOutputSize() const {
+uint32_t CoinSelectionOption::GetChangeOutputSize() const {
   return change_output_size_;
 }
 
-size_t CoinSelectionOption::GetChangeSpendSize() const {
+uint32_t CoinSelectionOption::GetChangeSpendSize() const {
   return change_spend_size_;
 }
 
@@ -130,11 +130,11 @@ Amount CoinSelectionOption::GetDustFeeAmount(const Address& address) const {
 void CoinSelectionOption::SetUseBnB(bool use_bnb) { use_bnb_ = use_bnb; }
 
 void CoinSelectionOption::SetChangeOutputSize(size_t size) {
-  change_output_size_ = size;
+  change_output_size_ = static_cast<uint32_t>(size);
 }
 
 void CoinSelectionOption::SetChangeSpendSize(size_t size) {
-  change_spend_size_ = size;
+  change_spend_size_ = static_cast<uint32_t>(size);
 }
 
 void CoinSelectionOption::SetEffectiveFeeBaserate(double baserate) {
