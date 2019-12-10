@@ -12,6 +12,7 @@
 #include "cfd/cfd_address.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_bytedata.h"
+#include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_script.h"
 
@@ -22,10 +23,13 @@ using cfd::core::AddressFormatData;
 using cfd::core::AddressType;
 using cfd::core::ByteData;
 using cfd::core::ByteData160;
+using cfd::core::CfdError;
+using cfd::core::CfdException;
 using cfd::core::GetBitcoinAddressFormatList;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
+using cfd::core::ScriptElement;
 using cfd::core::ScriptUtil;
 using cfd::core::WitnessVersion;
 
@@ -67,6 +71,30 @@ AddressFactory::AddressFactory(
 
 Address AddressFactory::GetAddress(const std::string& address_string) const {
   return Address(address_string, prefix_list_);
+}
+
+Address AddressFactory::GetAddressByLockingScript(
+    const Script& locking_script) const {
+  std::vector<ScriptElement> items = locking_script.GetElementList();
+  if (locking_script.IsP2pkScript()) {
+    Pubkey pubkey = Pubkey(items[0].GetBinaryData());
+    return CreateP2pkhAddress(pubkey);
+  } else if (locking_script.IsP2pkhScript()) {
+    ByteData160 hash = ByteData160(items[2].GetBinaryData().GetBytes());
+    return GetAddressByHash(AddressType::kP2pkhAddress, hash);
+  } else if (locking_script.IsP2shScript()) {
+    ByteData160 hash = ByteData160(items[1].GetBinaryData().GetBytes());
+    return GetAddressByHash(AddressType::kP2shAddress, hash);
+  } else if (
+      locking_script.IsP2wpkhScript() || locking_script.IsP2wshScript()) {
+    return GetSegwitAddressByHash(items[1].GetBinaryData());
+  } else if (locking_script.IsMultisigScript()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "script type is multisig script.");
+  } else {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "unknown type locking script.");
+  }
 }
 
 Address AddressFactory::GetAddressByHash(
