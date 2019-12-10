@@ -145,6 +145,7 @@ CFDC_API void FreeBufferOnError(
 struct CfdCapiHandleData {
   char prefix[kPrefixLength];  //!< buffer prefix
   int32_t error_code;          //!< error code
+  bool is_outside;             //!< outside handle
   char error_message[256];     //!< error message
 };
 
@@ -196,8 +197,9 @@ class CfdCapiManager {
 
   /**
    * @brief ハンドルを作成する。
+   * @param[in] is_outside  create outside handle
    */
-  void* CreateHandle(void);
+  void* CreateHandle(bool is_outside = false);
   /**
    * @brief ハンドルを解放する。
    * @param[in] handle      ハンドル情報

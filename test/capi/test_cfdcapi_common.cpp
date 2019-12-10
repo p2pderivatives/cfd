@@ -42,6 +42,19 @@ TEST(cfdcapi_common, CfdCreateHandle) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_common, CfdCreateSimpleHandle) {
+  int ret = CfdCreateSimpleHandle(NULL);
+  EXPECT_EQ(kCfdIllegalArgumentError, ret);
+
+  void* handle = NULL;
+  ret = CfdCreateSimpleHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 TEST(cfdcapi_common, CfdFreeBuffer) {
   int ret = CfdFreeBuffer(NULL);
   EXPECT_EQ(kCfdSuccess, ret);
