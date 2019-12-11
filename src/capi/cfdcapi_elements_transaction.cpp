@@ -340,6 +340,66 @@ int CfdUpdateConfidentialTxOut(
   }
 }
 
+int CfdGetConfidentialTxInfo(
+    void* handle, const char* tx_hex_string, char** txid, char** wtxid,
+    char** wit_hash, uint32_t* size, uint32_t* vsize, uint32_t* weight,
+    uint32_t* version, uint32_t* locktime) {
+  int error_code = CfdErrorCode::kCfdUnknownError;
+  char* work_txid = nullptr;
+  char* work_wtxid = nullptr;
+  char* work_wit_hash = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null.");
+    }
+
+    ConfidentialTransactionController ctxc(tx_hex_string);
+    const ConfidentialTransaction& tx = ctxc.GetTransaction();
+
+    if (txid != nullptr) {
+      work_txid = CreateString(tx.GetTxid().GetHex());
+    }
+    if (wtxid != nullptr) {
+      work_wtxid = CreateString(Txid(tx.GetWitnessHash()).GetHex());
+    }
+    if (wit_hash != nullptr) {
+      work_wit_hash = CreateString(Txid(tx.GetWitnessOnlyHash()).GetHex());
+    }
+    if (size != nullptr) {
+      *size = tx.GetTotalSize();
+    }
+    if (vsize != nullptr) {
+      *vsize = tx.GetVsize();
+    }
+    if (weight != nullptr) {
+      *weight = tx.GetWeight();
+    }
+    if (version != nullptr) {
+      *version = tx.GetVersion();
+    }
+    if (locktime != nullptr) {
+      *locktime = tx.GetLockTime();
+    }
+
+    if (work_txid != nullptr) *txid = work_txid;
+    if (work_wtxid != nullptr) *wtxid = work_wtxid;
+    if (work_wit_hash != nullptr) *wit_hash = work_wit_hash;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    error_code = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_txid, &work_wtxid, &work_wit_hash);
+  return error_code;
+}
+
 int CfdGetConfidentialTxIn(
     void* handle, const char* tx_hex_string, uint32_t index, char** txid,
     uint32_t* vout, uint32_t* sequence, char** script_sig) {

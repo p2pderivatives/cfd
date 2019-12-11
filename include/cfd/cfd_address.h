@@ -84,6 +84,13 @@ class CFD_EXPORT AddressFactory {
   Address GetAddress(const std::string& address_string) const;
 
   /**
+   * @brief LockingScriptからアドレスを作成する
+   * @param[in] locking_script  locking script
+   * @return address
+   */
+  Address GetAddressByLockingScript(const Script& locking_script) const;
+
+  /**
    * @brief Hash情報からアドレスを作成する
    * @param[in] address_type  address type
    * @param[in] hash          hash data

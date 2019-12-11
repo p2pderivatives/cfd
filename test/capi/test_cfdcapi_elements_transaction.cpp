@@ -148,6 +148,34 @@ TEST(cfdcapi_elements_transaction, GetTransactionData) {
   uint32_t vout = 0;
   uint32_t sequence = 0;
   if (ret == kCfdSuccess) {
+    char* wtxid = nullptr;
+    char* wit_hash = nullptr;
+    uint32_t size = 0;
+    uint32_t vsize = 0;
+    uint32_t weight = 0;
+    uint32_t version = 0;
+    uint32_t locktime = 0;
+    ret = CfdGetConfidentialTxInfo(
+        handle, tx_data, &txid, &wtxid, &wit_hash, &size, &vsize, &weight,
+        &version, &locktime);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("cf7783b2b1de646e35186df988a219a17f0317b5c3f3c47fa4ab2d7463ea3992", txid);
+      EXPECT_STREQ("cf7783b2b1de646e35186df988a219a17f0317b5c3f3c47fa4ab2d7463ea3992", wtxid);
+      EXPECT_STREQ("938e3a9b5bac410e812d08db74c4ef2bc58d1ed99d94b637cab0ac2e9eb59df8", wit_hash);
+      EXPECT_EQ(512, size);
+      EXPECT_EQ(512, vsize);
+      EXPECT_EQ(2048, weight);
+      EXPECT_EQ(2, version);
+      EXPECT_EQ(0, locktime);
+
+      CfdFreeStringBuffer(txid);
+      CfdFreeStringBuffer(wtxid);
+      CfdFreeStringBuffer(wit_hash);
+      txid = nullptr;
+    }
+  }
+  if (ret == kCfdSuccess) {
     ret = CfdGetConfidentialTxIn(
         handle, tx_data, 1, &txid, &vout, &sequence, &script_sig);
     EXPECT_EQ(kCfdSuccess, ret);
