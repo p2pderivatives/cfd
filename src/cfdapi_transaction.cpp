@@ -459,5 +459,10 @@ TransactionController TransactionApi::FundRawTransaction(
   return txc;
 }
 
+std::string TransactionApi::CreateMultisigScriptSig(
+    const std::vector<SignParameter>& sign_list, const Script& redeem_script) {
+  return TransactionApiBase::CreateMultisigScriptSig(sign_list, redeem_script);
+}
+
 }  // namespace api
 }  // namespace cfd

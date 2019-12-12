@@ -61,8 +61,8 @@ CFDC_API int CfdFreeScriptItemHandle(void* handle, void* script_item_handle);
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
-CFDC_API int CfdConvertScriptAsmToHex(void* handle, const char* script_asm,
-    char** script_hex);
+CFDC_API int CfdConvertScriptAsmToHex(
+    void* handle, const char* script_asm, char** script_hex);
 
 #ifdef __cplusplus
 #if 0

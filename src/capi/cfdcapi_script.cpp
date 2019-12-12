@@ -191,7 +191,8 @@ int CfdFreeScriptItemHandle(void* handle, void* script_item_handle) {
   }
 }
 
-int CfdConvertScriptAsmToHex(void* handle, const char* script_asm, char** script_hex) {
+int CfdConvertScriptAsmToHex(
+    void* handle, const char* script_asm, char** script_hex) {
   try {
     cfd::Initialize();
     if (script_hex == nullptr) {
