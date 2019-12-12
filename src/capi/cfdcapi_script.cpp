@@ -8,6 +8,7 @@
  */
 #ifndef CFD_DISABLE_CAPI
 #include <exception>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::Script;
+using cfd::core::ScriptBuilder;
 using cfd::core::ScriptElement;
 using cfd::core::ScriptElementType;
 using cfd::core::logger::info;
@@ -34,6 +36,8 @@ namespace capi {
 
 //! prefix: ScriptItem
 constexpr const char* const kPrefixScriptItem = "ScriptItem";
+//! delimiter of script asm
+constexpr const char kScriptAsmDelimiter = ' ';
 
 /**
  * @brief cfd-capi Script Itemハンドル情報構造体.
@@ -60,6 +64,7 @@ using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
 using cfd::capi::IsEmptyString;
 using cfd::capi::kPrefixScriptItem;
+using cfd::capi::kScriptAsmDelimiter;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
 
@@ -129,6 +134,12 @@ int CfdGetScriptItem(
   try {
     cfd::Initialize();
     CheckBuffer(script_item_handle, kPrefixScriptItem);
+    if (script_item == nullptr) {
+      warn(CFD_LOG_SOURCE, "script_item is null.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to get script item. script_item is null.");
+    }
 
     CfdCapiScriptItemHandleData* buffer =
         static_cast<CfdCapiScriptItemHandleData*>(script_item_handle);
@@ -137,13 +148,11 @@ int CfdGetScriptItem(
       warn(CFD_LOG_SOURCE, "index is out of range.");
       throw CfdException(
           CfdError::kCfdOutOfRangeError,
-          "Failed to parse script item. index is out of range.");
+          "Failed to get script item. index is out of range.");
     }
 
     const std::string& item_str = buffer->script_items->at(index);
-    if (script_item != nullptr) {
-      *script_item = CreateString(item_str);
-    }
+    *script_item = CreateString(item_str);
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
@@ -170,6 +179,37 @@ int CfdFreeScriptItemHandle(void* handle, void* script_item_handle) {
     FreeBuffer(
         script_item_handle, kPrefixScriptItem,
         sizeof(CfdCapiScriptItemHandleData));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdConvertScriptAsmToHex(void* handle, const char* script_asm, char** script_hex) {
+  try {
+    cfd::Initialize();
+    if (script_hex == nullptr) {
+      warn(CFD_LOG_SOURCE, "script hex is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to convert script. script hex is null.");
+    }
+    ScriptBuilder sb = ScriptBuilder();
+
+    std::istringstream istream(script_asm);
+    std::string script_item;
+    while (std::getline(istream, script_item, kScriptAsmDelimiter)) {
+      sb.AppendString(script_item);
+    }
+    Script script = sb.Build();
+
+    *script_hex = CreateString(script.GetHex());
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
