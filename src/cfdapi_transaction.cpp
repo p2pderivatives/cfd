@@ -148,7 +148,6 @@ std::string TransactionApi::CreateSignatureHash(
     const ByteData& key_data, const Amount& amount, HashType hash_type,
     const SigHashType& sighash_type) const {
   ByteData sig_hash;
-  int64_t amount_value = amount.GetSatoshiValue();
   TransactionController txc(tx_hex);
   WitnessVersion version = WitnessVersion::kVersionNone;
   if ((hash_type == HashType::kP2wpkh) || (hash_type == HashType::kP2wsh)) {
