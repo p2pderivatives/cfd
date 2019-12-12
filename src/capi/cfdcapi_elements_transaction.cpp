@@ -1390,10 +1390,10 @@ int CfdCreateConfidentialSighash(
     ElementsTransactionApi api;
     SigHashType sighashtype(
         static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
-    ByteData sighash_bytes = api.CreateSignatureHash(
+    std::string sighash_bytes = api.CreateSignatureHash(
         std::string(tx_hex_string), Txid(std::string(txid)), vout, key_data,
         value, core_hash_type, sighashtype);
-    *sighash = CreateString(sighash_bytes.GetHex());
+    *sighash = CreateString(sighash_bytes);
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);

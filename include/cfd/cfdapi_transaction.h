@@ -106,7 +106,7 @@ class CFD_EXPORT TransactionApi {
    * @param[in] sighash_type    sighash type
    * @return sighash
    */
-  ByteData CreateSignatureHash(
+  std::string CreateSignatureHash(
       const std::string& tx_hex, const TxInReference& txin,
       const Pubkey& pubkey, const Amount& amount, HashType hash_type,
       const SigHashType& sighash_type) const;
@@ -121,7 +121,7 @@ class CFD_EXPORT TransactionApi {
    * @param[in] sighash_type    sighash type
    * @return sighash
    */
-  ByteData CreateSignatureHash(
+  std::string CreateSignatureHash(
       const std::string& tx_hex, const TxInReference& txin,
       const Script& redeem_script, const Amount& amount, HashType hash_type,
       const SigHashType& sighash_type) const;
@@ -136,7 +136,7 @@ class CFD_EXPORT TransactionApi {
    * @param[in] sighash_type    sighash type
    * @return sighash
    */
-  ByteData CreateSignatureHash(
+  std::string CreateSignatureHash(
       const std::string& tx_hex, const TxInReference& txin,
       const ByteData& key_data, const Amount& amount, HashType hash_type,
       const SigHashType& sighash_type) const;
@@ -152,7 +152,7 @@ class CFD_EXPORT TransactionApi {
    * @param[in] sighash_type    sighash type
    * @return sighash
    */
-  ByteData CreateSignatureHash(
+  std::string CreateSignatureHash(
       const std::string& tx_hex, const Txid& txid, uint32_t vout,
       const ByteData& key_data, const Amount& amount, HashType hash_type,
       const SigHashType& sighash_type) const;
