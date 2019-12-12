@@ -80,11 +80,11 @@ TEST(cfdcapi_script, CfdParseScript_ScriptSig_TEST) {
   EXPECT_FALSE((NULL == handle));
 
   // <signature(304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d[ALL])> <pubkey(038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301)>
-  const char* locking_script = "47304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d0121038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301";
+  const char* unlocking_script = "47304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d0121038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301";
   void* item_handle = nullptr;
-  uint32_t item_num = 0;;
+  uint32_t item_num = 0;
 
-  ret = CfdParseScript(handle, locking_script, &item_handle, &item_num);
+  ret = CfdParseScript(handle, unlocking_script, &item_handle, &item_num);
   EXPECT_EQ(kCfdSuccess, ret);
   EXPECT_FALSE((nullptr == item_handle));
   EXPECT_EQ(2, item_num);
@@ -110,6 +110,70 @@ TEST(cfdcapi_script, CfdParseScript_ScriptSig_TEST) {
   }
   ret = CfdFreeScriptItemHandle(handle, item_handle);
   EXPECT_EQ(kCfdSuccess, ret);
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_script, CfdConvertScriptAsmToHex_ScriptSig_TEST) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  // <signature([ALL])> <pubkey(038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301)>
+  const char* script_asm = "304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d01 038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301";
+  char* script_hex = nullptr;
+
+  ret = CfdConvertScriptAsmToHex(handle, script_asm, &script_hex);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(script_hex, "47304402204b922f2dafdd926b22b0e669fd774a2d5f10f969b8089a1c3a0384ba7ce95f6e02204e71c2a620cf430fa6d7ceaeb40d5298f20eebae3ecb783714a6adc03c66717d0121038f5d4ee5a661c04de7b715c6b9ac935456419fa9f484470275d1d489f2793301");
+    CfdFreeStringBuffer(script_hex);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_script, CfdConvertScriptAsmToHex_SimpleScript_TEST) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  // OP_9 OP_15 OP_ADD 24 OP_EQUAL 
+  const char* script_asm = "OP_9 OP_15 OP_ADD 24 OP_EQUAL ";
+  char* script_hex;
+
+  ret = CfdConvertScriptAsmToHex(handle, script_asm, &script_hex);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(script_hex, "595f93011887");
+    CfdFreeStringBuffer(script_hex);
+  }
 
   ret = CfdGetLastErrorCode(handle);
   if (ret != kCfdSuccess) {

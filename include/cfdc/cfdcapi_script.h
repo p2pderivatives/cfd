@@ -52,6 +52,18 @@ CFDC_API int CfdGetScriptItem(
  */
 CFDC_API int CfdFreeScriptItemHandle(void* handle, void* script_item_handle);
 
+/**
+ * @brief Convert script asm format to hex data.
+ * @param[in] handle        cfd handle.
+ * @param[in] script_asm    assembly format script string.
+ * @param[out] script_hex    converted hex string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdConvertScriptAsmToHex(void* handle, const char* script_asm,
+    char** script_hex);
+
 #ifdef __cplusplus
 #if 0
 {
