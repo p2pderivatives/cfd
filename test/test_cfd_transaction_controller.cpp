@@ -8,12 +8,14 @@
 #include "cfd/cfd_transaction.h"
 
 using cfd::core::Amount;
+using cfd::core::ByteData;
 using cfd::core::CfdException;
 using cfd::core::Pubkey;
 using cfd::core::Script;
 using cfd::core::Txid;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
+using cfd::core::WitnessVersion;
 using cfd::TransactionController;
 
 TEST(TransactionController, CreateP2wpkhSignatureHash_Test)
@@ -29,10 +31,10 @@ TEST(TransactionController, CreateP2wpkhSignatureHash_Test)
   std::string expect_sighash = "a3f0fa9b3e727bb746509b40a7cac316bf36685d55bebd6c7271d6e3a976f12d";
   
   TransactionController txc(tx);
-  std::string sighash;
-  EXPECT_NO_THROW(sighash = txc.CreateP2wpkhSignatureHash(txid, vout, pubkey, sighash_type, amount));
+  ByteData sighash;
+  EXPECT_NO_THROW(sighash = txc.CreateSignatureHash(txid, vout, pubkey, sighash_type, amount, WitnessVersion::kVersion0));
   
-  EXPECT_STREQ(sighash.c_str(), expect_sighash.c_str());
+  EXPECT_STREQ(sighash.GetHex().c_str(), expect_sighash.c_str());
 }
 
 TEST(TransactionController, CreateP2wshSignatureHash_Test)
@@ -48,8 +50,8 @@ TEST(TransactionController, CreateP2wshSignatureHash_Test)
   std::string expect_sighash = "4a9fc1813c51bdf4f14020c7ae570b22d9005da65a37cbf9cf10b79712a8dcc9";
   
   TransactionController txc(tx);
-  std::string sighash;
-  EXPECT_NO_THROW(sighash = txc.CreateP2wshSignatureHash(txid, vout, witness_script, sighash_type, amount));
+  ByteData sighash;
+  EXPECT_NO_THROW(sighash = txc.CreateSignatureHash(txid, vout, witness_script, sighash_type, amount, WitnessVersion::kVersion0));
   
-  EXPECT_STREQ(sighash.c_str(), expect_sighash.c_str());
+  EXPECT_STREQ(sighash.GetHex().c_str(), expect_sighash.c_str());
 }

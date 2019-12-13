@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "capi/cfdc_internal.h"
+#include "cfd/cfd_address.h"
+#include "cfd/cfd_elements_address.h"
 #include "cfd/cfdapi_address.h"
 #include "cfd/cfdapi_elements_address.h"
 #include "cfdc/cfdcapi_address.h"
@@ -23,6 +25,7 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 
+using cfd::AddressFactory;
 using cfd::api::AddressApi;
 using cfd::api::DescriptorKeyData;
 using cfd::api::DescriptorScriptData;
@@ -43,6 +46,7 @@ using cfd::core::logger::warn;
 
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::api::ElementsAddressApi;
+using cfd::ElementsAddressFactory;
 #endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
@@ -109,6 +113,7 @@ using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
+using cfd::capi::IsEmptyString;
 using cfd::capi::kMultisigMaxKeyNum;
 using cfd::capi::kPrefixMultisigAddresses;
 using cfd::capi::kPrefixMultisigScript;
@@ -301,6 +306,13 @@ int CfdFinalizeMultisigScript(
           CfdError::kCfdIllegalStateError,
           "Failed to parameter. pubkey not found.");
     }
+    if (data->current_index > kMultisigMaxKeyNum) {
+      warn(
+          CFD_LOG_SOURCE, "The number of pubkey has reached the upper limit.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "The number of pubkey has reached the upper limit.");
+    }
 
     bool is_bitcoin = false;
     NetType net_type =
@@ -419,9 +431,14 @@ int CfdParseDescriptor(
       desc_data = api.ParseOutputDescriptor(
           descriptor, net_type, derive_path, &script_list, &multisig_key_list);
     } else {
+#ifndef CFD_DISABLE_ELEMENTS
       ElementsAddressApi e_api;
       desc_data = e_api.ParseOutputDescriptor(
           descriptor, net_type, derive_path, &script_list, &multisig_key_list);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
     }
     if (script_list.empty()) {
       script_list.push_back(desc_data);
@@ -799,6 +816,54 @@ int CfdFreeAddressesMultisigHandle(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdGetAddressFromLockingScript(
+    void* handle, const char* locking_script, int network_type,
+    char** address) {
+  int error_code = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(locking_script)) {
+      warn(CFD_LOG_SOURCE, "lockingScript is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. lockingScript is null.");
+    }
+    if (address == nullptr) {
+      warn(CFD_LOG_SOURCE, "address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. address is null.");
+    }
+
+    bool is_bitcoin = false;
+    NetType net_type = cfd::capi::ConvertNetType(network_type, &is_bitcoin);
+    Script script = Script(locking_script);
+    Address addr;
+
+    if (is_bitcoin) {
+      AddressFactory address_factory(net_type);
+      addr = address_factory.GetAddressByLockingScript(script);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ElementsAddressFactory elements_factory(net_type);
+      addr = elements_factory.GetAddressByLockingScript(script);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    *address = CreateString(addr.GetAddress());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    error_code = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return error_code;
 }
 
 };  // extern "C"

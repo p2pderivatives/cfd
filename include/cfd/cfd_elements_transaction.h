@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_elements_address.h"
@@ -39,6 +40,7 @@ using cfd::core::ConfidentialNonce;
 using cfd::core::ConfidentialTransaction;
 using cfd::core::ConfidentialTxInReference;
 using cfd::core::ConfidentialTxOutReference;
+using cfd::core::ConfidentialValue;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
 using cfd::core::IssuanceParameter;
@@ -49,6 +51,7 @@ using cfd::core::Script;
 using cfd::core::SigHashType;
 using cfd::core::Txid;
 using cfd::core::UnblindParameter;
+using cfd::core::WitnessVersion;
 
 /**
  * @brief ConfidentialTransaction生成のためのControllerクラス
@@ -509,59 +512,36 @@ class CFD_EXPORT ConfidentialTransactionController
       const Privkey& token_blinding_key);
 
   /**
-   * @brief P2PKH形式のTxInのSignatureHashを計算する.
+   * @brief 指定されたPubkeyHash形式のTxInのSignatureHashを計算する.
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
    * @param[in] pubkey SignatureHashの公開鍵
    * @param[in] sighash_type SigHashType値
-   * @param[in] amount satoshi
-   * @param[in] is_witness witness有無
+   * @param[in] value TxInで指定したUTXOのamount
+   * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
-  std::string CreateSignatureHash(
+  ByteData CreateSignatureHash(
       const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-      SigHashType sighash_type, Amount amount, bool is_witness);
+      SigHashType sighash_type,
+      const ConfidentialValue& value = ConfidentialValue(),
+      WitnessVersion version = WitnessVersion::kVersionNone) const;
   /**
-   * @brief P2PKH形式のTxInのSignatureHashを計算する.
+   * @brief 指定されたScriptHash形式のTxInのSignatureHashを計算する.
+   * @details OP_CODESEPARATORが存在するScriptについては未対応
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] pubkey SignatureHashの公開鍵
+   * @param[in] witness_script WSHのWitness Script
    * @param[in] sighash_type SigHashType値
-   * @param[in] confidential_value utxoのamount commitment
-   * @param[in] is_witness witness有無
+   * @param[in] value TxInで指定したUTXOのamount/amountcommitment
+   * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
-  std::string CreateSignatureHash(
-      const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-      SigHashType sighash_type, const ByteData& confidential_value,
-      bool is_witness);
-  /**
-   * @brief P2SH形式のTxInのSignatureHashを計算する.
-   * @param[in] txid SignatureHash算出対象のTxInのtxid
-   * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] redeem_script Redeem Script
-   * @param[in] sighash_type SigHashType値
-   * @param[in] amount satoshi
-   * @param[in] is_witness witness有無
-   * @return 算出されたSignatureHashのHex文字列
-   */
-  std::string CreateSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& redeem_script,
-      SigHashType sighash_type, Amount amount, bool is_witness);
-  /**
-   * @brief P2SH形式のTxInのSignatureHashを計算する.
-   * @param[in] txid SignatureHash算出対象のTxInのtxid
-   * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] redeem_script Redeem Script
-   * @param[in] sighash_type SigHashType値
-   * @param[in] confidential_value utxoのamount commitment
-   * @param[in] is_witness witness有無
-   * @return 算出されたSignatureHashのHex文字列
-   */
-  std::string CreateSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& redeem_script,
-      SigHashType sighash_type, const ByteData& confidential_value,
-      bool is_witness);
+  ByteData CreateSignatureHash(
+      const Txid& txid, uint32_t vout, const Script& witness_script,
+      SigHashType sighash_type,
+      const ConfidentialValue& value = ConfidentialValue(),
+      WitnessVersion version = WitnessVersion::kVersionNone) const;
 
   /**
    * @brief 簡易のFee計算を行う.
@@ -571,7 +551,7 @@ class CFD_EXPORT ConfidentialTransactionController
    */
   Amount CalculateSimpleFee(
       bool append_feature_signed_size = true,
-      bool append_signed_witness = true);
+      bool append_signed_witness = true) const;
 
  private:
   /**

@@ -278,46 +278,26 @@ const TxInReference TransactionController::GetTxIn(
   return transaction_.GetTxIn(index);
 }
 
-std::string TransactionController::CreateP2pkhSignatureHash(
+ByteData TransactionController::CreateSignatureHash(
     const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-    SigHashType sighash_type) {
-  uint32_t index = transaction_.GetTxInIndex(txid, vout);
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
   Script script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
-  const ByteData256& data = transaction_.GetSignatureHash(
-      index, script.GetData(), HashType::kP2pkh, sighash_type);
-  return data.GetHex();
+  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
+  ByteData256 sighash = transaction_.GetSignatureHash(
+      txin_index, script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
 }
 
-std::string TransactionController::CreateP2shSignatureHash(
+ByteData TransactionController::CreateSignatureHash(
     const Txid& txid, uint32_t vout, const Script& redeem_script,
-    SigHashType sighash_type) {
-  uint32_t index = transaction_.GetTxInIndex(txid, vout);
-  const ByteData256& data = transaction_.GetSignatureHash(
-      index, redeem_script.GetData(), HashType::kP2sh, sighash_type);
-  return data.GetHex();
-}
-
-std::string TransactionController::CreateP2wpkhSignatureHash(
-    const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-    SigHashType sighash_type, const Amount& value) {
-  uint32_t index = transaction_.GetTxInIndex(txid, vout);
-
-  const Script& locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
-  const ByteData256& data = transaction_.GetSignatureHash(
-      index, locking_script.GetData(), HashType::kP2wpkh, sighash_type, value);
-  return data.GetHex();
-}
-
-std::string TransactionController::CreateP2wshSignatureHash(
-    const Txid& txid, uint32_t vout, const Script& witness_script,
-    SigHashType sighash_type, const Amount& value) {
-  uint32_t index = transaction_.GetTxInIndex(txid, vout);
-
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
   // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
-
-  const ByteData256& data = transaction_.GetSignatureHash(
-      index, witness_script.GetData(), HashType::kP2wsh, sighash_type, value);
-  return data.GetHex();
+  ByteData256 sighash = transaction_.GetSignatureHash(
+      txin_index, redeem_script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
 }
 
 }  // namespace cfd

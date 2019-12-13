@@ -36,6 +36,7 @@ using cfd::core::TxIn;
 using cfd::core::TxInReference;
 using cfd::core::TxOut;
 using cfd::core::TxOutReference;
+using cfd::core::WitnessVersion;
 
 /**
  * @brief Transaction生成のためのControllerクラス
@@ -297,52 +298,34 @@ class CFD_EXPORT TransactionController
   uint32_t GetSizeIgnoreTxIn() const;
 
   /**
-   * @brief 指定されたP2PKH形式のTxInのSignatureHashを計算する.
-   * @param[in] txid SignatureHash算出対象のTxInのtxid
-   * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] pubkey SignatureHashの公開鍵
-   * @param[in] sighash_type SigHashType値
-   * @return 算出されたSignatureHashのHex文字列
-   */
-  std::string CreateP2pkhSignatureHash(
-      const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-      SigHashType sighash_type);
-  /**
-   * @brief 指定されたP2SH形式のTxInのSignatureHashを計算する.
-   * @param[in] txid SignatureHash算出対象のTxInのtxid
-   * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] redeem_script Redeem Script
-   * @param[in] sighash_type SigHashType値
-   * @return 算出されたSignatureHashのHex文字列
-   */
-  std::string CreateP2shSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& redeem_script,
-      SigHashType sighash_type);
-  /**
-   * @brief 指定されたP2WPKH形式のTxInのSignatureHashを計算する.
+   * @brief 指定されたPubkeyHash形式のTxInのSignatureHashを計算する.
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
    * @param[in] pubkey SignatureHashの公開鍵
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
+   * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
-  std::string CreateP2wpkhSignatureHash(
+  ByteData CreateSignatureHash(
       const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-      SigHashType sighash_type, const Amount& value);
+      SigHashType sighash_type, const Amount& value = Amount(),
+      WitnessVersion version = WitnessVersion::kVersionNone) const;
   /**
-   * @brief 指定されたP2WSH形式のTxInのSignatureHashを計算する.
+   * @brief 指定されたScriptHash形式のTxInのSignatureHashを計算する.
    * @details OP_CODESEPARATORが存在するScriptについては未対応
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
    * @param[in] witness_script WSHのWitness Script
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
+   * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
-  std::string CreateP2wshSignatureHash(
+  ByteData CreateSignatureHash(
       const Txid& txid, uint32_t vout, const Script& witness_script,
-      SigHashType sighash_type, const Amount& value);
+      SigHashType sighash_type, const Amount& value = Amount(),
+      WitnessVersion version = WitnessVersion::kVersionNone) const;
 
  private:
   /**

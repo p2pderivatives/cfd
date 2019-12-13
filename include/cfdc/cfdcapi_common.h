@@ -88,6 +88,14 @@ CFDC_API int CfdFinalize(bool is_finish_process);
 CFDC_API int CfdCreateHandle(void** handle);
 
 /**
+ * @brief cfdの簡易ハンドル(管理外ハンドル)を取得する。
+ * @param[out] handle   handle pointer.
+ *   When you are finished using it, release it with 'CfdFreeHandle'.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateSimpleHandle(void** handle);
+
+/**
  * @brief cfdのハンドルを解放する。
  * @param[in] handle    handle pointer
  * @return CfdErrorCode

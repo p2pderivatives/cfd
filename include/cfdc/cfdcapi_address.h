@@ -299,6 +299,20 @@ CFDC_API int CfdFreeAddressesMultisigHandle(
     void* handle, void* addr_multisig_keys_handle);
 /* @} */
 
+/**
+ * @brief get address from locking script.
+ * @param[in] handle           handle pointer.
+ * @param[in] locking_script   locking script.
+ * @param[in] network_type     network type. (see CfdNetworkType)
+ * @param[out] address         address string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetAddressFromLockingScript(
+    void* handle, const char* locking_script, int network_type,
+    char** address);
+
 #ifdef __cplusplus
 #if 0
 {
