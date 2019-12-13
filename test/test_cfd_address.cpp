@@ -19,12 +19,15 @@ using cfd::core::ByteData;
 using cfd::core::ByteData160;
 using cfd::core::CfdException;
 using cfd::core::GetBitcoinAddressFormatList;
-using cfd::core::GetElementsAddressFormatList;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
 using cfd::core::WitnessVersion;
 using cfd::AddressFactory;
+
+#ifndef CFD_DISABLE_ELEMENTS
+using cfd::core::GetElementsAddressFormatList;
+#endif  // CFD_DISABLE_ELEMENTS
 
 TEST(AddressFactory, Constructor)
 {
@@ -419,6 +422,7 @@ TEST(AddressFactory, CheckAddressNetType_bitcoin)
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
 }
 
+#ifndef CFD_DISABLE_ELEMENTS
 TEST(AddressFactory, CheckAddressNetType_elements)
 {
   AddressFactory factory(NetType::kLiquidV1, GetElementsAddressFormatList());
@@ -498,6 +502,7 @@ TEST(AddressFactory, CheckAddressNetType_elements)
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
 }
+#endif  // CFD_DISABLE_ELEMENTS
 
 TEST(AddressFactory, GetAddressByLockingScript)
 {
