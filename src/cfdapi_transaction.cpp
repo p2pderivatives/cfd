@@ -26,7 +26,6 @@
 #include "cfdcore/cfdcore_util.h"
 
 #include "cfd/cfdapi_address.h"
-#include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_transaction.h"
 #include "cfdapi_transaction_base.h"  // NOLINT
 
@@ -36,6 +35,7 @@ namespace api {
 using cfd::FeeCalculator;
 using cfd::TransactionController;
 using cfd::api::TransactionApiBase;
+using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::Txid;
