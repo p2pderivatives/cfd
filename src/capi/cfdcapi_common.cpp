@@ -206,13 +206,21 @@ void CfdCapiManager::FreeAllList(std::vector<CfdCapiHandleData*>* list) {
   }
 }
 
-void* CfdCapiManager::CreateHandle(void) {
-  // 排他制御開始
-  std::lock_guard<std::mutex> lock(mutex_);
-  CfdCapiHandleData* handle = static_cast<CfdCapiHandleData*>(
-      AllocBuffer(kPrefixHandleData, sizeof(CfdCapiHandleData)));
-  handle_list_.push_back(handle);
-  return handle;
+void* CfdCapiManager::CreateHandle(bool is_outside) {
+  CfdCapiHandleData* handle;
+  if (is_outside) {
+    handle = static_cast<CfdCapiHandleData*>(
+        AllocBuffer(kPrefixHandleData, sizeof(CfdCapiHandleData)));
+    handle->is_outside = true;
+    return handle;
+  } else {
+    // 排他制御開始
+    std::lock_guard<std::mutex> lock(mutex_);
+    handle = static_cast<CfdCapiHandleData*>(
+        AllocBuffer(kPrefixHandleData, sizeof(CfdCapiHandleData)));
+    handle_list_.push_back(handle);
+    return handle;
+  }
 }
 
 void CfdCapiManager::FreeHandle(void* handle) {
@@ -224,17 +232,23 @@ void CfdCapiManager::FreeHandle(void* handle) {
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Illegal handle data.");
     }
-    // 排他制御開始
-    std::lock_guard<std::mutex> lock(mutex_);
 
-    std::vector<CfdCapiHandleData*>::iterator ite;
-    for (ite = handle_list_.begin(); ite != handle_list_.end(); ++ite) {
-      if (handle == *ite) {
-        info(CFD_LOG_SOURCE, "capi FreeHandle. addr={:p}.", handle);
-        memset(handle, 0, sizeof(CfdCapiHandleData));
-        ::free(handle);
-        handle_list_.erase(ite);
-        break;
+    if (handle_data->is_outside) {  // outside handle
+      memset(handle, 0, sizeof(CfdCapiHandleData));
+      ::free(handle);
+    } else {
+      // 排他制御開始
+      std::lock_guard<std::mutex> lock(mutex_);
+
+      std::vector<CfdCapiHandleData*>::iterator ite;
+      for (ite = handle_list_.begin(); ite != handle_list_.end(); ++ite) {
+        if (handle == *ite) {
+          info(CFD_LOG_SOURCE, "capi FreeHandle. addr={:p}.", handle);
+          memset(handle, 0, sizeof(CfdCapiHandleData));
+          ::free(handle);
+          handle_list_.erase(ite);
+          break;
+        }
       }
     }
   }
@@ -355,6 +369,19 @@ extern "C" int CfdCreateHandle(void** handle) {
     if (handle == nullptr) return kCfdIllegalArgumentError;
     cfd::Initialize();
     *handle = cfd::capi::capi_instance.CreateHandle();
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
+}
+
+extern "C" int CfdCreateSimpleHandle(void** handle) {
+  try {
+    if (handle == nullptr) return kCfdIllegalArgumentError;
+    cfd::Initialize();
+    *handle = cfd::capi::capi_instance.CreateHandle(true);
     return kCfdSuccess;
   } catch (const CfdException& except) {
     return except.GetErrorCode();

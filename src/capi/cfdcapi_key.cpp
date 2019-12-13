@@ -18,6 +18,7 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_transaction_common.h"
+#include "cfdcore/cfdcore_util.h"
 
 using cfd::api::ExtKeyType;
 using cfd::api::HDWalletApi;
@@ -26,10 +27,13 @@ using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::CryptoUtil;
 using cfd::core::NetType;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::Script;
+using cfd::core::SigHashAlgorithm;
+using cfd::core::SigHashType;
 using cfd::core::SignatureUtil;
 
 using cfd::core::logger::info;
@@ -96,6 +100,41 @@ int CfdCalculateEcSignature(
     ByteData data = SignatureUtil::CalculateEcSignature(
         ByteData256(sighash), private_key, has_grind_r);
     *signature = CreateString(data.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdEncodeSignatureByDer(
+    void* handle, const char* signature, int sighash_type,
+    bool sighash_anyone_can_pay, char** der_signature) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to encode by der. signature is null.");
+    }
+    if (signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "der_signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to encode by der. der_signature is null.");
+    }
+
+    SigHashType type = SigHashType(
+        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    ByteData der_sig = CryptoUtil::ConvertSignatureToDer(signature, type);
+    *der_signature = CreateString(der_sig.GetHex());
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {

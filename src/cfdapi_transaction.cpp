@@ -16,6 +16,7 @@
 #include "cfd/cfd_transaction.h"
 #include "cfd/cfdapi_coin.h"
 #include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_iterator.h"
@@ -26,7 +27,6 @@
 #include "cfdcore/cfdcore_util.h"
 
 #include "cfd/cfdapi_address.h"
-#include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_transaction.h"
 #include "cfdapi_transaction_base.h"  // NOLINT
 
@@ -36,6 +36,7 @@ namespace api {
 using cfd::FeeCalculator;
 using cfd::TransactionController;
 using cfd::api::TransactionApiBase;
+using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::Txid;
@@ -118,7 +119,7 @@ TransactionController TransactionApi::UpdateWitnessStack(
       stack_index);
 }
 
-ByteData TransactionApi::CreateSignatureHash(
+std::string TransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const TxInReference& txin, const Pubkey& pubkey,
     const Amount& amount, HashType hash_type,
     const SigHashType& sighash_type) const {
@@ -126,7 +127,7 @@ ByteData TransactionApi::CreateSignatureHash(
       tx_hex, txin, pubkey.GetData(), amount, hash_type, sighash_type);
 }
 
-ByteData TransactionApi::CreateSignatureHash(
+std::string TransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const TxInReference& txin,
     const Script& redeem_script, const Amount& amount, HashType hash_type,
     const SigHashType& sighash_type) const {
@@ -134,7 +135,7 @@ ByteData TransactionApi::CreateSignatureHash(
       tx_hex, txin, redeem_script.GetData(), amount, hash_type, sighash_type);
 }
 
-ByteData TransactionApi::CreateSignatureHash(
+std::string TransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const TxInReference& txin,
     const ByteData& key_data, const Amount& amount, HashType hash_type,
     const SigHashType& sighash_type) const {
@@ -143,42 +144,43 @@ ByteData TransactionApi::CreateSignatureHash(
       sighash_type);
 }
 
-ByteData TransactionApi::CreateSignatureHash(
+std::string TransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const Txid& txid, uint32_t vout,
     const ByteData& key_data, const Amount& amount, HashType hash_type,
     const SigHashType& sighash_type) const {
-  std::string sig_hash;
-  int64_t amount_value = amount.GetSatoshiValue();
+  ByteData sig_hash;
   TransactionController txc(tx_hex);
-
-  if (hash_type == HashType::kP2pkh) {
-    sig_hash = txc.CreateP2pkhSignatureHash(
-        txid, vout,  // vout
-        Pubkey(key_data), sighash_type);
-  } else if (hash_type == HashType::kP2sh) {
-    sig_hash = txc.CreateP2shSignatureHash(
-        txid, vout, Script(key_data), sighash_type);
-  } else if (hash_type == HashType::kP2wpkh) {
-    sig_hash = txc.CreateP2wpkhSignatureHash(
-        txid, vout, Pubkey(key_data), sighash_type,
-        Amount::CreateBySatoshiAmount(amount_value));
-  } else if (hash_type == HashType::kP2wsh) {
-    sig_hash = txc.CreateP2wshSignatureHash(
-        txid, vout, Script(key_data), sighash_type,
-        Amount::CreateBySatoshiAmount(amount_value));
-  } else {
-    warn(
-        CFD_LOG_SOURCE,
-        "Failed to CreateSignatureHash. Invalid hash_type:  "
-        "hash_type={}",  // NOLINT
-        hash_type);
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError,
-        "Invalid hash_type. hash_type must be \"p2pkh\"(0) "
-        "or \"p2sh\"(1) or \"p2wpkh\"(2) or \"p2wsh\"(3).");  // NOLINT
+  WitnessVersion version = WitnessVersion::kVersionNone;
+  if ((hash_type == HashType::kP2wpkh) || (hash_type == HashType::kP2wsh)) {
+    version = WitnessVersion::kVersion0;
   }
 
-  return ByteData(sig_hash);
+  switch (hash_type) {
+    case HashType::kP2pkh:
+      // fall-through
+    case HashType::kP2wpkh:
+      sig_hash = txc.CreateSignatureHash(
+          txid, vout, Pubkey(key_data), sighash_type, amount, version);
+      break;
+    case HashType::kP2sh:
+      // fall-through
+    case HashType::kP2wsh:
+      sig_hash = txc.CreateSignatureHash(
+          txid, vout, Script(key_data), sighash_type, amount, version);
+      break;
+    default:
+      warn(
+          CFD_LOG_SOURCE,
+          "Failed to CreateSignatureHash. Invalid hash_type: "
+          "hash_type={}",  // NOLINT
+          hash_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid hash_type. hash_type must be \"p2pkh\"(0) "
+          "or \"p2sh\"(1) or \"p2wpkh\"(2) or \"p2wsh\"(3).");  // NOLINT
+  }
+
+  return sig_hash.GetHex();
 }
 
 TransactionController TransactionApi::AddMultisigSign(
@@ -455,6 +457,11 @@ TransactionController TransactionApi::FundRawTransaction(
   }
 
   return txc;
+}
+
+std::string TransactionApi::CreateMultisigScriptSig(
+    const std::vector<SignParameter>& sign_list, const Script& redeem_script) {
+  return TransactionApiBase::CreateMultisigScriptSig(sign_list, redeem_script);
 }
 
 }  // namespace api
