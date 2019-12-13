@@ -45,6 +45,21 @@ CFDC_API int CfdCalculateEcSignature(
     int network_type, bool has_grind_r, char** signature);
 
 /**
+ * @brief encode ec signature by der encoding.
+ * @param[in] handle                  cfd handle.
+ * @param[in] signature               compact signature string.
+ * @param[in] sighash_type            sign sighash type.
+ * @param[in] sighash_anyone_can_pay  flag of signing only the current input.
+ * @param[out] der_signature  signature encoded by der encoding.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdEncodeSignatureByDer(
+    void* handle, const char* signature, int sighash_type,
+    bool sighash_anyone_can_pay, char** der_signature);
+
+/**
  * @brief create key pair.
  * @param[in] handle          cfd handle.
  * @param[in] is_compressed   pubkey compressed.

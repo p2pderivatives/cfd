@@ -47,21 +47,17 @@ using cfd::core::logger::warn;
  * @brief Sets a P2sh unlocking script for a transaction input.
  * @param[in] signature_data the signatures to include in the script.
  * @param[in] redeem_script the redeem script for the input.
- * @param[in] txid the transaction id of the UTXO being spent by the input.
- * @param[in] vout the vout of the UTXO being spent by the input.
- * @param[in] txc the transaction controller containing the input.
+ * @return unlocking script
  */
-template <class T>
-static void SetP2shMultisigUnlockingScript(
-    const std::vector<ByteData>& signature_data, const Script& redeem_script,
-    const Txid& txid, const uint32_t vout, T* txc) {
+static Script SetP2shMultisigUnlockingScript(
+    const std::vector<ByteData>& signature_data, const Script& redeem_script) {
   ScriptBuilder sb;
   sb.AppendOperator(ScriptOperator::OP_0);
   for (const ByteData& signature : signature_data) {
     sb.AppendData(signature);
   }
   sb.AppendData(redeem_script);
-  txc->SetUnlockingScript(txid, vout, sb.Build());
+  return sb.Build();
 }
 
 /**
@@ -296,7 +292,7 @@ std::string TransactionApiBase::AddMultisigSign(
     std::function<T(const std::string&)> create_controller,
     const std::string& tx_hex, const Txid& txid, uint32_t vout,
     const std::vector<SignParameter>& sign_list, AddressType address_type,
-    const Script& witness_script, const Script redeem_script,
+    const Script& witness_script, const Script& redeem_script,
     bool clear_stack) {
   ValidateAddMultisigSign(
       tx_hex, sign_list, address_type, witness_script, redeem_script);
@@ -308,8 +304,46 @@ std::string TransactionApiBase::AddMultisigSign(
   Script script = (address_type == AddressType::kP2shAddress) ? redeem_script
                                                               : witness_script;
 
+  std::vector<ByteData> signature_data =
+      CreateMultisigSignatureData(sign_list, script);
+
+  // set signatures to target input
+  if (address_type == AddressType::kP2shAddress) {
+    Script unlocking_script =
+        SetP2shMultisigUnlockingScript(signature_data, script);
+    txc.SetUnlockingScript(txid, vout, unlocking_script);
+  } else {
+    SetP2wshMultisigWitnessStack(
+        signature_data, script, txid, vout, clear_stack, &txc);
+
+    if (address_type == AddressType::kP2shP2wshAddress) {
+      // set p2sh redeem script to unlockking script
+      ScriptBuilder sb;
+      sb.AppendData(redeem_script);
+      txc.SetUnlockingScript(txid, vout, sb.Build());
+    }
+  }
+
+  return txc.GetHex();
+}
+
+std::string TransactionApiBase::CreateMultisigScriptSig(
+    const std::vector<SignParameter>& sign_list, const Script& redeem_script) {
+  ValidateAddMultisigSign(
+      "dummy", sign_list, AddressType::kP2shAddress, Script(), redeem_script);
+
+  std::vector<ByteData> signature_data =
+      CreateMultisigSignatureData(sign_list, redeem_script);
+
+  Script unlocking_script =
+      SetP2shMultisigUnlockingScript(signature_data, redeem_script);
+  return unlocking_script.GetHex();
+}
+
+std::vector<ByteData> TransactionApiBase::CreateMultisigSignatureData(
+    const std::vector<SignParameter>& sign_list, const Script& redeem_script) {
   std::vector<Pubkey> pubkeys =
-      ScriptUtil::ExtractPubkeysFromMultisigScript(script);
+      ScriptUtil::ExtractPubkeysFromMultisigScript(redeem_script);
   // get signParams from json request
   std::vector<SignParameter> sign_params = sign_list;
 
@@ -337,9 +371,9 @@ std::string TransactionApiBase::AddMultisigSign(
     if (sign_param.GetRelatedPubkey().IsValid()) {
       warn(
           CFD_LOG_SOURCE,
-          "Failed to AddMultisigSign. Missing related pubkey"
+          "Failed to CreateMultisigSignatureData. Missing related pubkey"
           " in script.: relatedPubkey={}, script={}",
-          sign_param.GetRelatedPubkey().GetHex(), script.GetHex());
+          sign_param.GetRelatedPubkey().GetHex(), redeem_script.GetHex());
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Missing related pubkey in script."
@@ -348,22 +382,7 @@ std::string TransactionApiBase::AddMultisigSign(
     signature_data.push_back(sign_param.ConvertToSignature());
   }
 
-  // set signatures to target input
-  if (address_type == AddressType::kP2shAddress) {
-    SetP2shMultisigUnlockingScript(signature_data, script, txid, vout, &txc);
-  } else {
-    SetP2wshMultisigWitnessStack(
-        signature_data, script, txid, vout, clear_stack, &txc);
-  }
-
-  if (address_type == AddressType::kP2shP2wshAddress) {
-    // set p2sh redeem script to unlockking script
-    ScriptBuilder sb;
-    sb.AppendData(redeem_script);
-    txc.SetUnlockingScript(txid, vout, sb.Build());
-  }
-
-  return txc.GetHex();
+  return signature_data;
 }
 
 template uint32_t
@@ -389,7 +408,7 @@ TransactionApiBase::AddMultisigSign<TransactionController>(
     std::function<TransactionController(const std::string&)> create_controller,
     const std::string& tx_hex, const Txid& txid, uint32_t vout,
     const std::vector<SignParameter>& sign_list, AddressType address_type,
-    const Script& witness_script, const Script redeem_script,
+    const Script& witness_script, const Script& redeem_script,
     bool clear_stack);
 
 #ifndef CFD_DISABLE_ELEMENTS
@@ -423,7 +442,7 @@ TransactionApiBase::AddMultisigSign<ConfidentialTransactionController>(
         create_controller,
     const std::string& tx_hex, const Txid& txid, uint32_t vout,
     const std::vector<SignParameter>& sign_list, AddressType address_type,
-    const Script& witness_script, const Script redeem_script,
+    const Script& witness_script, const Script& redeem_script,
     bool clear_stack);
 #endif
 

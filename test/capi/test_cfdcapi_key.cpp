@@ -5,6 +5,7 @@
 
 #include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_key.h"
+#include "cfdc/cfdcapi_address.h"
 #include "capi/cfdc_internal.h"
 #include "cfdcore/cfdcore_exception.h"
 
@@ -35,6 +36,37 @@ TEST(cfdcapi_key, CfdCalculateEcSignature) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ(kExtSignature, signature);
     CfdFreeStringBuffer(signature);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, CfdEncodeSignatureByDer) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  static constexpr const char* kSignature = "47ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb";
+  static constexpr const char* kDerSignature = "3044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb01";
+
+  char* der_signature = nullptr;
+  ret = CfdEncodeSignatureByDer(handle, kSignature, kCfdSigHashAll, false, &der_signature);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(kDerSignature, der_signature);
+    CfdFreeStringBuffer(der_signature);
   }
 
   ret = CfdGetLastErrorCode(handle);

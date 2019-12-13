@@ -19,12 +19,15 @@ using cfd::core::ByteData;
 using cfd::core::ByteData160;
 using cfd::core::CfdException;
 using cfd::core::GetBitcoinAddressFormatList;
-using cfd::core::GetElementsAddressFormatList;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
 using cfd::core::WitnessVersion;
 using cfd::AddressFactory;
+
+#ifndef CFD_DISABLE_ELEMENTS
+using cfd::core::GetElementsAddressFormatList;
+#endif  // CFD_DISABLE_ELEMENTS
 
 TEST(AddressFactory, Constructor)
 {
@@ -199,8 +202,8 @@ TEST(AddressFactory, GetAddress)
     Address address = factory.GetAddress("bcrt1qshc8er8ycnxn5mamc9m7acaxcasplqunvaw4f6");
     EXPECT_STREQ(address.GetAddress().c_str(), "bcrt1qshc8er8ycnxn5mamc9m7acaxcasplqunvaw4f6");
 
-    EXPECT_THROW(Address address = factory.GetAddress(""), CfdException);
-    EXPECT_THROW(Address address = factory.GetAddress("AzpwdpR9siiDBs3nG8SNpvGQcLTHP2od4MQPugUTa3zfKHKkAVwx6M4ea2W1JovrbhuErKosFpfeuxf5"), CfdException);
+    EXPECT_THROW(address = factory.GetAddress(""), CfdException);
+    EXPECT_THROW(address = factory.GetAddress("AzpwdpR9siiDBs3nG8SNpvGQcLTHP2od4MQPugUTa3zfKHKkAVwx6M4ea2W1JovrbhuErKosFpfeuxf5"), CfdException);
   }
 }
 
@@ -419,6 +422,7 @@ TEST(AddressFactory, CheckAddressNetType_bitcoin)
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
 }
 
+#ifndef CFD_DISABLE_ELEMENTS
 TEST(AddressFactory, CheckAddressNetType_elements)
 {
   AddressFactory factory(NetType::kLiquidV1, GetElementsAddressFormatList());
@@ -497,4 +501,42 @@ TEST(AddressFactory, CheckAddressNetType_elements)
   EXPECT_TRUE(factory.CheckAddressNetType(addr, NetType::kElementsRegtest));
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
+}
+#endif  // CFD_DISABLE_ELEMENTS
+
+TEST(AddressFactory, GetAddressByLockingScript)
+{
+  AddressFactory factory;
+  Script script;
+  Address address;
+
+  script = Script("210340b52ae45bc1be5de083f1730fe537374e219c4836400623741d2a874e60590cac");
+  EXPECT_NO_THROW(address = factory.GetAddressByLockingScript(script));
+  EXPECT_STREQ(address.GetHash().GetHex().c_str(), "49a011f97ba520dab063f309bad59daeb30de101");
+  EXPECT_EQ(address.GetAddressType(), AddressType::kP2pkhAddress);
+  EXPECT_STREQ(address.GetAddress().c_str(), "17iJ5ssEuAcrD267chtACp6qLzVbPvwrms");
+
+  script = Script("76a91449a011f97ba520dab063f309bad59daeb30de10188ac");
+  EXPECT_NO_THROW(address = factory.GetAddressByLockingScript(script));
+  EXPECT_STREQ(address.GetHash().GetHex().c_str(), "49a011f97ba520dab063f309bad59daeb30de101");
+  EXPECT_EQ(address.GetAddressType(), AddressType::kP2pkhAddress);
+  EXPECT_STREQ(address.GetAddress().c_str(), "17iJ5ssEuAcrD267chtACp6qLzVbPvwrms");
+
+  script = Script("a914f1b3a2cc24eba8a741f963b309a7686f3bb6bfb487");
+  EXPECT_NO_THROW(address = factory.GetAddressByLockingScript(script));
+  EXPECT_STREQ(address.GetHash().GetHex().c_str(), "f1b3a2cc24eba8a741f963b309a7686f3bb6bfb4");
+  EXPECT_EQ(address.GetAddressType(), AddressType::kP2shAddress);
+  EXPECT_STREQ(address.GetAddress().c_str(), "3Pj1y6dipvm7fjNc1sH6Q5KLPNvqWXWaEw");
+
+  script = Script("0014925d4028880bd0c9d68fbc7fc7dfee976698629c");
+  EXPECT_NO_THROW(address = factory.GetAddressByLockingScript(script));
+  EXPECT_STREQ(address.GetHash().GetHex().c_str(), "925d4028880bd0c9d68fbc7fc7dfee976698629c");
+  EXPECT_EQ(address.GetAddressType(), AddressType::kP2wpkhAddress);
+  EXPECT_STREQ(address.GetAddress().c_str(), "bc1qjfw5q2ygp0gvn450h3lu0hlwjanfsc5uax7v9q");
+
+  script = Script("002087cb0bc07de5b5befd7565b2c63fb1681efd8af7bd85a3f0f98a529a5c50a437");
+  EXPECT_NO_THROW(address = factory.GetAddressByLockingScript(script));
+  EXPECT_STREQ(address.GetHash().GetHex().c_str(), "87cb0bc07de5b5befd7565b2c63fb1681efd8af7bd85a3f0f98a529a5c50a437");
+  EXPECT_EQ(address.GetAddressType(), AddressType::kP2wshAddress);
+  EXPECT_STREQ(address.GetAddress().c_str(), "bc1qsl9shsrauk6malt4vkevv0a3dq00mzhhhkz68u8e3fff5hzs5smsz3fm4a");
 }

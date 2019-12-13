@@ -496,51 +496,29 @@ ConfidentialTransactionController::UnblindIssuance(
       tx_in_index, asset_blinding_key, token_blinding_key);
 }
 
-std::string ConfidentialTransactionController::CreateSignatureHash(
+ByteData ConfidentialTransactionController::CreateSignatureHash(
     const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-    SigHashType sighash_type, Amount amount, bool is_witness) {
+    SigHashType sighash_type, const ConfidentialValue& value,
+    WitnessVersion version) const {
   Script script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
   uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
   ByteData256 sighash = transaction_.GetElementsSignatureHash(
-      txin_index, script.GetData(), sighash_type, amount, is_witness);
-  return sighash.GetHex();
+      txin_index, script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
 }
 
-std::string ConfidentialTransactionController::CreateSignatureHash(
-    const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-    SigHashType sighash_type, const ByteData& confidential_value,
-    bool is_witness) {
-  Script script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
-  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
-  ByteData256 sighash = transaction_.GetElementsSignatureHash(
-      txin_index, script.GetData(), sighash_type, confidential_value,
-      is_witness);
-
-  return sighash.GetHex();
-}
-
-std::string ConfidentialTransactionController::CreateSignatureHash(
+ByteData ConfidentialTransactionController::CreateSignatureHash(
     const Txid& txid, uint32_t vout, const Script& redeem_script,
-    SigHashType sighash_type, Amount amount, bool is_witness) {
+    SigHashType sighash_type, const ConfidentialValue& value,
+    WitnessVersion version) const {
   uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
   ByteData256 sighash = transaction_.GetElementsSignatureHash(
-      txin_index, redeem_script.GetData(), sighash_type, amount, is_witness);
-  return sighash.GetHex();
-}
-
-std::string ConfidentialTransactionController::CreateSignatureHash(
-    const Txid& txid, uint32_t vout, const Script& redeem_script,
-    SigHashType sighash_type, const ByteData& confidential_value,
-    bool is_witness) {
-  uint32_t txin_index = transaction_.GetTxInIndex(txid, vout);
-  ByteData256 sighash = transaction_.GetElementsSignatureHash(
-      txin_index, redeem_script.GetData(), sighash_type, confidential_value,
-      is_witness);
-  return sighash.GetHex();
+      txin_index, redeem_script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
 }
 
 Amount ConfidentialTransactionController::CalculateSimpleFee(
-    bool append_feature_signed_size, bool append_signed_witness) {
+    bool append_feature_signed_size, bool append_signed_witness) const {
   static constexpr uint32_t kP2wpkhWitnessSize = 72 + 33 + 3;
   // 簡易計算
   uint32_t size = transaction_.GetTotalSize();

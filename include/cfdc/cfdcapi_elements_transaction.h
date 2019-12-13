@@ -95,6 +95,32 @@ CFDC_API int CfdUpdateConfidentialTxOut(
     const char* direct_locking_script, const char* nonce, char** tx_string);
 
 /**
+ * @brief get elements transaction information.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[out] txid             transaction id.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wtxid            witness transaction id.
+ *   If no-witness transaction, return is txid.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wit_hash         witness hash.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] size             transaction size.
+ * @param[out] vsize            virtual transaction size.
+ * @param[out] weight           weight.
+ * @param[out] version          transaction version.
+ * @param[out] locktime         transaction locktime.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInfo(
+    void* handle, const char* tx_hex_string, char** txid, char** wtxid,
+    char** wit_hash, uint32_t* size, uint32_t* vsize, uint32_t* weight,
+    uint32_t* version, uint32_t* locktime);
+
+/**
  * @brief get elements transaction input.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     transaction hex.

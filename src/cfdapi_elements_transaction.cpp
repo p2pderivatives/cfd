@@ -149,7 +149,7 @@ ConfidentialTransactionController ElementsTransactionApi::UpdateWitnessStack(
       stack_index);
 }
 
-ByteData ElementsTransactionApi::CreateSignatureHash(
+std::string ElementsTransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const ConfidentialTxInReference& txin,
     const Pubkey& pubkey, const ConfidentialValue& value, HashType hash_type,
     const SigHashType& sighash_type) const {
@@ -157,7 +157,7 @@ ByteData ElementsTransactionApi::CreateSignatureHash(
       tx_hex, txin, pubkey.GetData(), value, hash_type, sighash_type);
 }
 
-ByteData ElementsTransactionApi::CreateSignatureHash(
+std::string ElementsTransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const ConfidentialTxInReference& txin,
     const Script& redeem_script, const ConfidentialValue& value,
     HashType hash_type, const SigHashType& sighash_type) const {
@@ -165,7 +165,7 @@ ByteData ElementsTransactionApi::CreateSignatureHash(
       tx_hex, txin, redeem_script.GetData(), value, hash_type, sighash_type);
 }
 
-ByteData ElementsTransactionApi::CreateSignatureHash(
+std::string ElementsTransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const ConfidentialTxInReference& txin,
     const ByteData& key_data, const ConfidentialValue& value,
     HashType hash_type, const SigHashType& sighash_type) const {
@@ -174,57 +174,44 @@ ByteData ElementsTransactionApi::CreateSignatureHash(
       sighash_type);
 }
 
-ByteData ElementsTransactionApi::CreateSignatureHash(
+std::string ElementsTransactionApi::CreateSignatureHash(
     const std::string& tx_hex, const Txid& txid, uint32_t vout,
     const ByteData& key_data, const ConfidentialValue& value,
     HashType hash_type, const SigHashType& sighash_type) const {
-  std::string sig_hash;
+  ByteData sig_hash;
   ConfidentialTransactionController txc(tx_hex);
-  bool is_witness = false;
+  WitnessVersion version = WitnessVersion::kVersionNone;
+
+  if ((hash_type == HashType::kP2wpkh) || (hash_type == HashType::kP2wsh)) {
+    version = WitnessVersion::kVersion0;
+  }
 
   switch (hash_type) {
     case HashType::kP2pkh:
       // fall-through
     case HashType::kP2wpkh:
-      if (hash_type == HashType::kP2wpkh) {
-        is_witness = true;
-      }
-      if (value.HasBlinding()) {
-        sig_hash = txc.CreateSignatureHash(
-            txid, vout, Pubkey(key_data), sighash_type, value.GetData(),
-            is_witness);
-      } else {
-        sig_hash = txc.CreateSignatureHash(
-            txid, vout, Pubkey(key_data), sighash_type, value.GetAmount(),
-            is_witness);
-      }
+      sig_hash = txc.CreateSignatureHash(
+          txid, vout, Pubkey(key_data), sighash_type, value, version);
       break;
     case HashType::kP2sh:
       // fall-through
     case HashType::kP2wsh:
-      if (hash_type == HashType::kP2wsh) {
-        is_witness = true;
-      }
-      if (value.HasBlinding()) {
-        sig_hash = txc.CreateSignatureHash(
-            txid, vout, Script(key_data), sighash_type, value.GetData(),
-            is_witness);
-      } else {
-        sig_hash = txc.CreateSignatureHash(
-            txid, vout, Script(key_data), sighash_type, value.GetAmount(),
-            is_witness);
-      }
+      sig_hash = txc.CreateSignatureHash(
+          txid, vout, Script(key_data), sighash_type, value, version);
       break;
     default:
       warn(
           CFD_LOG_SOURCE,
-          "Failed to CreateSignatureHash. Invalid hash_type: {}", hash_type);
+          "Failed to CreateSignatureHash. Invalid hash_type: "
+          "hash_type={}",  // NOLINT
+          hash_type);
       throw CfdException(
-          CfdError::kCfdIllegalArgumentError, "Invalid hash_type.");
-      break;
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid hash_type. hash_type must be \"p2pkh\"(0) "
+          "or \"p2sh\"(1) or \"p2wpkh\"(2) or \"p2wsh\"(3).");  // NOLINT
   }
 
-  return ByteData(sig_hash);
+  return sig_hash.GetHex();
 }
 
 ConfidentialTransactionController ElementsTransactionApi::AddMultisigSign(
