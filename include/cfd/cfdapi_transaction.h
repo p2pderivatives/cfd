@@ -14,6 +14,7 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_transaction.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
 #include "cfd/cfdapi_coin.h"
 #include "cfdcore/cfdcore_bytedata.h"
@@ -23,6 +24,7 @@
 namespace cfd {
 namespace api {
 
+using cfd::SignParameter;
 using cfd::core::AddressFormatData;
 using cfd::core::AddressType;
 using cfd::core::Amount;
@@ -243,6 +245,20 @@ class CFD_EXPORT TransactionApi {
       std::vector<std::string>* append_txout_addresses = nullptr,
       NetType net_type = NetType::kMainnet,
       const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+
+  /**
+   * @brief Create multisig scriptsig (unlocking script).
+   * @details the order of signatures to be added is automatically aligned
+   * with the corresponding pubkey in redeemscript and relatedPubkey in
+   * signParam. (If relatedPubkey is not set, signatures are added in order of
+   * signParam after adding signature with relatedPubkey).
+   * @param[in] sign_list       sign parameters to add the input
+   * @param[in] redeem_script   multisig script
+   * @return scriptsig
+   */
+  std::string CreateMultisigScriptSig(
+      const std::vector<SignParameter>& sign_list,
+      const Script& redeem_script);
 };
 
 }  // namespace api

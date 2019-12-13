@@ -306,6 +306,13 @@ int CfdFinalizeMultisigScript(
           CfdError::kCfdIllegalStateError,
           "Failed to parameter. pubkey not found.");
     }
+    if (data->current_index > kMultisigMaxKeyNum) {
+      warn(
+          CFD_LOG_SOURCE, "The number of pubkey has reached the upper limit.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "The number of pubkey has reached the upper limit.");
+    }
 
     bool is_bitcoin = false;
     NetType net_type =

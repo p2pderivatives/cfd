@@ -111,8 +111,36 @@ class TransactionApiBase {
       std::function<T(const std::string&)> create_controller,
       const std::string& tx_hex, const Txid& txid, uint32_t vout,
       const std::vector<SignParameter>& sign_list, AddressType address_type,
-      const Script& witness_script, const Script redeem_script,
+      const Script& witness_script, const Script& redeem_script,
       bool clear_stack);
+
+  /**
+   * @brief Create multisig scriptsig (unlocking script).
+   * @details the order of signatures to be added is automatically aligned
+   * with the corresponding pubkey in redeemscript and relatedPubkey in
+   * signParam. (If relatedPubkey is not set, signatures are added in order of
+   * signParam after adding signature with relatedPubkey).
+   * @param[in] sign_list       sign parameters to add the input
+   * @param[in] redeem_script   multisig script
+   * @return scriptsig
+   */
+  static std::string CreateMultisigScriptSig(
+      const std::vector<SignParameter>& sign_list,
+      const Script& redeem_script);
+
+  /**
+   * @brief Create multisig signature list.
+   * @details the order of signatures to be added is automatically aligned
+   * with the corresponding pubkey in redeemscript and relatedPubkey in
+   * signParam. (If relatedPubkey is not set, signatures are added in order of
+   * signParam after adding signature with relatedPubkey).
+   * @param[in] sign_list       sign parameters to add the input
+   * @param[in] redeem_script   multisig script
+   * @return signature list
+   */
+  static std::vector<ByteData> CreateMultisigSignatureData(
+      const std::vector<SignParameter>& sign_list,
+      const Script& redeem_script);
 };
 
 }  // namespace api

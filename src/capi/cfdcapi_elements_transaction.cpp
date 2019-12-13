@@ -1277,6 +1277,14 @@ int CfdFinalizeElementsMultisigSign(
       throw CfdException(
           CfdError::kCfdOutOfRangeError, "The signature has empty.");
     }
+    if (data->current_index > kMultisigMaxKeyNum) {
+      warn(
+          CFD_LOG_SOURCE,
+          "The number of signature has reached the upper limit.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "The number of signature has reached the upper limit.");
+    }
 
     std::vector<SignParameter> sign_list;
     for (uint32_t index = 0; index < data->current_index; ++index) {
