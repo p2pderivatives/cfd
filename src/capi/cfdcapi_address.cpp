@@ -26,7 +26,6 @@
 #include "cfdcore/cfdcore_logger.h"
 
 using cfd::AddressFactory;
-using cfd::ElementsAddressFactory;
 using cfd::api::AddressApi;
 using cfd::api::DescriptorKeyData;
 using cfd::api::DescriptorScriptData;
@@ -47,6 +46,7 @@ using cfd::core::logger::warn;
 
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::api::ElementsAddressApi;
+using cfd::ElementsAddressFactory;
 #endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
@@ -431,9 +431,14 @@ int CfdParseDescriptor(
       desc_data = api.ParseOutputDescriptor(
           descriptor, net_type, derive_path, &script_list, &multisig_key_list);
     } else {
+#ifndef CFD_DISABLE_ELEMENTS
       ElementsAddressApi e_api;
       desc_data = e_api.ParseOutputDescriptor(
           descriptor, net_type, derive_path, &script_list, &multisig_key_list);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
     }
     if (script_list.empty()) {
       script_list.push_back(desc_data);
@@ -841,8 +846,13 @@ int CfdGetAddressFromLockingScript(
       AddressFactory address_factory(net_type);
       addr = address_factory.GetAddressByLockingScript(script);
     } else {
+#ifndef CFD_DISABLE_ELEMENTS
       ElementsAddressFactory elements_factory(net_type);
       addr = elements_factory.GetAddressByLockingScript(script);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
     }
     *address = CreateString(addr.GetAddress());
     return CfdErrorCode::kCfdSuccess;
