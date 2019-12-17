@@ -257,8 +257,8 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
   } else {
     addr_prefixes = *prefix_list;
   }
-  if (script_list) script_list->clear();
-  if (multisig_key_list) multisig_key_list->clear();
+  if (script_list != nullptr) script_list->clear();
+  if (multisig_key_list != nullptr) multisig_key_list->clear();
 
   static auto get_keystr_function =
       [](const DescriptorKeyReference& key_ref) -> std::string {
@@ -294,6 +294,7 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
   }
 
   std::vector<DescriptorKeyReference> multisig_keys;
+  uint32_t multisig_req_num = 0;
   bool use_script_list = false;
   DescriptorKeyReference key_ref;
   switch (result.type) {
@@ -333,6 +334,7 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
     case DescriptorScriptType::kDescriptorScriptMulti:
     case DescriptorScriptType::kDescriptorScriptSortedMulti:
       multisig_keys = script_refs[0].GetKeyList();
+      result.multisig_req_sig_num = script_refs[0].GetReqNum();
       break;
     case DescriptorScriptType::kDescriptorScriptRaw:
     case DescriptorScriptType::kDescriptorScriptAddr:
@@ -359,6 +361,7 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
               (child.GetScriptType() ==
                DescriptorScriptType::kDescriptorScriptSortedMulti)) {
             multisig_keys = child.GetKeyList();
+            multisig_req_num = child.GetReqNum();
             is_loop = false;
           }
           break;
@@ -384,6 +387,7 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
       } else {
         data.key_type = DescriptorKeyType::kDescriptorKeyNull;
       }
+      data.multisig_req_sig_num = multisig_req_num;
 
       script_list->push_back(data);
       if (is_loop && script_ref.HasChild()) {
