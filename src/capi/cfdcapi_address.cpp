@@ -45,8 +45,8 @@ using cfd::core::logger::info;
 using cfd::core::logger::warn;
 
 #ifndef CFD_DISABLE_ELEMENTS
-using cfd::api::ElementsAddressApi;
 using cfd::ElementsAddressFactory;
+using cfd::api::ElementsAddressApi;
 #endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
@@ -477,7 +477,7 @@ int CfdGetDescriptorData(
     uint32_t* depth, int* script_type, char** locking_script, char** address,
     int* hash_type, char** redeem_script, int* key_type, char** pubkey,
     char** ext_pubkey, char** ext_privkey, bool* is_multisig,
-    uint32_t* max_key_num) {
+    uint32_t* max_key_num, uint32_t* req_sig_num) {
   char* work_locking_script = nullptr;
   char* work_address = nullptr;
   char* work_redeem_script = nullptr;
@@ -556,6 +556,9 @@ int CfdGetDescriptorData(
         if (max_key_num != nullptr) {
           *max_key_num =
               static_cast<uint32_t>(buffer->multisig_key_list->size());
+        }
+        if (req_sig_num != nullptr) {
+          *req_sig_num = static_cast<uint32_t>(desc_data.multisig_req_sig_num);
         }
       } else {
         *is_multisig = false;
