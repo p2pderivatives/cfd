@@ -138,8 +138,6 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
       CfdFreeStringBuffer(str_buffer);
       str_buffer = NULL;
     }
-    ret = CfdFreeHandle(handle);
-    EXPECT_EQ(kCfdSuccess, ret);
   }
 
 #ifndef CFD_DISABLE_ELEMENTS
@@ -153,7 +151,7 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     ret = CfdParseDescriptor(handle, descriptor, net_type, "", &descriptor_handle, &max_index);
     EXPECT_EQ(kCfdSuccess, ret);
     EXPECT_FALSE((nullptr == descriptor_handle));
-    EXPECT_EQ(1, max_index);
+    EXPECT_EQ(0, max_index);
   
     if (ret == kCfdSuccess) {
       assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
@@ -174,8 +172,6 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
       CfdFreeStringBuffer(str_buffer);
       str_buffer = NULL;
     }
-    ret = CfdFreeHandle(handle);
-    EXPECT_EQ(kCfdSuccess, ret);
   }
 
   {
@@ -188,7 +184,7 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     ret = CfdParseDescriptor(handle, descriptor, net_type, "", &descriptor_handle, &max_index);
     EXPECT_EQ(kCfdSuccess, ret);
     EXPECT_FALSE((nullptr == descriptor_handle));
-    EXPECT_EQ(3, max_index);
+    EXPECT_EQ(2, max_index);
   
     if (ret == kCfdSuccess) {
       assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
@@ -219,8 +215,8 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
       CfdFreeStringBuffer(str_buffer);
       str_buffer = NULL;
     }
-    ret = CfdFreeHandle(handle);
-    EXPECT_EQ(kCfdSuccess, ret);
   }
 #endif  // CFD_DISABLE_ELEMENTS
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
 }
