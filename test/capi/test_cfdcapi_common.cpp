@@ -71,6 +71,9 @@ TEST(cfdcapi_common, CfdCloneHandle) {
   EXPECT_EQ(kCfdSuccess, ret);
   EXPECT_FALSE((NULL == handle2));
 
+  ret = CfdCopyErrorState(handle, handle2);
+  EXPECT_EQ(kCfdSuccess, ret);
+
   ret = CfdFreeHandle(handle2);
   EXPECT_EQ(kCfdSuccess, ret);
 

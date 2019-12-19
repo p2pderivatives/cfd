@@ -105,6 +105,14 @@ CFDC_API int CfdCreateSimpleHandle(void** handle);
 CFDC_API int CfdCloneHandle(void* source, void** handle);
 
 /**
+ * @brief copy error state on cfd handle.
+ * @param[in] source        source handle. (can use null)
+ * @param[out] destination  destination handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCopyErrorState(void* source, void* destination);
+
+/**
  * @brief cfdのハンドルを解放する。
  * @param[in] handle    handle pointer
  * @return CfdErrorCode

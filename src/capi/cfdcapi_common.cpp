@@ -254,7 +254,8 @@ void CfdCapiManager::FreeHandle(void* handle) {
   }
 }
 
-void CfdCapiManager::CopyHandle(void* source, void* destination) const {
+void CfdCapiManager::CopyHandle(
+    void* source, void* destination, bool error_state_only) const {
   if ((source != nullptr) && (destination != nullptr)) {
     CfdCapiHandleData* source_data = static_cast<CfdCapiHandleData*>(source);
     CfdCapiHandleData* dest_data =
@@ -267,10 +268,17 @@ void CfdCapiManager::CopyHandle(void* source, void* destination) const {
           CfdError::kCfdIllegalArgumentError, "Illegal handle data.");
     }
 
-    // TODO(k-matsuzawa): 現在はコピーする情報が無い
-    // bool is_outside = dest_data->is_outside;
-    // memcpy(dest_data, source_data, sizeof(CfdCapiHandleData));
-    // dest_data->is_outside = is_outside;
+    if (error_state_only) {
+      dest_data->error_code = source_data->error_code;
+      memcpy(
+          dest_data->error_message, source_data->error_message,
+          sizeof(dest_data->error_message));
+    } else {
+      // TODO(k-matsuzawa): 現在はコピーする情報が無い
+      // bool is_outside = dest_data->is_outside;
+      // memcpy(dest_data, source_data, sizeof(CfdCapiHandleData));
+      // dest_data->is_outside = is_outside;
+    }
   }
 }
 
@@ -430,6 +438,18 @@ extern "C" int CfdCloneHandle(void* source, void** handle) {
   }
   CfdFreeHandle(temp_handle);
   return result;
+}
+
+extern "C" int CfdCopyErrorState(void* source, void* destination) {
+  try {
+    cfd::Initialize();
+    cfd::capi::capi_instance.CopyHandle(source, destination, true);
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
 }
 
 extern "C" int CfdFreeHandle(void* handle) {

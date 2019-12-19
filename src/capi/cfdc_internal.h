@@ -207,10 +207,12 @@ class CfdCapiManager {
   void FreeHandle(void* handle);
   /**
    * @brief copy handle.
-   * @param[in] source        source handle
-   * @param[out] destination  destinate handle
+   * @param[in] source            source handle
+   * @param[out] destination      destinate handle
+   * @param[in] error_state_only  copy is error state only.
    */
-  void CopyHandle(void* source, void* destination) const;
+  void CopyHandle(
+      void* source, void* destination, bool error_state_only = true) const;
   /**
    * @brief エラー情報を設定する。
    * @param[in] handle      ハンドル情報

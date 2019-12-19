@@ -99,13 +99,13 @@ jobs:
     - name: collect coverage
       run: |
         cd build
-        make lcov_cfdcore
+        make lcov_cfd
         zip -r lcov_cfd_output.zip lcov_cfd_output
         cd ..
     - name: upload coverage
       uses: actions/upload-artifact@v1
       with:
-        name: output-lcov-cfdcore
+        name: output-lcov-cfd
         path: ./build/lcov_cfd_output.zip
     - name: ubuntu-after
       run: rm -rf cache/cmake/cmake-$CMAKE_VERSION-Linux-x86_64
