@@ -254,6 +254,26 @@ void CfdCapiManager::FreeHandle(void* handle) {
   }
 }
 
+void CfdCapiManager::CopyHandle(void* source, void* destination) const {
+  if ((source != nullptr) && (destination != nullptr)) {
+    CfdCapiHandleData* source_data = static_cast<CfdCapiHandleData*>(source);
+    CfdCapiHandleData* dest_data =
+        static_cast<CfdCapiHandleData*>(destination);
+    size_t len = strlen(kPrefixHandleData) + 1;
+    if ((memcmp(source_data->prefix, kPrefixHandleData, len) != 0) ||
+        (memcmp(dest_data->prefix, kPrefixHandleData, len) != 0)) {
+      warn(CFD_LOG_SOURCE, "Illegal handle data. prefix unmatch.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal handle data.");
+    }
+
+    // TODO(k-matsuzawa): 現在はコピーする情報が無い
+    // bool is_outside = dest_data->is_outside;
+    // memcpy(dest_data, source_data, sizeof(CfdCapiHandleData));
+    // dest_data->is_outside = is_outside;
+  }
+}
+
 void CfdCapiManager::SetLastError(
     void* handle, int error_code, const char* message) {
   // TODO(k-matsuzawa): handle存在チェックすべきかどうか
@@ -388,6 +408,28 @@ extern "C" int CfdCreateSimpleHandle(void** handle) {
   } catch (...) {
     return kCfdUnknownError;
   }
+}
+
+extern "C" int CfdCloneHandle(void* source, void** handle) {
+  int result = kCfdUnknownError;
+  void* temp_handle = nullptr;
+  try {
+    if (handle == nullptr) return kCfdIllegalArgumentError;
+    cfd::Initialize();
+    temp_handle = cfd::capi::capi_instance.CreateHandle(true);
+
+    if (source != nullptr) {
+      cfd::capi::capi_instance.CopyHandle(source, temp_handle);
+    }
+    *handle = temp_handle;
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = except.GetErrorCode();
+  } catch (...) {
+    // do nothing
+  }
+  CfdFreeHandle(temp_handle);
+  return result;
 }
 
 extern "C" int CfdFreeHandle(void* handle) {
