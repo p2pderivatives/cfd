@@ -214,6 +214,7 @@ CFDC_API int CfdParseDescriptor(
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @param[out] is_multisig       has multisig.
  * @param[out] max_key_num       key list count.
+ * @param[out] req_sig_num       number of require multisig signatures.
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetDescriptorData(
@@ -221,7 +222,7 @@ CFDC_API int CfdGetDescriptorData(
     uint32_t* depth, int* script_type, char** locking_script, char** address,
     int* hash_type, char** redeem_script, int* key_type, char** pubkey,
     char** ext_pubkey, char** ext_privkey, bool* is_multisig,
-    uint32_t* max_key_num);
+    uint32_t* max_key_num, uint32_t* req_sig_num);
 
 /**
  * @brief get outputDescriptor's multisig keys.

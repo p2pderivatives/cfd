@@ -6,6 +6,7 @@ cmake_policy(SET CMP0076 NEW)
 ####################
 # options
 ####################
+option(CFD_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
 if(CMAKE_JS_INC)
 option(ENABLE_SHARED "enable shared library (ON or OFF. default:ON)" ON)
 else()
@@ -38,6 +39,12 @@ else()
 set(ENABLE_DEBUG  FALSE)
 set(STACK_PROTECTOR_OPT  "")
 endif() # CMAKE_BUILD_TYPE
+
+if(CFD_SHARED AND (WIN32 OR APPLE))
+set(USE_CFD_SHARED  TRUE)
+else()
+set(USE_CFD_SHARED  FALSE)
+endif()
 
 ####################
 # common setting
@@ -113,6 +120,7 @@ include(${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake)
 
 project(cfd CXX)
 set(CFDCORE_LIBRARY cfdcore)
+set(LIBWALLY_LIBRARY wally)
 set(UNIVALUE_LIBRARY univalue)
 
 if(MSVC)
@@ -124,7 +132,7 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-if(ENABLE_SHARED)
+if(ENABLE_SHARED OR USE_CFD_SHARED)
 add_library(${PROJECT_NAME} SHARED)
 else()
 add_library(${PROJECT_NAME} STATIC)
@@ -180,6 +188,7 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:pthread>
   PRIVATE
     ${CFDCORE_LIBRARY}
+    ${LIBWALLY_LIBRARY}
     ${UNIVALUE_LIBRARY}
     ${GCOV_LIBRARY}
 )

@@ -573,6 +573,9 @@ TEST(cfdcapi_elements_transaction, AddSignConfidentialTx) {
       ret = CfdGetConfidentialTxInWitness(handle, tx_string2, 0, 1, &stack);
       EXPECT_EQ(kCfdSuccess, ret);
       EXPECT_STREQ("03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6", stack);
+      if (ret == kCfdSuccess) {
+        CfdFreeStringBuffer(stack);
+      }
 
       CfdFreeStringBuffer(tx_string2);
     }
