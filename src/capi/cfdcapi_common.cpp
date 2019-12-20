@@ -254,6 +254,34 @@ void CfdCapiManager::FreeHandle(void* handle) {
   }
 }
 
+void CfdCapiManager::CopyHandle(
+    void* source, void* destination, bool error_state_only) const {
+  if ((source != nullptr) && (destination != nullptr)) {
+    CfdCapiHandleData* source_data = static_cast<CfdCapiHandleData*>(source);
+    CfdCapiHandleData* dest_data =
+        static_cast<CfdCapiHandleData*>(destination);
+    size_t len = strlen(kPrefixHandleData) + 1;
+    if ((memcmp(source_data->prefix, kPrefixHandleData, len) != 0) ||
+        (memcmp(dest_data->prefix, kPrefixHandleData, len) != 0)) {
+      warn(CFD_LOG_SOURCE, "Illegal handle data. prefix unmatch.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal handle data.");
+    }
+
+    if (error_state_only) {
+      dest_data->error_code = source_data->error_code;
+      memcpy(
+          dest_data->error_message, source_data->error_message,
+          sizeof(dest_data->error_message));
+    } else {
+      // TODO(k-matsuzawa): 現在はコピーする情報が無い
+      // bool is_outside = dest_data->is_outside;
+      // memcpy(dest_data, source_data, sizeof(CfdCapiHandleData));
+      // dest_data->is_outside = is_outside;
+    }
+  }
+}
+
 void CfdCapiManager::SetLastError(
     void* handle, int error_code, const char* message) {
   // TODO(k-matsuzawa): handle存在チェックすべきかどうか
@@ -382,6 +410,40 @@ extern "C" int CfdCreateSimpleHandle(void** handle) {
     if (handle == nullptr) return kCfdIllegalArgumentError;
     cfd::Initialize();
     *handle = cfd::capi::capi_instance.CreateHandle(true);
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return except.GetErrorCode();
+  } catch (...) {
+    return kCfdUnknownError;
+  }
+}
+
+extern "C" int CfdCloneHandle(void* source, void** handle) {
+  int result = kCfdUnknownError;
+  void* temp_handle = nullptr;
+  try {
+    if (handle == nullptr) return kCfdIllegalArgumentError;
+    cfd::Initialize();
+    temp_handle = cfd::capi::capi_instance.CreateHandle(true);
+
+    if (source != nullptr) {
+      cfd::capi::capi_instance.CopyHandle(source, temp_handle);
+    }
+    *handle = temp_handle;
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = except.GetErrorCode();
+  } catch (...) {
+    // do nothing
+  }
+  CfdFreeHandle(temp_handle);
+  return result;
+}
+
+extern "C" int CfdCopyErrorState(void* source, void* destination) {
+  try {
+    cfd::Initialize();
+    cfd::capi::capi_instance.CopyHandle(source, destination, true);
     return kCfdSuccess;
   } catch (const CfdException& except) {
     return except.GetErrorCode();
