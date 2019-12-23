@@ -24,6 +24,7 @@
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_transaction.h"
+#include "cfdcore/cfdcore_transaction_common.h"
 
 namespace cfd {
 using cfd::core::Address;
@@ -54,6 +55,7 @@ using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptUtil;
 using cfd::core::SigHashType;
+using cfd::core::SignatureUtil;
 using cfd::core::Txid;
 using cfd::core::UnblindParameter;
 using cfd::core::logger::warn;
@@ -515,6 +517,26 @@ ByteData ConfidentialTransactionController::CreateSignatureHash(
   ByteData256 sighash = transaction_.GetElementsSignatureHash(
       txin_index, redeem_script.GetData(), sighash_type, value, version);
   return ByteData(sighash.GetBytes());
+}
+
+bool ConfidentialTransactionController::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, SigHashType sighash_type, const ConfidentialValue& value,
+    WitnessVersion version) const {
+  auto sighash = this->CreateSignatureHash(
+      txid, vout, pubkey, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+bool ConfidentialTransactionController::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, const Script& script, SigHashType sighash_type,
+    const ConfidentialValue& value, WitnessVersion version) const {
+  auto sighash = this->CreateSignatureHash(
+      txid, vout, script, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
 }
 
 Amount ConfidentialTransactionController::CalculateSimpleFee(
