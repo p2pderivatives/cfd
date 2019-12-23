@@ -100,7 +100,7 @@ enable_testing()
 include(CTest)
 project(cfd_test CXX)
 
-find_package(cfdcore)
+find_package(cfdcore  QUIET)
 
 if(MSVC)
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /Od /Zi")

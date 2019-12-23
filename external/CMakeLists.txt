@@ -1,6 +1,6 @@
 project(external_download NONE)
 
-find_package(cfdcore  CONFIG)
+find_package(cfdcore  QUIET CONFIG)
 
 # load file
 set(EXTERNAL_LOCAL_FILENAME  local_resource/external_project_local_setting.config)

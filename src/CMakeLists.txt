@@ -119,7 +119,7 @@ transform_makefile_srclist("Makefile.srclist" "${CMAKE_CURRENT_BINARY_DIR}/Makef
 include(${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake)
 
 project(cfd CXX)
-find_package(cfdcore)
+find_package(cfdcore  QUIET)
 if((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
 set(CFDCORE_LIBRARY cfdcore)
 set(LIBWALLY_LIBRARY wally)
