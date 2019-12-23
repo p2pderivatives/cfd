@@ -100,6 +100,8 @@ enable_testing()
 include(CTest)
 project(cfd_test CXX)
 
+find_package(cfdcore)
+
 if(MSVC)
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /Od /Zi")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od /Zi")
@@ -161,17 +163,31 @@ target_compile_definitions(${PROJECT_NAME}
 )
 endif()
 
+if((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     .
     ../src
     ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
 )
-
 target_link_directories(${PROJECT_NAME}
   PRIVATE
     ./
 )
+else()
+target_include_directories(${PROJECT_NAME}
+  PRIVATE
+    .
+    ../src
+    ${cfdcore_DIR}/../include
+    ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
+)
+target_link_directories(${PROJECT_NAME}
+  PRIVATE
+    ./
+    ${cfdcore_DIR}/../lib
+)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE $<$<BOOL:$<CXX_COMPILER_ID:MSVC>>:winmm.lib>

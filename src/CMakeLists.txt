@@ -119,9 +119,21 @@ transform_makefile_srclist("Makefile.srclist" "${CMAKE_CURRENT_BINARY_DIR}/Makef
 include(${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake)
 
 project(cfd CXX)
+find_package(cfdcore)
+if((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
 set(CFDCORE_LIBRARY cfdcore)
 set(LIBWALLY_LIBRARY wally)
 set(UNIVALUE_LIBRARY univalue)
+
+else()
+message(STATUS "[cfdcore_FOUND]=${cfdcore_FOUND}")
+message(STATUS "[cfdcore_DIR]=${cfdcore_DIR}")
+
+set(CFDCORE_LIBRARY cfdcore)
+set(LIBWALLY_LIBRARY wally)
+set(UNIVALUE_LIBRARY univalue)
+endif()
+
 
 if(MSVC)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
@@ -169,18 +181,38 @@ target_compile_definitions(${PROJECT_NAME}
     ${CFD_CAPI_USE}
     ${CFD_CORE_SHARED_OPT}
 )
+
+if((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ../include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
     .
     ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
 )
-
 target_link_directories(${PROJECT_NAME}
   PRIVATE
     ./
 )
+set(USE_INSTALLED_LIBRARY  FALSE)
+else()
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    .
+    ${cfdcore_DIR}/../include
+    ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
+)
+target_link_directories(${PROJECT_NAME}
+  PRIVATE
+    ./
+    ${cfdcore_DIR}/../lib
+)
+set(USE_INSTALLED_LIBRARY  TRUE)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:-static-libgcc>
@@ -192,6 +224,30 @@ target_link_libraries(${PROJECT_NAME}
     ${UNIVALUE_LIBRARY}
     ${GCOV_LIBRARY}
 )
+
+
+if(USE_INSTALLED_LIBRARY)
+set(INSTALLED_LIBRARY_DIR  ${cfdcore_DIR}/../lib)
+if(ENABLE_SHARED)
+set(LIB_PREFIX  ${CMAKE_SHARED_LIBRARY_PREFIX})
+set(LIB_SUFFIX  ${CMAKE_SHARED_LIBRARY_SUFFIX})
+else()
+set(LIB_PREFIX  ${CMAKE_STATIC_LIBRARY_PREFIX})
+set(LIB_SUFFIX  ${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
+set(LIBWALLY_LIB_PATH  ${INSTALLED_LIBRARY_DIR}/${LIB_PREFIX}wally${LIB_SUFFIX})
+set(UNIVALUE_LIB_PATH  ${INSTALLED_LIBRARY_DIR}/${LIB_PREFIX}univalue${LIB_SUFFIX})
+set(CFDCORE_LIB_PATH   ${INSTALLED_LIBRARY_DIR}/${LIB_PREFIX}cfdcore${LIB_SUFFIX})
+
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy  ${LIBWALLY_LIB_PATH} ${CFD_OBJ_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy  ${UNIVALUE_LIB_PATH} ${CFD_OBJ_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy  ${CFDCORE_LIB_PATH} ${CFD_OBJ_BINARY_DIR}
+)
+endif()   # USE_INSTALLED_LIBRARY
 
 
 ####################
@@ -248,18 +304,21 @@ endif()
 # install & export
 ####################
 include(GNUInstallDirs)
+set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) 
 
 install(TARGETS       ${PROJECT_NAME}
         EXPORT        ${PROJECT_NAME}-export
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        OBJECTS       DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
-# https://cmake.org/cmake/help/latest/command/install.html
 
-export(TARGETS ${PROJECT_NAME}
-       APPEND FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-export.cmake
-       EXPORT_LINK_INTERFACE_LIBRARIES)
+install(EXPORT ${PROJECT_NAME}-export
+        FILE ${PROJECT_NAME}-config.cmake
+        DESTINATION "cmake/"
+        EXPORT_LINK_INTERFACE_LIBRARIES)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../include/cfd"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
@@ -270,3 +329,12 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../include/cfdc"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING PATTERN "*.h")
 endif()
+
+if(MSVC)
+install(DIRECTORY "${CFD_OBJ_BINARY_DIR}/"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        FILES_MATCHING PATTERN "cfd.exp")
+endif()
+
+#export(TARGETS ${PROJECT_NAME}
+#       APPEND FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake)
