@@ -331,6 +331,7 @@ class CFD_EXPORT TransactionController
    * @brief Verify signature which is specified (pubkey hash) input data.
    * @details Not supported yet the script which includes OP_CODESEPARATOR.
    * @param[in] signature           signature to be verified.
+   * @param[in] pubkey              public key to verify signature.
    * @param[in] txid                target input's transaction id.
    * @param[in] vout                target input's previous output index.
    * @param[in] sighash_type        sighash type class. (SigHashType)
@@ -350,6 +351,7 @@ class CFD_EXPORT TransactionController
    * @brief Verify signature which is specified (script hash) input data.
    * @details Not supported yet the script which includes OP_CODESEPARATOR.
    * @param[in] signature           signature to be verified.
+   * @param[in] pubkey              public key to verify signature.
    * @param[in] txid                target input's transaction id.
    * @param[in] vout                target input's previous output index.
    * @param[in] script              redeem script related previous output.
