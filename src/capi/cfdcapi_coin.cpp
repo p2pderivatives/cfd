@@ -71,6 +71,7 @@ struct CfdCapiCoinSelection {
   uint8_t fee_asset[kAssetSize];  //!< fee asset
   int64_t tx_fee_amount;          //!< tx fee amount
   double fee_rate;                //!< feeRate
+  double effective_fee_rate;      //!< effective feeRate
   double long_term_fee_rate;      //!< longterm feeRate
   double dust_fee_rate;           //!< dust feeRate
   int64_t knapsack_min_change;    //!< knapsack minChange
@@ -108,7 +109,7 @@ extern "C" {
 int CfdInitializeCoinSelection(
     void* handle, uint32_t utxo_count, uint32_t target_asset_count,
     const char* fee_asset, int64_t tx_fee_amount, double fee_rate,
-    double long_term_fee_rate, double dust_fee_rate,
+    double effective_fee_rate, double long_term_fee_rate, double dust_fee_rate,
     int64_t knapsack_min_change, void** coin_select_handle) {
   int result = CfdErrorCode::kCfdUnknownError;
   CfdCapiCoinSelection* buffer = nullptr;
@@ -137,6 +138,7 @@ int CfdInitializeCoinSelection(
     }
     obj.tx_fee_amount = tx_fee_amount;
     obj.fee_rate = fee_rate;
+    obj.effective_fee_rate = effective_fee_rate;
     obj.long_term_fee_rate = long_term_fee_rate;
     obj.dust_fee_rate = dust_fee_rate;
     obj.knapsack_min_change = knapsack_min_change;
@@ -331,6 +333,7 @@ int CfdFinalizeCoinSelection(
       option_params.SetFeeAsset(convert_to_asset(buffer->fee_asset));
 #endif  // CFD_DISABLE_ELEMENTS
     }
+    option_params.SetEffectiveFeeBaserate(buffer->effective_fee_rate);
     option_params.SetLongTermFeeBaserate(buffer->long_term_fee_rate);
     option_params.SetDustFeeRate(buffer->dust_fee_rate);
     option_params.SetKnapsackMinimumChange(buffer->knapsack_min_change);
