@@ -23,16 +23,18 @@ jobs:
     - uses: actions/checkout@v1
     - name: cmake_version
       run: cmake --version
-    - name: cmake_generage-vs2019
+    - name: cmake-vs2019
       if: matrix.generator == 'vs2019'
-      run: cmake -S . -B build -G "Visual Studio 16 2019"
-    - name: cmake_generage-mingw
+      run: |
+        cmake -S . -B build -G "Visual Studio 16 2019"
+        cmake -DENABLE_SHARED=on -DENABLE_TESTS=off --build build
+        cmake --build build --config Release
+    - name: cmake-mingw
       if: matrix.generator == 'mingw'
-      run: cmake -S . -B build -G "MSYS Makefiles"
-    - name: cmake_configure
-      run: cmake -DENABLE_SHARED=on -DCMAKE_BUILD_PARALLEL_LEVEL=2 -DENABLE_TESTS=off --build build
-    - name: cmake_build
-      run: cmake --build build --config Release --parallel 2
+      run: |
+        cmake -S . -B build -G "MSYS Makefiles"
+        cmake -DENABLE_SHARED=on -DCMAKE_BUILD_PARALLEL_LEVEL=2 -DENABLE_TESTS=off --build build
+        cmake --build build --config Release --parallel 2
 
   cmake-mac:
     name: cmake build-mac
