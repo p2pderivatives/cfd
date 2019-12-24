@@ -300,4 +300,24 @@ ByteData TransactionController::CreateSignatureHash(
   return ByteData(sighash.GetBytes());
 }
 
+bool TransactionController::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  auto sighash = this->CreateSignatureHash(
+      txid, vout, pubkey, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+bool TransactionController::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, const Script& script, SigHashType sighash_type,
+    const Amount& value, WitnessVersion version) const {
+  auto sighash = this->CreateSignatureHash(
+      txid, vout, script, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
 }  // namespace cfd
