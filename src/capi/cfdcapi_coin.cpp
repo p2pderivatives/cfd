@@ -357,8 +357,8 @@ int CfdFinalizeCoinSelection(
     // save return value from utxo_list
     buffer->indexes->reserve(utxo_list.size());
     for (const auto& utxo : utxo_list) {
-      int temp_value = reinterpret_cast<int>(utxo.binary_data);
-      int32_t utxo_index = static_cast<int32_t>(temp_value);
+      int32_t utxo_index;
+      memcpy(&utxo_index, &utxo.binary_data, sizeof(utxo_index));
       buffer->indexes->push_back(utxo_index);
     }
 
