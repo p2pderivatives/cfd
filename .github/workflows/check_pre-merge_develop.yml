@@ -36,11 +36,7 @@ jobs:
     - name: cmake_configure-static
       if: matrix.shared != 'shared'
       run: cmake -DENABLE_SHARED=off -DCMAKE_BUILD_PARALLEL_LEVEL=2 --build build
-    - name: cmake_build-vs2019
-      if: matrix.generator == 'vs2019'
-      run: cmake --build build --config Release
-    - name: cmake_build-mingw
-      if: matrix.generator == 'mingw'
+    - name: cmake_build
       run: cmake --build build --config Release --parallel 2
     - name: ctest
       run: |
