@@ -529,8 +529,8 @@ Amount ElementsTransactionApi::EstimateFee(
     // check descriptor
     std::string descriptor = utxo.utxo.descriptor;
     // set dummy NetType for getting AddressType.
-    auto data = address_api.ParseOutputDescriptor(
-        descriptor, NetType::kLiquidV1, "");
+    auto data =
+        address_api.ParseOutputDescriptor(descriptor, NetType::kLiquidV1, "");
 
     AddressType addr_type;
     if (utxo.utxo.address.GetAddress().empty() ||

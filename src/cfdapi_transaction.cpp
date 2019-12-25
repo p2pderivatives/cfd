@@ -222,8 +222,8 @@ Amount TransactionApi::EstimateFee(
     // check descriptor
     std::string descriptor = utxo.descriptor;
     // set dummy NetType for getting AddressType.
-    auto data = address_api.ParseOutputDescriptor(
-        descriptor, NetType::kMainnet, "");
+    auto data =
+        address_api.ParseOutputDescriptor(descriptor, NetType::kMainnet, "");
 
     AddressType addr_type;
     if (utxo.address.GetAddress().empty() ||

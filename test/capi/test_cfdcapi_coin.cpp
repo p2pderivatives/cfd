@@ -3,8 +3,12 @@
 #include <stdexcept>
 #include <string>
 #include "capi/cfdc_internal.h"
+#include "cfd/cfd_address.h"
+#include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_utxo.h"
 #include "cfd/cfdapi_address.h"
+#include "cfd/cfdapi_coin.h"
+#include "cfd/cfdapi_elements_transaction.h"
 #include "cfdc/cfdcapi_coin.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_amount.h"
@@ -39,6 +43,98 @@ class cfdcapi_coin : public ::testing::Test {
   virtual void SetUp() { }
   virtual void TearDown() { }
 };
+
+TEST(cfdcapi_coin, EstimateFeeTest) {
+  using cfd::AddressFactory;
+  using cfd::api::ElementsUtxoAndOption;
+  using cfd::api::UtxoData;
+  using cfd::core::Address;
+  using cfd::core::Amount;
+  using cfd::core::BlockHash;
+  using cfd::core::ConfidentialAssetId;
+  using cfd::core::Script;
+  using cfd::core::Txid;
+
+  AddressFactory factory;
+  std::vector<UtxoData> utxos = {
+    UtxoData{
+      12,
+      BlockHash("590ba2283fbe5fb9363c74417bc1cb3f76d4df9d31890f9124b9e1706136b4f4"),
+      Txid("ffe2f9aa4e2c2adb1676008aa07aec5f64149470abb5d89d91b26dfba14e9318"),
+      0,
+      Script("a914155801788fcd51f57e097a0b6c30f1b69057290d87"),
+      Script("001477567d12cf82a3ef6e9bb0ab3a1aba7f65410cbd"),
+      factory.GetAddress("33dsYKS5E5Vp3LhAw3krvhzNaWtqmrH29k"),
+      "sh(wpkh([ef735203/0\'/0\'/5\']03948c01f159b4204b682668d6e850440564b6610c0e5bf30da684b2131f77c449))#2u75feqc",
+      Amount::CreateBySatoshiAmount(600000000),
+      nullptr,
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialAssetId(),
+#endif  // CFD_DISABLE_ELEMENTS
+    },
+    UtxoData{
+      22,
+      BlockHash("e05419389a3aa71017eb4dd1d9eec73500971b86aab2eb0db116707c7be67996"),
+      Txid("d68154ae19408850308967b2cb1b84a92166829610fb2321548b655c4a747c79"),
+      0,
+      Script("a914155801788fcd51f57e097a0b6c30f1b69057290d87"),
+      Script("001477567d12cf82a3ef6e9bb0ab3a1aba7f65410cbd"),
+      factory.GetAddress("33dsYKS5E5Vp3LhAw3krvhzNaWtqmrH29k"),
+      "sh(wpkh([ef735203/0\'/0\'/5\']03948c01f159b4204b682668d6e850440564b6610c0e5bf30da684b2131f77c449))#2u75feqc",
+      Amount::CreateBySatoshiAmount(700000000),
+      nullptr,
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialAssetId(),
+#endif  // CFD_DISABLE_ELEMENTS
+    },
+  };
+
+  // 1 output data
+  static const char* const kTxData = "02000000034cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff81ddd34c6c0c32544e3b89f5e24c6cd7afca62f2b5069281ac9fced6251191d20000000000ffffffff81ddd34c6c0c32544e3b89f5e24c6cd7afca62f2b5069281ac9fced6251191d20100000000ffffffff030200000000000000220020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef406f400100000000220020ea5a7208cddfbc20dd93e12bf29deb00b68c056382a502446c9c5b55490954d215cd5b0700000000220020f39f6272ba6b57918eb047c5dc44fb475356b0f24c12fca39b19284e80008a4200000000";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* fee_handle = nullptr;
+  ret = CfdInitializeEstimateFee(handle, &fee_handle, false);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    for (auto& utxo : utxos) {
+      ret = CfdAddTxInForEstimateFee(
+          handle, fee_handle, utxo.txid.GetHex().c_str(),
+          utxo.vout,utxo.redeem_script.GetHex().c_str(),
+          utxo.address.GetAddress().c_str(), utxo.descriptor.c_str(),
+          nullptr, false, false, false, 0, nullptr);
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+
+    int64_t tx_fee, utxo_fee;
+    ret = CfdFinalizeEstimateFee(
+        handle, fee_handle, kTxData, nullptr, &tx_fee, &utxo_fee, true, 20.0);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(static_cast<int64_t>(2780), tx_fee);
+    EXPECT_EQ(static_cast<int64_t>(3600), utxo_fee);
+
+    ret = CfdFreeEstimateFeeHandle(handle, fee_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
 
 // SelectCoins(Single Asset) =====================================================
 
@@ -290,6 +386,95 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
   }
   ret = CfdFreeCoinSelectionHandle(handle, coin_select_handle);
   EXPECT_EQ(kCfdSuccess, ret);
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_coin, EstimateFeeElementsTest) {
+  using cfd::ElementsAddressFactory;
+  using cfd::api::ElementsUtxoAndOption;
+  using cfd::api::UtxoData;
+  using cfd::core::Address;
+  using cfd::core::Amount;
+  using cfd::core::BlockHash;
+  using cfd::core::ConfidentialAssetId;
+  using cfd::core::Script;
+  using cfd::core::Txid;
+
+  ElementsAddressFactory factory;
+  std::vector<UtxoData> utxos = {
+    UtxoData{
+      15,
+      BlockHash("590ba2283fbe5fb9363c74417bc1cb3f76d4df9d31890f9124b9e1706136b4f4"),
+      Txid("ffe2f9aa4e2c2adb1676008aa07aec5f64149470abb5d89d91b26dfba14e9318"),
+      0,
+      Script("0014b4c93f8091216fd8f1a2d6ad944447f4927425de"),
+      Script(""),
+      factory.GetAddress("ert1qknynlqy3y9ha3udz66keg3z87jf8gfw7zjg8xe"),
+      "wpkh([e3c39d64/0'/0'/9']029f74462149b36b8ac582a96afa8d257bbc8835c25aeab61d6712d69fbfa8e539)#mx0szvef",
+      Amount::CreateBySatoshiAmount(600000000),
+      nullptr,
+      ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3")
+    },
+    UtxoData{
+      5,
+      BlockHash("e05419389a3aa71017eb4dd1d9eec73500971b86aab2eb0db116707c7be67996"),
+      Txid("d68154ae19408850308967b2cb1b84a92166829610fb2321548b655c4a747c79"),
+      0,
+      Script("0014384546aabafe0e229bdd5ce547131c77d94df665"),
+      Script(""),
+      factory.GetAddress("ert1q8pz5d246lc8z9x7atnj5wycuwlv5man94nt8a7"),
+      "wpkh([e3c39d64/0'/0'/10']03f78d89b000a8e747d696fb2d9f1420e24283eb49679c68bdc3a3f3a49baeb703)#wm6p842k",
+      Amount::CreateBySatoshiAmount(700000000),
+      nullptr,
+      ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3")
+    },
+  };
+
+  // 1 output data
+  static const char* const kTxData = "020000000002d4b91f8ea0be3d89d33f9588884a843e78688152f4dff8aca5abc6f5973a83ae0000000000feffffff140510708ffd1fc8bea09e204d36b0d5b9402a31767a4f6c36f23b40cd0cbaf70a00000000faffffff0301f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000003b9328e0001976a9146d715ab3da8090fd8f9e7aada1588e531b16b7da88ac0151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000008f0d1800255fb6295bfd3bbf4760776a59d9476fac2e52f9c0c16549aea5c2ca5f1c15e6f1976a9147cafacbfc72f3682b1055b3a6b8711f3622eabfd88ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000090000000";
+  static const char* const kFeeAsset = "6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* fee_handle = nullptr;
+  ret = CfdInitializeEstimateFee(handle, &fee_handle, true);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    for (auto& utxo : utxos) {
+      ret = CfdAddTxInForEstimateFee(
+          handle, fee_handle, utxo.txid.GetHex().c_str(),
+          utxo.vout,utxo.redeem_script.GetHex().c_str(),
+          utxo.address.GetAddress().c_str(), utxo.descriptor.c_str(),
+          utxo.asset.GetHex().c_str(), false, false, false, 0, nullptr);
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+
+    int64_t tx_fee, utxo_fee;
+    ret = CfdFinalizeEstimateFee(
+        handle, fee_handle, kTxData, kFeeAsset, &tx_fee, &utxo_fee, true, 1.0);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(static_cast<int64_t>(1820), tx_fee);
+    EXPECT_EQ(static_cast<int64_t>(138), utxo_fee);
+
+    ret = CfdFreeEstimateFeeHandle(handle, fee_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
 
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);

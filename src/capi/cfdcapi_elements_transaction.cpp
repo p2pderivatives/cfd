@@ -94,21 +94,6 @@ struct CfdCapiBlindTxData {
   std::vector<TxOutBlindKeys>* txout_blind_keys;
 };
 
-//! prefix: data for fee estimation
-constexpr const char* const kPrefixEstimateFeeData = "EstimateFeeData";
-
-/**
- * @brief cfd-capi EstimateFeeData構造体.
- * @details 最大情報量が多すぎるため、flat structにはしない。
- */
-struct CfdCapiEstimateFeeData {
-  char prefix[kPrefixLength];  //!< buffer prefix
-  //! base transaction hex
-  std::string tx_hex;
-  //! input utxo list
-  std::vector<ElementsUtxoAndOption>* input_utxos;
-};
-
 }  // namespace capi
 }  // namespace cfd
 
@@ -117,7 +102,6 @@ struct CfdCapiEstimateFeeData {
 // =============================================================================
 using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiBlindTxData;
-using cfd::capi::CfdCapiEstimateFeeData;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertHashToAddressType;
@@ -128,7 +112,6 @@ using cfd::capi::IsEmptyString;
 using cfd::capi::kEmpty32Bytes;
 using cfd::capi::kMultisigMaxKeyNum;
 using cfd::capi::kPrefixBlindTxData;
-using cfd::capi::kPrefixEstimateFeeData;
 using cfd::capi::kPrefixMultisigSignData;
 using cfd::capi::kPubkeyHexSize;
 using cfd::capi::SetLastError;
@@ -1598,169 +1581,6 @@ int CfdUnblindIssuance(
     FreeBufferOnError(
         &work_asset, &work_asset_blind_factor, &work_asset_value_blind_factor,
         &work_token, &work_token_blind_factor, &work_token_value_blind_factor);
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdInitializeEstimateFee(
-    void* handle, void** fee_handle) {
-  CfdCapiEstimateFeeData* buffer = nullptr;
-  try {
-    cfd::Initialize();
-    if (fee_handle == nullptr) {
-      warn(CFD_LOG_SOURCE, "Fee handle is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. Fee handle is null.");
-    }
-
-    buffer = static_cast<CfdCapiEstimateFeeData*>(
-        AllocBuffer(kPrefixEstimateFeeData, sizeof(CfdCapiEstimateFeeData)));
-    buffer->input_utxos = new std::vector<ElementsUtxoAndOption>();
-
-    *fee_handle = buffer;
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    if (buffer != nullptr) CfdFreeEstimateFeeHandle(handle, buffer);
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    if (buffer != nullptr) CfdFreeEstimateFeeHandle(handle, buffer);
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    if (buffer != nullptr) CfdFreeEstimateFeeHandle(handle, buffer);
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdAddTxInForEstimateFee(
-    void* handle, void* fee_handle, const char* txid, uint32_t vout,
-    const char* redeem_script, const char* address,
-    const char* descriptor, const char* asset, bool is_issuance,
-    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
-    const char* fedpeg_script) {
-  try {
-    cfd::Initialize();
-    CheckBuffer(fee_handle, kPrefixEstimateFeeData);
-
-    CfdCapiEstimateFeeData* buffer =
-        static_cast<CfdCapiEstimateFeeData*>(fee_handle);
-
-    ElementsUtxoAndOption param;
-    UtxoData utxo;
-    utxo.txid = Txid(txid);
-    utxo.vout = vout;
-    utxo.redeem_script = Script(redeem_script);
-    if (!IsEmptyString(address)) {
-      std::string address_str(address);
-      ElementsAddressFactory address_factory;
-      if (ElementsConfidentialAddress::IsConfidentialAddress(address_str)) {
-        ElementsConfidentialAddress caddr(address_str);
-        utxo.address = caddr.GetUnblindedAddress();
-      } else {
-        utxo.address = address_factory.GetAddress(address_str);
-      }
-    }
-    if (!IsEmptyString(descriptor)) {
-      utxo.descriptor = std::string(descriptor);
-    }
-    if (!IsEmptyString(asset)) {
-      std::string asset_str(asset);
-      utxo.asset = ConfidentialAssetId(asset_str);
-    }
-    param.utxo = utxo;
-    param.is_issuance = is_issuance;
-    param.is_blind_issuance = is_blind_issuance;
-    param.is_pegin = is_pegin;
-    param.pegin_btc_tx_size = pegin_btc_tx_size;
-    if (!IsEmptyString(fedpeg_script)) {
-      param.fedpeg_script = Script(fedpeg_script);
-    }
-
-    buffer->input_utxos->push_back(param);
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdFinalizeEstimateFee(
-    void* handle, void* fee_handle, const char* tx_hex, const char* fee_asset,
-    int64_t* tx_fee, int64_t* utxo_fee, bool is_blind,
-    double effective_fee_rate) {
-  try {
-    cfd::Initialize();
-    CheckBuffer(fee_handle, kPrefixEstimateFeeData);
-    if (IsEmptyString(fee_asset)) {
-      warn(CFD_LOG_SOURCE, "fee asset is empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. fee asset is empty.");
-    }
-    if (tx_fee == nullptr) {
-      warn(CFD_LOG_SOURCE, "tx fee is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx fee is null.");
-    }
-    if (utxo_fee == nullptr) {
-      warn(CFD_LOG_SOURCE, "utxo fee is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. utxo fee is null.");
-    }
-    CfdCapiEstimateFeeData* buffer =
-        static_cast<CfdCapiEstimateFeeData*>(fee_handle);
-
-    Amount tx_fee_amt, utxo_fee_amt;
-    ElementsTransactionApi api;
-    api.EstimateFee(
-        tx_hex, *(buffer->input_utxos), ConfidentialAssetId(fee_asset),
-        &tx_fee_amt, &utxo_fee_amt, is_blind, effective_fee_rate);
-
-    *tx_fee = tx_fee_amt.GetSatoshiValue();
-    *utxo_fee = utxo_fee_amt.GetSatoshiValue();
-
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdFreeEstimateFeeHandle(void* handle, void* fee_handle) {
-  try {
-    cfd::Initialize();
-    if (fee_handle != nullptr) {
-      CfdCapiEstimateFeeData* buffer =
-          static_cast<CfdCapiEstimateFeeData*>(fee_handle);
-      if (buffer->input_utxos != nullptr) {
-        delete buffer->input_utxos;
-        buffer->input_utxos = nullptr;
-      }
-    }
-    FreeBuffer(
-        fee_handle, kPrefixEstimateFeeData, sizeof(CfdCapiEstimateFeeData));
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
