@@ -1604,7 +1604,7 @@ int CfdUnblindIssuance(
 }
 
 int CfdInitializeEstimateFee(
-    void* handle, void** fee_handle, const char* tx_hex) {
+    void* handle, void** fee_handle) {
   CfdCapiEstimateFeeData* buffer = nullptr;
   try {
     cfd::Initialize();
@@ -1618,7 +1618,6 @@ int CfdInitializeEstimateFee(
     buffer = static_cast<CfdCapiEstimateFeeData*>(
         AllocBuffer(kPrefixEstimateFeeData, sizeof(CfdCapiEstimateFeeData)));
     buffer->input_utxos = new std::vector<ElementsUtxoAndOption>();
-    buffer->tx_hex = std::string(tx_hex);
 
     *fee_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
@@ -1637,12 +1636,11 @@ int CfdInitializeEstimateFee(
 }
 
 int CfdAddTxInForEstimateFee(
-    void* handle, void* fee_handle, uint64_t block_height,
-    const char* block_hash, const char* txid, uint32_t vout,
-    const char* locking_script, const char* redeem_script, const char* address,
-    const char* descriptor, int64_t amount, const char* asset,
-    bool is_issuance, bool is_blind_issuance, bool is_pegin,
-    uint32_t pegin_btc_tx_size, const char* fedpeg_script) {
+    void* handle, void* fee_handle, const char* txid, uint32_t vout,
+    const char* redeem_script, const char* address,
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
+    const char* fedpeg_script) {
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
@@ -1652,22 +1650,26 @@ int CfdAddTxInForEstimateFee(
 
     ElementsUtxoAndOption param;
     UtxoData utxo;
-    utxo.block_height = block_height;
-    utxo.block_hash = BlockHash(block_hash);
     utxo.txid = Txid(txid);
     utxo.vout = vout;
-    utxo.locking_script = Script(locking_script);
     utxo.redeem_script = Script(redeem_script);
-    std::string address_str(address);
-    ElementsAddressFactory address_factory;
-    if (ElementsConfidentialAddress::IsConfidentialAddress(address_str)) {
-      ElementsConfidentialAddress caddr(address_str);
-      utxo.address = caddr.GetUnblindedAddress();
-    } else {
-      utxo.address = address_factory.GetAddress(address_str);
+    if (!IsEmptyString(address)) {
+      std::string address_str(address);
+      ElementsAddressFactory address_factory;
+      if (ElementsConfidentialAddress::IsConfidentialAddress(address_str)) {
+        ElementsConfidentialAddress caddr(address_str);
+        utxo.address = caddr.GetUnblindedAddress();
+      } else {
+        utxo.address = address_factory.GetAddress(address_str);
+      }
     }
-    utxo.descriptor = std::string(descriptor);
-    utxo.amount = Amount::CreateBySatoshiAmount(amount);
+    if (!IsEmptyString(descriptor)) {
+      utxo.descriptor = std::string(descriptor);
+    }
+    if (!IsEmptyString(asset)) {
+      std::string asset_str(asset);
+      utxo.asset = ConfidentialAssetId(asset_str);
+    }
     param.utxo = utxo;
     param.is_issuance = is_issuance;
     param.is_blind_issuance = is_blind_issuance;
@@ -1691,8 +1693,9 @@ int CfdAddTxInForEstimateFee(
 }
 
 int CfdFinalizeEstimateFee(
-    void* handle, void* fee_handle, const char* fee_asset, int64_t* tx_fee,
-    int64_t* utxo_fee, bool is_blind, uint64_t effective_fee_rate) {
+    void* handle, void* fee_handle, const char* tx_hex, const char* fee_asset,
+    int64_t* tx_fee, int64_t* utxo_fee, bool is_blind,
+    double effective_fee_rate) {
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
@@ -1720,7 +1723,7 @@ int CfdFinalizeEstimateFee(
     Amount tx_fee_amt, utxo_fee_amt;
     ElementsTransactionApi api;
     api.EstimateFee(
-        buffer->tx_hex, *(buffer->input_utxos), ConfidentialAssetId(fee_asset),
+        tx_hex, *(buffer->input_utxos), ConfidentialAssetId(fee_asset),
         &tx_fee_amt, &utxo_fee_amt, is_blind, effective_fee_rate);
 
     *tx_fee = tx_fee_amt.GetSatoshiValue();

@@ -500,25 +500,20 @@ CFDC_API int CfdUnblindIssuance(
  * @brief Initialize handle for fee estimation apis.
  * @param[in] handle        cfd handle.
  * @param[out] fee_handle   handle for fee estimation apis.
- * @param[in] tx_hex        transaction hex.
  * @return CfdErrorCode
  */
 CFDC_API int CfdInitializeEstimateFee(
-    void* handle, void** fee_handle, const char* tx_hex);
+    void* handle, void** fee_handle);
 
 /**
  * @brief Add Transaction Input for estimate fee handle.
  * @param[in] handle            cfd handle.
  * @param[in] fee_handle        handle for fee estimation apis.
- * @param[in] block_height      block height that the input utxo is include in.
- * @param[in] block_hash        block hash that the input utxo is include in.
  * @param[in] txid              input utxo's transaction id.
  * @param[in] vout              input utxo's vout.
- * @param[in] locking_script    input utxo's locking script.
  * @param[in] redeem_script     input utxo's redeem script.
  * @param[in] address           the address to which utxo was sent.
  * @param[in] descriptor        the descriptor for creating locking_script.
- * @param[in] amount            utxo's amount of satoshi.
  * @param[in] asset             utxo's unblind asset id.
  * @param[in] is_issuance       is utxo issuance input.
  * @param[in] is_blind_issuance is utxo blind issuance input.
@@ -528,18 +523,17 @@ CFDC_API int CfdInitializeEstimateFee(
  * @return CfdErrorCode
  */
 CFDC_API int CfdAddTxInForEstimateFee(
-    void* handle, void* fee_handle, uint64_t block_height,
-    const char* block_hash, const char* txid, uint32_t vout,
-    const char* locking_script, const char* redeem_script, const char* address,
-    const char* descriptor, int64_t amount, const char* asset,
-    bool is_issuance = false, bool is_blind_issuance = false,
-    bool is_pegin = false, uint32_t pegin_btc_tx_size = 0,
-    const char* fedpeg_script = nullptr);
+    void* handle, void* fee_handle, const char* txid, uint32_t vout,
+    const char* redeem_script, const char* address,
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
+    const char* fedpeg_script);
 
 /**
  * @brief Finalize fee estimation api call.
  * @param[in] handle                cfd handle.
  * @param[in] fee_handle            handle for fee estimation apis.
+ * @param[in] tx_hex                transaction hex.
  * @param[in] fee_asset             asset id used as fee.
  * @param[out] tx_fee               estimated fee by transaction base.
  *     (not contain utxo_fee.)
@@ -550,10 +544,9 @@ CFDC_API int CfdAddTxInForEstimateFee(
  * @return CfdErrorCode
  */
 CFDC_API int CfdFinalizeEstimateFee(
-    void* handle, void* fee_handle, const char* fee_asset,
-    int64_t* tx_fee = nullptr, int64_t* utxo_fee = nullptr,
-    bool is_blind = true,
-    uint64_t effective_fee_rate = 1000);
+    void* handle, void* fee_handle, const char* tx_hex, const char* fee_asset,
+    int64_t* tx_fee, int64_t* utxo_fee, bool is_blind,
+    double effective_fee_rate);
 
 /**
  * @brief Free handle for fee estimation

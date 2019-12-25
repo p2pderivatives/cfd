@@ -684,7 +684,7 @@ TEST(cfdcapi_elements_transaction, AddMultisigSignConfidentialTx) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
-TEST(cfdcapi_elements_transaction, EstimateFee) {
+TEST(cfdcapi_elements_transaction, EstimateFeeTest) {
   using cfd::ElementsAddressFactory;
   using cfd::api::ElementsUtxoAndOption;
   using cfd::api::UtxoData;
@@ -735,24 +735,22 @@ TEST(cfdcapi_elements_transaction, EstimateFee) {
   EXPECT_FALSE((NULL == handle));
 
   void* fee_handle = nullptr;
-  ret = CfdInitializeEstimateFee(handle, &fee_handle, kTxData);
+  ret = CfdInitializeEstimateFee(handle, &fee_handle);
   EXPECT_EQ(kCfdSuccess, ret);
 
   if (ret == kCfdSuccess) {
     for (auto& utxo : utxos) {
       ret = CfdAddTxInForEstimateFee(
-          handle, fee_handle, utxo.block_height,
-          utxo.block_hash.GetHex().c_str(), utxo.txid.GetHex().c_str(),
-          utxo.vout, utxo.locking_script.GetHex().c_str(),
-          utxo.redeem_script.GetHex().c_str(), utxo.address.GetAddress().c_str(),
-          utxo.descriptor.c_str(), utxo.amount.GetSatoshiValue(),
-          utxo.asset.GetHex().c_str());
+          handle, fee_handle, utxo.txid.GetHex().c_str(),
+          utxo.vout,utxo.redeem_script.GetHex().c_str(),
+          utxo.address.GetAddress().c_str(), utxo.descriptor.c_str(),
+          utxo.asset.GetHex().c_str(), false, false, false, 0, nullptr);
       EXPECT_EQ(kCfdSuccess, ret);
     }
 
     int64_t tx_fee, utxo_fee;
     ret = CfdFinalizeEstimateFee(
-        handle, fee_handle, kFeeAsset, &tx_fee, &utxo_fee, true, 1000);
+        handle, fee_handle, kTxData, kFeeAsset, &tx_fee, &utxo_fee, true, 1.0);
     EXPECT_EQ(kCfdSuccess, ret);
     EXPECT_EQ(static_cast<int64_t>(1820), tx_fee);
     EXPECT_EQ(static_cast<int64_t>(138), utxo_fee);
