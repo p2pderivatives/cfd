@@ -202,7 +202,6 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
   void* coin_select_handle = nullptr;
   std::vector<Utxo> utxos = GetElementsUtxoListByC();
   int64_t tx_fee_amount = 2000;
-  double fee_rate = -1;
   double effective_fee_rate = -1;
   double long_term_fee_rate = -1;
   double dust_fee_rate = -1;
@@ -210,7 +209,7 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
 
   ret = CfdInitializeCoinSelection(
     handle, static_cast<uint32_t>(utxos.size()), 3,
-    exp_dummy_asset_ca.GetHex().c_str(), tx_fee_amount, fee_rate,
+    exp_dummy_asset_ca.GetHex().c_str(), tx_fee_amount,
     effective_fee_rate, long_term_fee_rate, dust_fee_rate,
     knapsack_min_change, &coin_select_handle);
   EXPECT_EQ(kCfdSuccess, ret);

@@ -108,8 +108,8 @@ extern "C" {
 
 int CfdInitializeCoinSelection(
     void* handle, uint32_t utxo_count, uint32_t target_asset_count,
-    const char* fee_asset, int64_t tx_fee_amount, double fee_rate,
-    double effective_fee_rate, double long_term_fee_rate, double dust_fee_rate,
+    const char* fee_asset, int64_t tx_fee_amount, double effective_fee_rate,
+    double long_term_fee_rate, double dust_fee_rate,
     int64_t knapsack_min_change, void** coin_select_handle) {
   int result = CfdErrorCode::kCfdUnknownError;
   CfdCapiCoinSelection* buffer = nullptr;
@@ -137,7 +137,6 @@ int CfdInitializeCoinSelection(
 #endif  // CFD_DISABLE_ELEMENTS
     }
     obj.tx_fee_amount = tx_fee_amount;
-    obj.fee_rate = fee_rate;
     obj.effective_fee_rate = effective_fee_rate;
     obj.long_term_fee_rate = long_term_fee_rate;
     obj.dust_fee_rate = dust_fee_rate;
