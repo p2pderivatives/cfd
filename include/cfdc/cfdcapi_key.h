@@ -2,7 +2,7 @@
 /**
  * @file cfdcapi_key.h
  *
- * @brief cfd-capiで利用する鍵関連のクラス定義
+ * @brief cfd-capiで利用する鍵関連のAPI定義
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_

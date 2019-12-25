@@ -2,7 +2,7 @@
 /**
  * @file cfdcapi_address.h
  *
- * @brief cfd-capiで利用するAddress操作のクラス定義
+ * @brief cfd-capiで利用するAddress操作のAPI定義
  *
  * C言語形式のAPIを提供する.
  */

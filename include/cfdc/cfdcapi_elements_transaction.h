@@ -2,7 +2,7 @@
 /**
  * @file cfdcapi_elements_transaction.h
  *
- * @brief cfd-capiで利用するElements用Transaction操作のクラス定義
+ * @brief cfd-capiで利用するElements用Transaction操作のAPI定義
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
