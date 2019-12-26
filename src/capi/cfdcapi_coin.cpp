@@ -12,26 +12,37 @@
 #include <vector>
 
 #include "capi/cfdc_internal.h"
+#include "cfd/cfd_address.h"
+#include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_utxo.h"
 #include "cfd/cfdapi_address.h"
+#include "cfd/cfdapi_coin.h"
+#include "cfd/cfdapi_elements_transaction.h"
+#include "cfd/cfdapi_transaction.h"
 #include "cfdc/cfdcapi_coin.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_common.h"
+#include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 
+using cfd::AddressFactory;
 using cfd::AmountMap;
 using cfd::CoinSelection;
 using cfd::CoinSelectionOption;
 using cfd::Utxo;
 using cfd::UtxoFilter;
+using cfd::api::TransactionApi;
+using cfd::api::UtxoData;
+using cfd::core::Address;
 using cfd::core::Amount;
 using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::Script;
 using cfd::core::Txid;
 
 using cfd::core::logger::info;
@@ -39,6 +50,10 @@ using cfd::core::logger::warn;
 
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::ConfidentialAssetId;
+using cfd::ElementsAddressFactory;
+using cfd::api::ElementsTransactionApi;
+using cfd::api::ElementsUtxoAndOption;
+using cfd::core::ElementsConfidentialAddress;
 #endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
@@ -83,6 +98,25 @@ struct CfdCapiCoinSelection {
   std::vector<int32_t>* indexes;  //!< select index list
 };
 
+//! prefix: data for fee estimation
+constexpr const char* const kPrefixEstimateFeeData = "EstimateFeeData";
+
+/**
+ * @brief cfd-capi EstimateFeeData構造体.
+ * @details 最大情報量が多すぎるため、flat structにはしない。
+ */
+struct CfdCapiEstimateFeeData {
+  char prefix[kPrefixLength];  //!< buffer prefix
+#ifndef CFD_DISABLE_ELEMENTS
+  //! handle for elements
+  bool is_elements = false;
+  //! input utxo list for elements
+  std::vector<ElementsUtxoAndOption>* input_elements_utxos;
+#endif  // CFD_DISABLE_ELEMENTS
+  //! input utxo list
+  std::vector<UtxoData>* input_utxos;
+};
+
 }  // namespace capi
 }  // namespace cfd
 
@@ -92,6 +126,7 @@ struct CfdCapiCoinSelection {
 // API
 using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiCoinSelection;
+using cfd::capi::CfdCapiEstimateFeeData;
 using cfd::capi::CfdCapiTargetAsset;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertHashToAddressType;
@@ -101,6 +136,7 @@ using cfd::capi::FreeBufferOnError;
 using cfd::capi::IsEmptyString;
 using cfd::capi::kAssetSize;
 using cfd::capi::kPrefixCoinSelection;
+using cfd::capi::kPrefixEstimateFeeData;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
 
@@ -483,6 +519,204 @@ int CfdFreeCoinSelectionHandle(void* handle, void* coin_select_handle) {
     SetLastFatalError(handle, "unknown error.");
   }
   return result;
+}
+
+int CfdInitializeEstimateFee(
+    void* handle, void** fee_handle, bool is_elements) {
+  CfdCapiEstimateFeeData* buffer = nullptr;
+  try {
+    cfd::Initialize();
+    if (fee_handle == nullptr) {
+      warn(CFD_LOG_SOURCE, "Fee handle is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. Fee handle is null.");
+    }
+
+    buffer = static_cast<CfdCapiEstimateFeeData*>(
+        AllocBuffer(kPrefixEstimateFeeData, sizeof(CfdCapiEstimateFeeData)));
+    buffer->input_utxos = new std::vector<UtxoData>();
+#ifndef CFD_DISABLE_ELEMENTS
+    buffer->is_elements = is_elements;
+    buffer->input_elements_utxos = new std::vector<ElementsUtxoAndOption>();
+#endif  // CFD_DISABLE_ELEMENTS
+
+    *fee_handle = buffer;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (buffer != nullptr) CfdFreeEstimateFeeHandle(handle, buffer);
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    if (buffer != nullptr) CfdFreeEstimateFeeHandle(handle, buffer);
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    if (buffer != nullptr) CfdFreeEstimateFeeHandle(handle, buffer);
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddTxInForEstimateFee(
+    void* handle, void* fee_handle, const char* txid, uint32_t vout,
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
+    const char* fedpeg_script) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(fee_handle, kPrefixEstimateFeeData);
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. descriptor is null.");
+    }
+    CfdCapiEstimateFeeData* buffer =
+        static_cast<CfdCapiEstimateFeeData*>(fee_handle);
+
+    UtxoData utxo;
+    utxo.txid = Txid(txid);
+    utxo.vout = vout;
+    utxo.descriptor = std::string(descriptor);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (buffer->is_elements) {
+      if (IsEmptyString(asset)) {
+        warn(CFD_LOG_SOURCE, "utxo asset is null.");
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Failed to parameter. utxo asset is null.");
+      }
+      utxo.asset = ConfidentialAssetId(asset);
+
+      ElementsUtxoAndOption param;
+      param.utxo = utxo;
+      param.is_issuance = is_issuance;
+      param.is_blind_issuance = is_blind_issuance;
+      param.is_pegin = is_pegin;
+      param.pegin_btc_tx_size = pegin_btc_tx_size;
+      if (!IsEmptyString(fedpeg_script)) {
+        param.fedpeg_script = Script(fedpeg_script);
+      }
+      buffer->input_elements_utxos->push_back(param);
+    }
+#else
+    info(
+        CFD_LOG_SOURCE,
+        "unuse parameters: [is_issuance={}, is_blind_issuance={}, "
+        "is_pegin={}, pegin_btc_tx_size={}, fedpeg_script={}]",
+        is_issuance, is_blind_issuance, is_pegin, pegin_btc_tx_size,
+        fedpeg_script);
+#endif  // CFD_DISABLE_ELEMENTS
+    buffer->input_utxos->push_back(utxo);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdFinalizeEstimateFee(
+    void* handle, void* fee_handle, const char* tx_hex, const char* fee_asset,
+    int64_t* tx_fee, int64_t* utxo_fee, bool is_blind,
+    double effective_fee_rate) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(fee_handle, kPrefixEstimateFeeData);
+    CfdCapiEstimateFeeData* buffer =
+        static_cast<CfdCapiEstimateFeeData*>(fee_handle);
+    if (tx_fee == nullptr) {
+      warn(CFD_LOG_SOURCE, "tx fee is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx fee is null.");
+    }
+    if (utxo_fee == nullptr) {
+      warn(CFD_LOG_SOURCE, "utxo fee is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. utxo fee is null.");
+    }
+#ifndef CFD_DISABLE_ELEMENTS
+    if (buffer->is_elements && IsEmptyString(fee_asset)) {
+      warn(CFD_LOG_SOURCE, "fee asset is empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. fee asset is empty.");
+    }
+#else
+    info(CFD_LOG_SOURCE, "unuse fee asset[{}]", fee_asset);
+#endif  // CFD_DISABLE_ELEMENTS
+
+    Amount tx_fee_amt, utxo_fee_amt;
+#ifndef CFD_DISABLE_ELEMENTS
+    if (buffer->is_elements) {
+      ElementsTransactionApi api;
+      api.EstimateFee(
+          std::string(tx_hex), *(buffer->input_elements_utxos),
+          ConfidentialAssetId(fee_asset), &tx_fee_amt, &utxo_fee_amt, is_blind,
+          effective_fee_rate);
+    } else {
+      TransactionApi api;
+      api.EstimateFee(
+          std::string(tx_hex), *(buffer->input_utxos), &tx_fee_amt,
+          &utxo_fee_amt, effective_fee_rate);
+    }
+#else
+    info(CFD_LOG_SOURCE, "unuse fee asset[{}]", fee_asset);
+    TransactionApi api;
+    api.EstimateFee(
+        std::string(tx_hex), *(buffer->input_utxos), &tx_fee_amt,
+        &utxo_fee_amt, effective_fee_rate);
+#endif  // CFD_DISABLE_ELEMENTS
+    *tx_fee = tx_fee_amt.GetSatoshiValue();
+    *utxo_fee = utxo_fee_amt.GetSatoshiValue();
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdFreeEstimateFeeHandle(void* handle, void* fee_handle) {
+  try {
+    cfd::Initialize();
+    if (fee_handle != nullptr) {
+      CfdCapiEstimateFeeData* buffer =
+          static_cast<CfdCapiEstimateFeeData*>(fee_handle);
+      if (buffer->input_utxos != nullptr) {
+        delete buffer->input_utxos;
+        buffer->input_utxos = nullptr;
+      }
+#ifndef CFD_DISABLE_ELEMENTS
+      if (buffer->input_elements_utxos != nullptr) {
+        delete buffer->input_elements_utxos;
+        buffer->input_elements_utxos = nullptr;
+      }
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    FreeBuffer(
+        fee_handle, kPrefixEstimateFeeData, sizeof(CfdCapiEstimateFeeData));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
 }
 
 };  // extern "C"
