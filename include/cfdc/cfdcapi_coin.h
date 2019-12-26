@@ -130,8 +130,6 @@ CFDC_API int CfdInitializeEstimateFee(
  * @param[in] fee_handle        handle for fee estimation apis.
  * @param[in] txid              input utxo's transaction id.
  * @param[in] vout              input utxo's vout.
- * @param[in] redeem_script     input utxo's redeem script.
- * @param[in] address           the address to which utxo was sent.
  * @param[in] descriptor        the descriptor for creating locking_script.
  * @param[in] asset             utxo's unblind asset id.
  * @param[in] is_issuance       is utxo issuance input.
@@ -143,9 +141,9 @@ CFDC_API int CfdInitializeEstimateFee(
  */
 CFDC_API int CfdAddTxInForEstimateFee(
     void* handle, void* fee_handle, const char* txid, uint32_t vout,
-    const char* redeem_script, const char* address, const char* descriptor,
-    const char* asset, bool is_issuance, bool is_blind_issuance, bool is_pegin,
-    uint32_t pegin_btc_tx_size, const char* fedpeg_script);
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
+    const char* fedpeg_script);
 
 /**
  * @brief Finalize fee estimation api call.

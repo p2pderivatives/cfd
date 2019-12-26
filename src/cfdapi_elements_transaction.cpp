@@ -541,8 +541,16 @@ Amount ElementsTransactionApi::EstimateFee(
       addr_type = utxo.utxo.address.GetAddressType();
     }
 
+    Script redeem_script;
+    if (utxo.utxo.redeem_script.IsEmpty() &&
+        !data.redeem_script.IsEmpty()) {
+      redeem_script = data.redeem_script;
+    } else {
+      redeem_script = utxo.utxo.redeem_script;
+    }
+
     uint32_t txin_size = ConfidentialTxIn::EstimateTxInSize(
-        addr_type, utxo.utxo.redeem_script, pegin_btc_tx_size, fedpeg_script,
+        addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
         utxo.is_issuance, utxo.is_blind_issuance, &wit_size);
     txin_size -= wit_size;
     size += txin_size;

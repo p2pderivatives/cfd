@@ -104,10 +104,9 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
   if (ret == kCfdSuccess) {
     for (auto& utxo : utxos) {
       ret = CfdAddTxInForEstimateFee(
-          handle, fee_handle, utxo.txid.GetHex().c_str(),
-          utxo.vout,utxo.redeem_script.GetHex().c_str(),
-          utxo.address.GetAddress().c_str(), utxo.descriptor.c_str(),
-          nullptr, false, false, false, 0, nullptr);
+          handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
+          utxo.descriptor.c_str(), nullptr,
+          false, false, false, 0, nullptr);
       EXPECT_EQ(kCfdSuccess, ret);
     }
 
@@ -448,10 +447,9 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
   if (ret == kCfdSuccess) {
     for (auto& utxo : utxos) {
       ret = CfdAddTxInForEstimateFee(
-          handle, fee_handle, utxo.txid.GetHex().c_str(),
-          utxo.vout,utxo.redeem_script.GetHex().c_str(),
-          utxo.address.GetAddress().c_str(), utxo.descriptor.c_str(),
-          utxo.asset.GetHex().c_str(), false, false, false, 0, nullptr);
+          handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
+          utxo.descriptor.c_str(), utxo.asset.GetHex().c_str(),
+          false, false, false, 0, nullptr);
       EXPECT_EQ(kCfdSuccess, ret);
     }
 

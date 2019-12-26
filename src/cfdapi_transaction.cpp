@@ -234,8 +234,16 @@ Amount TransactionApi::EstimateFee(
       addr_type = utxo.address.GetAddressType();
     }
 
+    Script redeem_script;
+    if (utxo.redeem_script.IsEmpty() &&
+        !data.redeem_script.IsEmpty()) {
+      redeem_script = data.redeem_script;
+    } else {
+      redeem_script = utxo.redeem_script;
+    }
+
     uint32_t txin_size =
-        TxIn::EstimateTxInSize(addr_type, utxo.redeem_script, &wit_size);
+        TxIn::EstimateTxInSize(addr_type, redeem_script, &wit_size);
     txin_size -= wit_size;
     size += txin_size;
     witness_size += wit_size;

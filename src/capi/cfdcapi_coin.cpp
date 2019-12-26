@@ -559,23 +559,25 @@ int CfdInitializeEstimateFee(
 
 int CfdAddTxInForEstimateFee(
     void* handle, void* fee_handle, const char* txid, uint32_t vout,
-    const char* redeem_script, const char* address, const char* descriptor,
-    const char* asset, bool is_issuance, bool is_blind_issuance, bool is_pegin,
-    uint32_t pegin_btc_tx_size, const char* fedpeg_script) {
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
+    const char* fedpeg_script) {
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. descriptor is null.");
+    }
     CfdCapiEstimateFeeData* buffer =
         static_cast<CfdCapiEstimateFeeData*>(fee_handle);
 
     UtxoData utxo;
     utxo.txid = Txid(txid);
     utxo.vout = vout;
-    utxo.redeem_script = Script(redeem_script);
-    // address
-    if (!IsEmptyString(descriptor)) {
-      utxo.descriptor = std::string(descriptor);
-    }
+    utxo.descriptor = std::string(descriptor);
 #ifndef CFD_DISABLE_ELEMENTS
     if (buffer->is_elements) {
       if (IsEmptyString(asset)) {
@@ -585,16 +587,6 @@ int CfdAddTxInForEstimateFee(
             "Failed to parameter. utxo asset is null.");
       }
       utxo.asset = ConfidentialAssetId(asset);
-
-      if (!IsEmptyString(address)) {
-        ElementsAddressFactory address_factory;
-        if (ElementsConfidentialAddress::IsConfidentialAddress(address)) {
-          ElementsConfidentialAddress caddr(address);
-          utxo.address = caddr.GetUnblindedAddress();
-        } else {
-          utxo.address = address_factory.GetAddress(address);
-        }
-      }
 
       ElementsUtxoAndOption param;
       param.utxo = utxo;
@@ -606,14 +598,8 @@ int CfdAddTxInForEstimateFee(
         param.fedpeg_script = Script(fedpeg_script);
       }
       buffer->input_elements_utxos->push_back(param);
-    } else {
-      AddressFactory factory;
-      utxo.address = factory.GetAddress(address);
     }
 #else
-    AddressFactory factory;
-    utxo.address = factory.GetAddress(address_str);
-
     info(
         CFD_LOG_SOURCE,
         "unuse parameters: [is_issuance={}, is_blind_issuance={}, "
@@ -621,7 +607,6 @@ int CfdAddTxInForEstimateFee(
         is_issuance, is_blind_issuance, is_pegin, pegin_btc_tx_size,
         fedpeg_script);
 #endif  // CFD_DISABLE_ELEMENTS
-
     buffer->input_utxos->push_back(utxo);
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
