@@ -350,14 +350,13 @@ int CfdFinalizeCoinSelection(
     uint8_t empty_asset[kAssetSize];
     memset(empty_asset, 0, sizeof(empty_asset));
 
-    AmountMap map_target_value;
 #ifndef CFD_DISABLE_ELEMENTS
+    AmountMap map_target_value;
     for (const auto& target : *(buffer->targets)) {
       map_target_value.emplace(
           convert_to_asset(target.asset).GetHex(),
           Amount::CreateBySatoshiAmount(target.amount));
     }
-#endif  // CFD_DISABLE_ELEMENTS
 
     CoinSelectionOption option_params;
     if (memcmp(buffer->fee_asset, empty_asset, sizeof(empty_asset)) == 0) {
@@ -365,10 +364,8 @@ int CfdFinalizeCoinSelection(
       option_params.InitializeTxSizeInfo();
     } else {
       // elements
-#ifndef CFD_DISABLE_ELEMENTS
       option_params.InitializeConfidentialTxSizeInfo();
       option_params.SetFeeAsset(convert_to_asset(buffer->fee_asset));
-#endif  // CFD_DISABLE_ELEMENTS
     }
     option_params.SetEffectiveFeeBaserate(buffer->effective_fee_rate);
     option_params.SetLongTermFeeBaserate(buffer->long_term_fee_rate);
@@ -385,14 +382,12 @@ int CfdFinalizeCoinSelection(
         tx_fee_value, &map_select_value, &utxo_fee_value);
 
     // save return value from AmountMap
-#ifndef CFD_DISABLE_ELEMENTS
     for (auto& target : *(buffer->targets)) {
       std::string asset = convert_to_asset(target.asset).GetHex();
       if (map_select_value.find(asset) != map_select_value.end()) {
         target.selected_amount = map_select_value[asset].GetSatoshiValue();
       }
     }
-#endif  // CFD_DISABLE_ELEMENTS
 
     // save return value from utxo_list
     buffer->indexes->reserve(utxo_list.size());
@@ -405,7 +400,9 @@ int CfdFinalizeCoinSelection(
     if (utxo_fee_amount != nullptr) {
       *utxo_fee_amount = utxo_fee_value.GetSatoshiValue();
     }
-    return CfdErrorCode::kCfdSuccess;
+    result = CfdErrorCode::kCfdSuccess;
+#endif  // CFD_DISABLE_ELEMENTS
+    return result;
   } catch (const CfdException& except) {
     result = SetLastError(handle, except);
   } catch (const std::exception& std_except) {

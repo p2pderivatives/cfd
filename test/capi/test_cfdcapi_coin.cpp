@@ -46,12 +46,13 @@ class cfdcapi_coin : public ::testing::Test {
 
 TEST(cfdcapi_coin, EstimateFeeTest) {
   using cfd::AddressFactory;
-  using cfd::api::ElementsUtxoAndOption;
   using cfd::api::UtxoData;
   using cfd::core::Address;
   using cfd::core::Amount;
   using cfd::core::BlockHash;
+#ifndef CFD_DISABLE_ELEMENTS
   using cfd::core::ConfidentialAssetId;
+#endif  // CFD_DISABLE_ELEMENTS
   using cfd::core::Script;
   using cfd::core::Txid;
 
@@ -392,7 +393,6 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
 
 TEST(cfdcapi_coin, EstimateFeeElementsTest) {
   using cfd::ElementsAddressFactory;
-  using cfd::api::ElementsUtxoAndOption;
   using cfd::api::UtxoData;
   using cfd::core::Address;
   using cfd::core::Amount;
