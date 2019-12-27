@@ -1,5 +1,7 @@
 project(external_download NONE)
 
+find_package(cfdcore  QUIET CONFIG)
+
 # load file
 set(EXTERNAL_LOCAL_FILENAME  local_resource/external_project_local_setting.config)
 set(LOCAL_VERSION_FILE  ${CMAKE_SOURCE_DIR}/${EXTERNAL_LOCAL_FILENAME})
@@ -55,6 +57,8 @@ execute_process(COMMAND ${CMAKE_COMMAND} --build ${DL_PATH}
 if(result)
   message(FATAL_ERROR "Build step for ${TEMPLATE_PROJECT_NAME} failed: ${result}")
 endif()
+
+if((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
 if(EXISTS ${PROJECT_EXTERNAL})
   message(STATUS "[check exist directory] exist ${PROJECT_EXTERNAL}")
   message(STATUS "[check exist directory] dirpath ${DIR_PATH}")
@@ -64,6 +68,10 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/${TEMPLATE_PROJECT_NAME}
                  ${DIR_PATH}/build)
+else()
+message(STATUS "[external project local] use cfd-core cache")
+endif((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
+
 set_property(GLOBAL PROPERTY ${TEMPLATE_PROJECT_NAME} 1)
 endif()
 
@@ -110,4 +118,4 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/${TEMPLATE_PROJECT_NAME}
                  ${CFD_ROOT_BINARY_DIR}/${TEMPLATE_PROJECT_NAME}/build)
 set_property(GLOBAL PROPERTY ${TEMPLATE_PROJECT_NAME} 1)
 endif()
-endif() # MSVC OR ENABLE_TESTS
+endif() # ENABLE_TESTS

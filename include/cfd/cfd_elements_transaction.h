@@ -544,6 +544,49 @@ class CFD_EXPORT ConfidentialTransactionController
       WitnessVersion version = WitnessVersion::kVersionNone) const;
 
   /**
+   * @brief Verify signature which is specified (pubkey hash) input data.
+   * @details Not supported yet the script which includes OP_CODESEPARATOR.
+   * @param[in] signature           signature to be verified.
+   * @param[in] pubkey              public key to verify signature.
+   * @param[in] txid                target input's transaction id.
+   * @param[in] vout                target input's previous output index.
+   * @param[in] sighash_type        sighash type class. (SigHashType)
+   * @param[in] value               previous output confidential value.
+   *     (require if the previous output send to witness.)
+   * @param[in] version             previous output witness version.
+   *     (specify witness version if the previous output send to witness.)
+   * @retval true       correct signature.
+   * @retval false      incorrect signature.
+   */
+  bool VerifyInputSignature(
+      const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+      uint32_t vout, SigHashType sighash_type,
+      const ConfidentialValue& value = ConfidentialValue(),
+      WitnessVersion version = WitnessVersion::kVersionNone) const;
+
+  /**
+   * @brief Verify signature which is specified (pubkey hash) input data.
+   * @details Not supported yet the script which includes OP_CODESEPARATOR.
+   * @param[in] signature           signature to be verified.
+   * @param[in] pubkey              public key to verify signature.
+   * @param[in] txid                target input's transaction id.
+   * @param[in] vout                target input's previous output index.
+   * @param[in] script              redeem script related previous output.
+   * @param[in] sighash_type        sighash type class. (SigHashType)
+   * @param[in] value               previous output confidential value.
+   *     (require if the previous output send to witness.)
+   * @param[in] version             previous output witness version.
+   *     (specify witness version if the previous output send to witness.)
+   * @retval true       correct signature.
+   * @retval false      incorrect signature.
+   */
+  bool VerifyInputSignature(
+      const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+      uint32_t vout, const Script& script, SigHashType sighash_type,
+      const ConfidentialValue& value = ConfidentialValue(),
+      WitnessVersion version = WitnessVersion::kVersionNone) const;
+
+  /**
    * @brief 簡易のFee計算を行う.
    * @param[in] append_feature_signed_size  sign分のサイズ加算フラグ
    * @param[in] append_signed_witness       sign分の加算をwitness扱いとするか
