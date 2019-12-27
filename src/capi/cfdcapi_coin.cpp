@@ -351,11 +351,13 @@ int CfdFinalizeCoinSelection(
     memset(empty_asset, 0, sizeof(empty_asset));
 
     AmountMap map_target_value;
+#ifndef CFD_DISABLE_ELEMENTS
     for (const auto& target : *(buffer->targets)) {
       map_target_value.emplace(
           convert_to_asset(target.asset).GetHex(),
           Amount::CreateBySatoshiAmount(target.amount));
     }
+#endif  // CFD_DISABLE_ELEMENTS
 
     CoinSelectionOption option_params;
     if (memcmp(buffer->fee_asset, empty_asset, sizeof(empty_asset)) == 0) {
