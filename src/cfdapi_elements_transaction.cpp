@@ -518,6 +518,7 @@ Amount ElementsTransactionApi::EstimateFee(
   size = 0;
   witness_size = 0;
   uint32_t wit_size = 0;
+  ElementsAddressApi address_api;
   for (const auto& utxo : utxos) {
     uint32_t pegin_btc_tx_size = 0;
     Script fedpeg_script;
@@ -526,27 +527,29 @@ Amount ElementsTransactionApi::EstimateFee(
       fedpeg_script = utxo.fedpeg_script;
     }
     // check descriptor
-    AddressType addr_type = utxo.utxo.address.GetAddressType();
-    // TODO(k-matsuzawa): output descriptorの正式対応後に差し替え
-    if (utxo.utxo.address.GetAddress().empty()) {
-      if (utxo.utxo.descriptor.find("wpkh(") == 0) {
-        addr_type = AddressType::kP2wpkhAddress;
-      } else if (utxo.utxo.descriptor.find("wsh(") == 0) {
-        addr_type = AddressType::kP2wshAddress;
-      } else if (utxo.utxo.descriptor.find("pkh(") == 0) {
-        addr_type = AddressType::kP2pkhAddress;
-      } else if (utxo.utxo.descriptor.find("sh(") == 0) {
-        addr_type = AddressType::kP2shAddress;
-      }
+    std::string descriptor = utxo.utxo.descriptor;
+    // set dummy NetType for getting AddressType.
+    auto data =
+        address_api.ParseOutputDescriptor(descriptor, NetType::kLiquidV1, "");
+
+    AddressType addr_type;
+    if (utxo.utxo.address.GetAddress().empty() ||
+        data.address_type == AddressType::kP2shP2wpkhAddress ||
+        data.address_type == AddressType::kP2shP2wshAddress) {
+      addr_type = data.address_type;
+    } else {
+      addr_type = utxo.utxo.address.GetAddressType();
     }
-    if (utxo.utxo.descriptor.find("sh(wpkh(") == 0) {
-      addr_type = AddressType::kP2shP2wpkhAddress;
-    } else if (utxo.utxo.descriptor.find("sh(wsh(") == 0) {
-      addr_type = AddressType::kP2shP2wshAddress;
+
+    Script redeem_script;
+    if (utxo.utxo.redeem_script.IsEmpty() && !data.redeem_script.IsEmpty()) {
+      redeem_script = data.redeem_script;
+    } else {
+      redeem_script = utxo.utxo.redeem_script;
     }
 
     uint32_t txin_size = ConfidentialTxIn::EstimateTxInSize(
-        addr_type, utxo.utxo.redeem_script, pegin_btc_tx_size, fedpeg_script,
+        addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
         utxo.is_issuance, utxo.is_blind_issuance, &wit_size);
     txin_size -= wit_size;
     size += txin_size;

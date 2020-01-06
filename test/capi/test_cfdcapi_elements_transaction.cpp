@@ -4,11 +4,14 @@
 #include <stdexcept>
 #include <string>
 
+#include "cfd/cfd_elements_address.h"
+#include "cfd/cfdapi_elements_transaction.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_key.h"
 #include "cfdc/cfdcapi_elements_transaction.h"
 #include "cfdc/cfdcapi_transaction.h"
 #include "capi/cfdc_internal.h"
+#include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_exception.h"
 
 /**
