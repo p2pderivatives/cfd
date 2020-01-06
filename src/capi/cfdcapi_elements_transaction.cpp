@@ -1632,14 +1632,15 @@ CFDC_API int CfdConfidentialTxVerifySignature(
       value = ConfidentialValue(Amount::CreateBySatoshiAmount(value_satoshi));
     }
 
-    if(!IsEmptyString(script)) {
-      work_result = ctxc.VerifyInputSignature(signature_obj, Pubkey(pubkey),
-          txid_obj, vout, Script(script), sighash_type_obj, value,
+    if (!IsEmptyString(script)) {
+      work_result = ctxc.VerifyInputSignature(
+          signature_obj, Pubkey(pubkey), txid_obj, vout, Script(script),
+          sighash_type_obj, value,
           static_cast<WitnessVersion>(witness_version));
     } else if (!IsEmptyString(pubkey)) {
-      work_result = ctxc.VerifyInputSignature(signature_obj, Pubkey(pubkey),
-          txid_obj, vout, sighash_type_obj, value,
-          static_cast<WitnessVersion>(witness_version));
+      work_result = ctxc.VerifyInputSignature(
+          signature_obj, Pubkey(pubkey), txid_obj, vout, sighash_type_obj,
+          value, static_cast<WitnessVersion>(witness_version));
     }
 
     *result = work_result;

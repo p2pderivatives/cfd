@@ -276,7 +276,7 @@ TEST(ConfidentialTransactionController, VerifyInputSignature_TEST_WSH)
   SigHashType sighash_type(SigHashAlgorithm::kSigHashAll);
   ConfidentialValue amount = ConfidentialValue(Amount::CreateBySatoshiAmount(1000000000));
   ByteData sighash;
-  EXPECT_NO_THROW(sighash = ctxc.CreateSignatureHash(txid, vout, pubkey, 
+  EXPECT_NO_THROW(sighash = ctxc.CreateSignatureHash(txid, vout, redeem_script,
       sighash_type, amount, WitnessVersion::kVersion0));
 
   ByteData signature;
@@ -284,6 +284,6 @@ TEST(ConfidentialTransactionController, VerifyInputSignature_TEST_WSH)
       ByteData256(sighash.GetBytes()), privkey));
 
   EXPECT_TRUE(ctxc.VerifyInputSignature(signature, pubkey, txid, vout,
-      sighash_type, amount, WitnessVersion::kVersion0));
+      redeem_script, sighash_type, amount, WitnessVersion::kVersion0));
 }
 #endif
