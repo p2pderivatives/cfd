@@ -49,7 +49,8 @@ enum CfdErrorCode {
   kCfdOutOfRangeError = 3,       //!< 範囲外の値
   kCfdInvalidSettingError = 4,   //!< 設定不正
   kCfdConnectionError = 5,       //!< 接続エラー
-  kCfdDiskAccessError = 6        //!< ディスクアクセスエラー
+  kCfdDiskAccessError = 6,       //!< ディスクアクセスエラー
+  kCfdSignVerificationError = 7  //!< Signature Verification 失敗時のエラー
 };
 
 /**

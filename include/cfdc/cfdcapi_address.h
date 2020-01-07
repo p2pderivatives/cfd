@@ -55,6 +55,30 @@ enum CfdHashType {
 };
 
 /**
+ * @brief witness version
+ */
+enum CfdWitnessVersion {
+  kCfdWitnessVersionNone = -1,  //!< Missing WitnessVersion
+  kCfdWitnessVersion0 = 0,      //!< version 0
+  kCfdWitnessVersion1,          //!< version 1 (for future use)
+  kCfdWitnessVersion2,          //!< version 2 (for future use)
+  kCfdWitnessVersion3,          //!< version 3 (for future use)
+  kCfdWitnessVersion4,          //!< version 4 (for future use)
+  kCfdWitnessVersion5,          //!< version 5 (for future use)
+  kCfdWitnessVersion6,          //!< version 6 (for future use)
+  kCfdWitnessVersion7,          //!< version 7 (for future use)
+  kCfdWitnessVersion8,          //!< version 8 (for future use)
+  kCfdWitnessVersion9,          //!< version 9 (for future use)
+  kCfdWitnessVersion10,         //!< version 10 (for future use)
+  kCfdWitnessVersion11,         //!< version 11 (for future use)
+  kCfdWitnessVersion12,         //!< version 12 (for future use)
+  kCfdWitnessVersion13,         //!< version 13 (for future use)
+  kCfdWitnessVersion14,         //!< version 14 (for future use)
+  kCfdWitnessVersion15,         //!< version 15 (for future use)
+  kCfdWitnessVersion16          //!< version 16 (for future use)
+};
+
+/**
  * @brief sighash type
  */
 enum CfdSighashType {

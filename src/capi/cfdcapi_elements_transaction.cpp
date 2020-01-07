@@ -69,6 +69,7 @@ using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
 using cfd::core::Txid;
 using cfd::core::UnblindParameter;
+using cfd::core::WitnessVersion;
 
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
@@ -1581,6 +1582,71 @@ int CfdUnblindIssuance(
     FreeBufferOnError(
         &work_asset, &work_asset_blind_factor, &work_asset_value_blind_factor,
         &work_token, &work_token_blind_factor, &work_token_value_blind_factor);
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+CFDC_API int CfdVerifyConfidentialTxSignature(
+    void* handle, const char* tx_hex, const char* signature,
+    const char* pubkey, const char* script, const char* txid, uint32_t vout,
+    int sighash_type, bool sighash_anyone_can_pay, int64_t value_satoshi,
+    const char* value_commitment, int witness_version) {
+  bool work_result = false;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex)) {
+      warn(CFD_LOG_SOURCE, "tx is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null.");
+    }
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null.");
+    }
+
+    ConfidentialTransactionController ctxc(tx_hex);
+    ByteData signature_obj(signature);
+    Txid txid_obj(txid);
+    SigHashType sighash_type_obj(
+        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    ConfidentialValue value;
+    if (!IsEmptyString(value_commitment)) {
+      value = ConfidentialValue(value_commitment);
+    } else {
+      value = ConfidentialValue(Amount::CreateBySatoshiAmount(value_satoshi));
+    }
+
+    if (!IsEmptyString(script)) {
+      work_result = ctxc.VerifyInputSignature(
+          signature_obj, Pubkey(pubkey), txid_obj, vout, Script(script),
+          sighash_type_obj, value,
+          static_cast<WitnessVersion>(witness_version));
+    } else if (!IsEmptyString(pubkey)) {
+      work_result = ctxc.VerifyInputSignature(
+          signature_obj, Pubkey(pubkey), txid_obj, vout, sighash_type_obj,
+          value, static_cast<WitnessVersion>(witness_version));
+    }
+
+    if (!work_result) {
+      return CfdErrorCode::kCfdSignVerificationError;
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
