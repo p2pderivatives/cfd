@@ -701,7 +701,7 @@ TEST(cfdcapi_elements_transaction, UnblindTx_VerifySignatureTest) {
   if (ret == kCfdSuccess) {
     bool result = false;
     int64_t satoshi = 1000000000;
-    ret = CfdConfidentialTxVerifySignature(handle, kTxHex, kSignature, kPubkey,
+    ret = CfdVerifyConfidentialTxSignature(handle, kTxHex, kSignature, kPubkey,
         NULL, kTxid, kVout, CfdSighashType::kCfdSigHashAll, false, satoshi,
         NULL, CfdWitnessVersion::kCfdWitnessVersionNone, &result);
     EXPECT_EQ(kCfdSuccess, ret);
@@ -741,7 +741,7 @@ TEST(cfdcapi_elements_transaction, BlindTx_VerifySignatureTest) {
     bool result = false;
     // int64_t satoshi = 1000000000;
     const char* value_commitment = "0993c069270bf8d090ce8695b82e52fb2959a9765d987d4ffd7a767b0c5b1c4cbc";
-    ret = CfdConfidentialTxVerifySignature(handle, kTxHex, kSignature, kPubkey,
+    ret = CfdVerifyConfidentialTxSignature(handle, kTxHex, kSignature, kPubkey,
         kScript, kTxid, kVout, CfdSighashType::kCfdSigHashAll, false, 0,
         value_commitment, CfdWitnessVersion::kCfdWitnessVersion0, &result);
     EXPECT_EQ(kCfdSuccess, ret);

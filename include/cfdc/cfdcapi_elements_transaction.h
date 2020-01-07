@@ -515,7 +515,7 @@ CFDC_API int CfdUnblindIssuance(
  * @param[out] result                 result of verification signature
  * @return CfdErrorCode
  */
-CFDC_API int CfdConfidentialTxVerifySignature(
+CFDC_API int CfdVerifyConfidentialTxSignature(
     void* handle, const char* tx_hex, const char* signature,
     const char* pubkey, const char* script, const char* txid, uint32_t vout,
     int sighash_type, bool sighash_anyone_can_pay, int64_t value_satoshi,
