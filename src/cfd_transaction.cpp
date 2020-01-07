@@ -52,6 +52,120 @@ using cfd::core::logger::warn;
 using cfd::TransactionController;
 
 // -----------------------------------------------------------------------------
+// Define
+// -----------------------------------------------------------------------------
+/// シーケンス値(locktime有効)
+constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
+/// シーケンス値(locktime無効)
+constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
+
+// -----------------------------------------------------------------------------
+// TransactionController
+// -----------------------------------------------------------------------------
+TransactionContext::TransactionContext() {}
+
+TransactionContext::TransactionContext(uint32_t version, uint32_t locktime)
+    : Transaction(version, locktime) {}
+
+TransactionContext::TransactionContext(const std::string& tx_hex)
+    : Transaction(tx_hex) {}
+
+TransactionContext::TransactionContext(const TransactionContext& context) {}
+
+void TransactionContext::AddInput(const UtxoData& utxo) { return; }
+
+void TransactionContext::AddInput(const UtxoData& utxo, uint32_t sequence) {
+  return;
+}
+
+void TransactionContext::AddInputs(const std::vector<UtxoData>& utxos) {
+  return;
+}
+
+uint32_t TransactionContext::AddTxOut(
+    const Address& address, const Amount& value) {
+  return 0;
+}
+
+uint32_t TransactionContext::AddTxOut(
+    const Script& locking_script, const Amount& value) {
+  return 0;
+}
+
+uint32_t TransactionContext::GetSizeIgnoreTxIn() const { return 0; }
+
+void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
+  return;
+}
+
+void TransactionContext::SignWithKey(
+    const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& private_key,
+    SigHashType sighash_type, bool has_grind_r) {
+  return;
+}
+
+void TransactionContext::IgnoreVerify(const OutPoint& outpoint) { return; }
+
+void TransactionContext::Verify() { return; }
+
+void TransactionContext::Verify(const OutPoint& outpoint) { return; }
+
+ByteData TransactionContext::Finalize() { return ByteData(); }
+
+void TransactionContext::ClearSign() { return; }
+
+void TransactionContext::ClearSign(const OutPoint& outpoint) { return; }
+
+ByteData TransactionContext::CreateSignatureHash(
+    const Txid& txid, uint32_t vout, const Pubkey& pubkey,
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  return ByteData();
+}
+
+ByteData TransactionContext::CreateSignatureHash(
+    const Txid& txid, uint32_t vout, const Script& witness_script,
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  return ByteData();
+}
+
+void TransactionContext::SignPrivkeySimple(
+    const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& private_key,
+    SigHashType sighash_type, const Amount& value, WitnessVersion version,
+    bool has_grind_r) {
+  return;
+}
+
+bool TransactionContext::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  return false;
+}
+
+bool TransactionContext::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, const Script& script, SigHashType sighash_type,
+    const Amount& value, WitnessVersion version) const {
+  return false;
+}
+
+uint32_t TransactionContext::GetDefaultSequence() const {
+  if (GetLockTime() == 0) {
+    return kSequenceDisableLockTime;
+  } else {
+    return kSequenceEnableLockTimeMax;
+  }
+}
+
+uint32_t TransactionContext::GetLockTimeDisabledSequence() {
+  return kSequenceDisableLockTime;
+}
+
+void TransactionContext::CallbackStateChange(uint32_t type) {}
+
+// -----------------------------------------------------------------------------
 // TransactionController
 // -----------------------------------------------------------------------------
 TransactionController::TransactionController(

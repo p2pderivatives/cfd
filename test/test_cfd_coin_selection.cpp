@@ -3,6 +3,8 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_utxo.h"
+#include "cfd/cfd_transaction.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_coin.h"
