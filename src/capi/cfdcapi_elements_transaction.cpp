@@ -1591,7 +1591,7 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
     void* handle, const char* tx_hex, const char* signature,
     const char* pubkey, const char* script, const char* txid, uint32_t vout,
     int sighash_type, bool sighash_anyone_can_pay, int64_t value_satoshi,
-    const char* value_commitment, int witness_version, bool* result) {
+    const char* value_commitment, int witness_version) {
   bool work_result = false;
   try {
     cfd::Initialize();
@@ -1612,12 +1612,6 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. pubkey is null.");
-    }
-    if (result == nullptr) {
-      warn(CFD_LOG_SOURCE, "result is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. result is null.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex);
@@ -1643,7 +1637,9 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
           value, static_cast<WitnessVersion>(witness_version));
     }
 
-    *result = work_result;
+    if (!work_result) {
+      return CfdErrorCode::kCfdSignVerificationError;
+    }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);

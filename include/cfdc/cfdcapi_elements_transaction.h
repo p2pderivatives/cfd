@@ -512,14 +512,14 @@ CFDC_API int CfdUnblindIssuance(
  *     (Specify null if disabled)
  * @param[in] witness_version         witness version.
  *     (ref: CfdWitnessVersion. if not require, set kCfdWitnessVersionNone)
- * @param[out] result                 result of verification signature
  * @return CfdErrorCode
+ *     (if failed to verify signature, it returns kCfdSignVerificationError)
  */
 CFDC_API int CfdVerifyConfidentialTxSignature(
     void* handle, const char* tx_hex, const char* signature,
     const char* pubkey, const char* script, const char* txid, uint32_t vout,
     int sighash_type, bool sighash_anyone_can_pay, int64_t value_satoshi,
-    const char* value_commitment, int witness_version, bool* result);
+    const char* value_commitment, int witness_version);
 
 /* 後回し
 CFDC_API int CfdAddElementsWitnessStack(

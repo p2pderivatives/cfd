@@ -699,13 +699,19 @@ TEST(cfdcapi_elements_transaction, UnblindTx_VerifySignatureTest) {
   EXPECT_FALSE((NULL == handle));
 
   if (ret == kCfdSuccess) {
-    bool result = false;
+    // Verification Error Case
     int64_t satoshi = 1000000000;
+    const char* invalid_pubkey = "024c2f5d47dc96d470f55752ec3edb3b25c15bd5c17be6b73a97f3b3a928cc41fd";
+    ret = CfdVerifyConfidentialTxSignature(handle, kTxHex, kSignature,
+        invalid_pubkey, NULL, kTxid, kVout, CfdSighashType::kCfdSigHashAll,
+        false, satoshi, NULL, CfdWitnessVersion::kCfdWitnessVersionNone);
+    EXPECT_EQ(kCfdSignVerificationError, ret);
+
+    // Verification Success Case
     ret = CfdVerifyConfidentialTxSignature(handle, kTxHex, kSignature, kPubkey,
         NULL, kTxid, kVout, CfdSighashType::kCfdSigHashAll, false, satoshi,
-        NULL, CfdWitnessVersion::kCfdWitnessVersionNone, &result);
+        NULL, CfdWitnessVersion::kCfdWitnessVersionNone);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_TRUE(result);
   }
 
   ret = CfdGetLastErrorCode(handle);
@@ -738,14 +744,13 @@ TEST(cfdcapi_elements_transaction, BlindTx_VerifySignatureTest) {
   EXPECT_FALSE((NULL == handle));
 
   if (ret == kCfdSuccess) {
-    bool result = false;
+    // Verification Success Case
     // int64_t satoshi = 1000000000;
     const char* value_commitment = "0993c069270bf8d090ce8695b82e52fb2959a9765d987d4ffd7a767b0c5b1c4cbc";
     ret = CfdVerifyConfidentialTxSignature(handle, kTxHex, kSignature, kPubkey,
         kScript, kTxid, kVout, CfdSighashType::kCfdSigHashAll, false, 0,
-        value_commitment, CfdWitnessVersion::kCfdWitnessVersion0, &result);
+        value_commitment, CfdWitnessVersion::kCfdWitnessVersion0);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_TRUE(result);
   }
 
   ret = CfdGetLastErrorCode(handle);
