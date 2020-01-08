@@ -36,6 +36,7 @@ TEST(cfdcapi_key, CfdCalculateEcSignature) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ(kExtSignature, signature);
     CfdFreeStringBuffer(signature);
+    signature = NULL;
   }
 
   ret = CfdGetLastErrorCode(handle);
@@ -67,6 +68,38 @@ TEST(cfdcapi_key, CfdEncodeSignatureByDer) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ(kDerSignature, der_signature);
     CfdFreeStringBuffer(der_signature);
+    der_signature = NULL;
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, CfdNormalizeSignatureTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  if (ret == kCfdSuccess) {
+    const char* signature = "773420c0ded41a55b1f1205cfb632f08f3f911a53e7338a0dac73ec6cbe3ca471907434d046185abedc5afddc2761a642bccc70af6d22b46394f1d04a8b24226";
+    char* normalized;
+    ret = CfdNormalizeSignature(handle, signature, &normalized);
+    EXPECT_EQ(kCfdSuccess, ret);
+    // equals data on generate by libwally
+    EXPECT_STREQ(normalized, signature);
+    CfdFreeStringBuffer(normalized);
+    normalized = NULL;
   }
 
   ret = CfdGetLastErrorCode(handle);
