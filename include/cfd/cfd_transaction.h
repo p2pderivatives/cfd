@@ -7,6 +7,7 @@
 #ifndef CFD_INCLUDE_CFD_CFD_TRANSACTION_H_
 #define CFD_INCLUDE_CFD_CFD_TRANSACTION_H_
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -202,7 +203,7 @@ class CFD_EXPORT TransactionContext : public Transaction {
 
   // FIXME API層から、AddSign, AddMultisigSignを移植したい。
   // FIXME AddSignはP2sh-P2wXXXにも対応させる。
-  // TODO Signatureだけ生成するAPI作る？（Multisig用）
+  // TODO(k-matsuzawa): Signatureだけ生成するAPI作る？（Multisig用）
 
   /**
    * @brief Verify signature which is specified (pubkey hash) input data.
