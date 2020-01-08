@@ -26,6 +26,7 @@ namespace cfd {
 
 using cfd::core::AbstractTransaction;
 using cfd::core::Address;
+using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::BlockHash;
 using cfd::core::ByteData;
@@ -80,7 +81,8 @@ struct UtxoData {
   Address address;         //!< address
   std::string descriptor;  //!< output descriptor
   Amount amount;           //!< amount
-  void* binary_data;       //!< binary data option
+  AddressType address_type = static_cast<AddressType>(0);  //!< address type
+  void* binary_data;  //!< binary data option
 #ifndef CFD_DISABLE_ELEMENTS
   ConfidentialAssetId asset;  //!< asset
   // int32_t status;           //!< utxo status (reserved)
@@ -106,8 +108,10 @@ class CFD_EXPORT UtxoUtil {
    * @brief convert to simple utxo.
    * @param[in] utxo_data   utxo data
    * @param[out] utxo       utxo
+   * @param[out] dest       analyzed utxo data
    */
-  static void ConvertToUtxo(const UtxoData& utxo_data, Utxo* utxo);
+  static void ConvertToUtxo(
+      const UtxoData& utxo_data, Utxo* utxo, UtxoData* dest = nullptr);
 
  private:
   /**

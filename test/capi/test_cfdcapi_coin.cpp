@@ -25,6 +25,7 @@ using cfd::CoinSelectionOption;
 using cfd::Utxo;
 using cfd::UtxoFilter;
 using cfd::core::Amount;
+using cfd::core::AddressType;
 using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
@@ -68,6 +69,7 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       factory.GetAddress("33dsYKS5E5Vp3LhAw3krvhzNaWtqmrH29k"),
       "sh(wpkh([ef735203/0\'/0\'/5\']03948c01f159b4204b682668d6e850440564b6610c0e5bf30da684b2131f77c449))#2u75feqc",
       Amount::CreateBySatoshiAmount(600000000),
+      static_cast<AddressType>(0),
       nullptr,
 #ifndef CFD_DISABLE_ELEMENTS
       ConfidentialAssetId(),
@@ -83,6 +85,7 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       factory.GetAddress("33dsYKS5E5Vp3LhAw3krvhzNaWtqmrH29k"),
       "sh(wpkh([ef735203/0\'/0\'/5\']03948c01f159b4204b682668d6e850440564b6610c0e5bf30da684b2131f77c449))#2u75feqc",
       Amount::CreateBySatoshiAmount(700000000),
+      static_cast<AddressType>(0),
       nullptr,
 #ifndef CFD_DISABLE_ELEMENTS
       ConfidentialAssetId(),
@@ -413,6 +416,7 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       factory.GetAddress("ert1qknynlqy3y9ha3udz66keg3z87jf8gfw7zjg8xe"),
       "wpkh([e3c39d64/0'/0'/9']029f74462149b36b8ac582a96afa8d257bbc8835c25aeab61d6712d69fbfa8e539)#mx0szvef",
       Amount::CreateBySatoshiAmount(600000000),
+      static_cast<AddressType>(0),
       nullptr,
       ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3")
     },
@@ -426,6 +430,7 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       factory.GetAddress("ert1q8pz5d246lc8z9x7atnj5wycuwlv5man94nt8a7"),
       "wpkh([e3c39d64/0'/0'/10']03f78d89b000a8e747d696fb2d9f1420e24283eb49679c68bdc3a3f3a49baeb703)#wm6p842k",
       Amount::CreateBySatoshiAmount(700000000),
+      static_cast<AddressType>(0),
       nullptr,
       ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3")
     },

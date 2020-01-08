@@ -25,6 +25,7 @@
 
 namespace cfd {
 
+using cfd::core::AbstractTransaction;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
@@ -70,50 +71,122 @@ TransactionContext::TransactionContext(uint32_t version, uint32_t locktime)
 TransactionContext::TransactionContext(const std::string& tx_hex)
     : Transaction(tx_hex) {}
 
-TransactionContext::TransactionContext(const TransactionContext& context) {}
+TransactionContext::TransactionContext(const ByteData& byte_data)
+    : Transaction(byte_data.GetHex()) {}
 
-void TransactionContext::AddInput(const UtxoData& utxo) { return; }
+TransactionContext::TransactionContext(const TransactionContext& context)
+    : Transaction(context.GetHex()) {
+  utxo_map_ = context.utxo_map_;
+  signed_map_ = context.signed_map_;
+  verify_map_ = context.verify_map_;
+  verify_ignore_map_ = context.verify_ignore_map_;
+}
+
+void TransactionContext::AddInput(const UtxoData& utxo) {
+  AddInput(utxo, GetDefaultSequence());
+}
 
 void TransactionContext::AddInput(const UtxoData& utxo, uint32_t sequence) {
-  return;
+  if (!utxo.txid.IsValid()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to AddInput. invalid utxo txid.");
+  }
+
+  UtxoData dest;
+  Utxo temp;
+  memset(&temp, 0, sizeof(temp));
+  UtxoUtil::ConvertToUtxo(utxo, &temp, &dest);
+
+  AddTxIn(utxo.txid, utxo.vout, sequence);
+  utxo_map_.emplace(OutPoint(utxo.txid, utxo.vout), dest);
 }
 
 void TransactionContext::AddInputs(const std::vector<UtxoData>& utxos) {
-  return;
+  for (const auto& utxo : utxos) {
+    AddInput(utxo, GetDefaultSequence());
+  }
 }
 
 uint32_t TransactionContext::AddTxOut(
     const Address& address, const Amount& value) {
-  return 0;
+  const ByteData hash_data = address.GetHash();
+  Script locking_script = address.GetLockingScript();
+  return Transaction::AddTxOut(value, locking_script);
 }
 
-uint32_t TransactionContext::AddTxOut(
-    const Script& locking_script, const Amount& value) {
-  return 0;
+uint32_t TransactionContext::GetSizeIgnoreTxIn() const {
+  uint32_t result = AbstractTransaction::kTransactionMinimumSize;
+  std::vector<TxOutReference> txouts = GetTxOutList();
+  for (const auto& txout : txouts) {
+    result += txout.GetSerializeSize();
+  }
+  return result;
 }
-
-uint32_t TransactionContext::GetSizeIgnoreTxIn() const { return 0; }
 
 void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
-  return;
+  if ((!utxos.empty()) && (utxo_map_.size() != GetTxInCount())) {
+    for (const auto& txin_ref : GetTxInList()) {
+      const Txid& txid = txin_ref.GetTxid();
+      uint32_t vout = txin_ref.GetVout();
+
+      OutPoint outpoint(txid, vout);
+      if (utxo_map_.count(outpoint) == 0) {
+        for (const auto& utxo : utxos) {
+          if ((utxo.vout == vout) && utxo.txid.Equals(txid)) {
+            utxo_map_.emplace(outpoint, utxo);
+            break;
+          }
+        }
+      }
+    }
+  }
 }
 
 void TransactionContext::SignWithKey(
     const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& private_key,
     SigHashType sighash_type, bool has_grind_r) {
+  // FIXME please implements.
+  // 1. add sign
+  // 2. add map(signed_map_, etc.)
   return;
 }
 
-void TransactionContext::IgnoreVerify(const OutPoint& outpoint) { return; }
+void TransactionContext::IgnoreVerify(const OutPoint& outpoint) {
+  GetTxInIndex(outpoint.GetTxid(), outpoint.GetVout());
+  verify_ignore_map_.emplace(outpoint);
+  verify_map_.erase(outpoint);
+}
 
-void TransactionContext::Verify() { return; }
+void TransactionContext::Verify() {
+  // FIXME please implements.
+  return;
+}
 
-void TransactionContext::Verify(const OutPoint& outpoint) { return; }
+void TransactionContext::Verify(const OutPoint& outpoint) {
+  GetTxInIndex(outpoint.GetTxid(), outpoint.GetVout());
 
-ByteData TransactionContext::Finalize() { return ByteData(); }
+  if (utxo_map_.count(outpoint) == 0) {
+    // FIXME throw utxo not found.
+  }
 
+  // FIXME please implements.
+
+  verify_map_.emplace(outpoint);
+  verify_ignore_map_.erase(outpoint);
+}
+
+ByteData TransactionContext::Finalize() {
+  if ((verify_map_.size() + verify_ignore_map_.size()) != GetTxInCount()) {
+    Verify();
+  }
+  return AbstractTransaction::GetData();
+}
+
+// priority: low
 void TransactionContext::ClearSign() { return; }
 
+// priority: low
 void TransactionContext::ClearSign(const OutPoint& outpoint) { return; }
 
 ByteData TransactionContext::CreateSignatureHash(
@@ -138,10 +211,11 @@ ByteData TransactionContext::CreateSignatureHash(
   return ByteData(sighash.GetBytes());
 }
 
-void TransactionContext::SignPrivkeySimple(
+void TransactionContext::SignWithPrivkeySimple(
     const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& private_key,
     SigHashType sighash_type, const Amount& value, WitnessVersion version,
     bool has_grind_r) {
+  // FIXME please implements.
   return;
 }
 
