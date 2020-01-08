@@ -122,19 +122,51 @@ int CfdEncodeSignatureByDer(
       warn(CFD_LOG_SOURCE, "signature is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to encode by der. signature is null.");
+          "Failed to parameter. signature is null.");
     }
     if (signature == nullptr) {
       warn(CFD_LOG_SOURCE, "der_signature is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to encode by der. der_signature is null.");
+          "Failed to parameter. der_signature is null.");
     }
 
     SigHashType type = SigHashType(
         static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
     ByteData der_sig = CryptoUtil::ConvertSignatureToDer(signature, type);
     *der_signature = CreateString(der_sig.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdNormalizeSignature(
+    void* handle, const char* signature, char** normalized_signature) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null.");
+    }
+    if (normalized_signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "normalized_signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. normalized_signature is null.");
+    }
+
+    ByteData result = CryptoUtil::NormalizeSignature(ByteData(signature));
+    *normalized_signature = CreateString(result.GetHex());
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
