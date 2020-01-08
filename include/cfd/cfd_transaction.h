@@ -172,14 +172,14 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @details OP_CODESEPARATORが存在するScriptについては未対応
    * @param[in] txid SignatureHash算出対象のTxInのtxid
    * @param[in] vout SignatureHash算出対象のTxInのvout
-   * @param[in] witness_script WSHのWitness Script
+   * @param[in] redeem_script ScriptHashのRedeem Script
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
    * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
   ByteData CreateSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& witness_script,
+      const Txid& txid, uint32_t vout, const Script& redeem_script,
       SigHashType sighash_type, const Amount& value = Amount(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
 

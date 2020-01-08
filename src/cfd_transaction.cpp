@@ -120,14 +120,22 @@ ByteData TransactionContext::CreateSignatureHash(
     const Txid& txid, uint32_t vout, const Pubkey& pubkey,
     SigHashType sighash_type, const Amount& value,
     WitnessVersion version) const {
-  return ByteData();
+  Script script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+  ByteData256 sighash = GetSignatureHash(
+      txin_index, script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
 }
 
 ByteData TransactionContext::CreateSignatureHash(
-    const Txid& txid, uint32_t vout, const Script& witness_script,
+    const Txid& txid, uint32_t vout, const Script& redeem_script,
     SigHashType sighash_type, const Amount& value,
     WitnessVersion version) const {
-  return ByteData();
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
+  ByteData256 sighash = GetSignatureHash(
+      txin_index, redeem_script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
 }
 
 void TransactionContext::SignPrivkeySimple(
@@ -141,14 +149,20 @@ bool TransactionContext::VerifyInputSignature(
     const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
     uint32_t vout, SigHashType sighash_type, const Amount& value,
     WitnessVersion version) const {
-  return false;
+  auto sighash =
+      CreateSignatureHash(txid, vout, pubkey, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
 }
 
 bool TransactionContext::VerifyInputSignature(
     const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
     uint32_t vout, const Script& script, SigHashType sighash_type,
     const Amount& value, WitnessVersion version) const {
-  return false;
+  auto sighash =
+      CreateSignatureHash(txid, vout, script, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
 }
 
 uint32_t TransactionContext::GetDefaultSequence() const {
