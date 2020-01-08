@@ -52,6 +52,134 @@ using cfd::core::logger::warn;
 using cfd::TransactionController;
 
 // -----------------------------------------------------------------------------
+// Define
+// -----------------------------------------------------------------------------
+/// シーケンス値(locktime有効)
+constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
+/// シーケンス値(locktime無効)
+constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
+
+// -----------------------------------------------------------------------------
+// TransactionController
+// -----------------------------------------------------------------------------
+TransactionContext::TransactionContext() {}
+
+TransactionContext::TransactionContext(uint32_t version, uint32_t locktime)
+    : Transaction(version, locktime) {}
+
+TransactionContext::TransactionContext(const std::string& tx_hex)
+    : Transaction(tx_hex) {}
+
+TransactionContext::TransactionContext(const TransactionContext& context) {}
+
+void TransactionContext::AddInput(const UtxoData& utxo) { return; }
+
+void TransactionContext::AddInput(const UtxoData& utxo, uint32_t sequence) {
+  return;
+}
+
+void TransactionContext::AddInputs(const std::vector<UtxoData>& utxos) {
+  return;
+}
+
+uint32_t TransactionContext::AddTxOut(
+    const Address& address, const Amount& value) {
+  return 0;
+}
+
+uint32_t TransactionContext::AddTxOut(
+    const Script& locking_script, const Amount& value) {
+  return 0;
+}
+
+uint32_t TransactionContext::GetSizeIgnoreTxIn() const { return 0; }
+
+void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
+  return;
+}
+
+void TransactionContext::SignWithKey(
+    const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& private_key,
+    SigHashType sighash_type, bool has_grind_r) {
+  return;
+}
+
+void TransactionContext::IgnoreVerify(const OutPoint& outpoint) { return; }
+
+void TransactionContext::Verify() { return; }
+
+void TransactionContext::Verify(const OutPoint& outpoint) { return; }
+
+ByteData TransactionContext::Finalize() { return ByteData(); }
+
+void TransactionContext::ClearSign() { return; }
+
+void TransactionContext::ClearSign(const OutPoint& outpoint) { return; }
+
+ByteData TransactionContext::CreateSignatureHash(
+    const Txid& txid, uint32_t vout, const Pubkey& pubkey,
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  Script script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+  ByteData256 sighash = GetSignatureHash(
+      txin_index, script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
+}
+
+ByteData TransactionContext::CreateSignatureHash(
+    const Txid& txid, uint32_t vout, const Script& redeem_script,
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
+  ByteData256 sighash = GetSignatureHash(
+      txin_index, redeem_script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
+}
+
+void TransactionContext::SignPrivkeySimple(
+    const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& private_key,
+    SigHashType sighash_type, const Amount& value, WitnessVersion version,
+    bool has_grind_r) {
+  return;
+}
+
+bool TransactionContext::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  auto sighash =
+      CreateSignatureHash(txid, vout, pubkey, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+bool TransactionContext::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, const Script& script, SigHashType sighash_type,
+    const Amount& value, WitnessVersion version) const {
+  auto sighash =
+      CreateSignatureHash(txid, vout, script, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+uint32_t TransactionContext::GetDefaultSequence() const {
+  if (GetLockTime() == 0) {
+    return kSequenceDisableLockTime;
+  } else {
+    return kSequenceEnableLockTimeMax;
+  }
+}
+
+uint32_t TransactionContext::GetLockTimeDisabledSequence() {
+  return kSequenceDisableLockTime;
+}
+
+void TransactionContext::CallbackStateChange(uint32_t type) {}
+
+// -----------------------------------------------------------------------------
 // TransactionController
 // -----------------------------------------------------------------------------
 TransactionController::TransactionController(

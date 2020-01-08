@@ -11,9 +11,12 @@
 #include <vector>
 
 #include "cfd/cfd_common.h"
+#include "cfd/cfd_utxo.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
+#include "cfdcore/cfdcore_elements_address.h"
+#include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_transaction_common.h"
@@ -24,6 +27,7 @@ namespace cfd {
 using cfd::core::AbstractTransaction;
 using cfd::core::Address;
 using cfd::core::Amount;
+using cfd::core::BlockHash;
 using cfd::core::ByteData;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
@@ -32,6 +36,12 @@ using cfd::core::ScriptOperator;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
 using cfd::core::Txid;
+
+#ifndef CFD_DISABLE_ELEMENTS
+using cfd::core::BlindFactor;
+using cfd::core::ConfidentialAssetId;
+using cfd::core::ElementsConfidentialAddress;
+#endif  // CFD_DISABLE_ELEMENTS
 
 /**
  * @typedef SignDataType
@@ -43,6 +53,67 @@ enum SignDataType {
   kPubkey,
   kRedeemScript,
   kOpCode,
+};
+
+/**
+ * @typedef SignVerifyType
+ * @brief Sign verify type.
+ */
+enum SignVerifyType {
+  kNotVerify = 0,
+  kVerifyUnknown,
+  kVerifySighashAll,
+  kVerifySighashSingle,
+  kVerifySighashNone,
+};
+
+/**
+ * @brief UTXO構造体
+ */
+struct UtxoData {
+  uint64_t block_height;   //!< blick高
+  BlockHash block_hash;    //!< block hash
+  Txid txid;               //!< txid
+  uint32_t vout;           //!< vout
+  Script locking_script;   //!< locking script
+  Script redeem_script;    //!< script
+  Address address;         //!< address
+  std::string descriptor;  //!< output descriptor
+  Amount amount;           //!< amount
+  void* binary_data;       //!< binary data option
+#ifndef CFD_DISABLE_ELEMENTS
+  ConfidentialAssetId asset;  //!< asset
+  // int32_t status;           //!< utxo status (reserved)
+  // elements
+  ElementsConfidentialAddress confidential_address;  //!< Confidential address
+  BlindFactor asset_blind_factor;                    //!< asset blind factor
+  BlindFactor amount_blind_factor;                   //!< blind vactor
+#endif                                               // CFD_DISABLE_ELEMENTS
+};
+
+/**
+ * @brief Coin関連のAPIクラス
+ */
+class CFD_EXPORT UtxoUtil {
+ public:
+  /**
+   * @brief convert to simple utxo list.
+   * @param[in] utxos   utxo data list
+   * @return UTXO list
+   */
+  static std::vector<Utxo> ConvertToUtxo(const std::vector<UtxoData>& utxos);
+  /**
+   * @brief convert to simple utxo.
+   * @param[in] utxo_data   utxo data
+   * @param[out] utxo       utxo
+   */
+  static void ConvertToUtxo(const UtxoData& utxo_data, Utxo* utxo);
+
+ private:
+  /**
+   * @brief constructor (disable)
+   */
+  UtxoUtil();
 };
 
 /**
@@ -157,8 +228,13 @@ class CFD_EXPORT SignParameter {
   ScriptOperator op_code_;    //!< op_code
 };
 
+// ----------------------------------------------------------------------------
+// deprecated
+// ----------------------------------------------------------------------------
+
 /**
  * @brief Transaction生成のためのController基底クラス
+ * @deprecated replace to TransactionContext .
  */
 class CFD_EXPORT AbstractTransactionController {
  public:

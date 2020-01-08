@@ -34,13 +34,13 @@
 using cfd::ConfidentialTransactionController;
 using cfd::ElementsAddressFactory;
 using cfd::SignParameter;
+using cfd::UtxoData;
 using cfd::api::ElementsTransactionApi;
 using cfd::api::ElementsUtxoAndOption;
 using cfd::api::IssuanceOutput;
 using cfd::api::TxInBlindParameters;
 using cfd::api::TxInReissuanceParameters;
 using cfd::api::TxOutBlindKeys;
-using cfd::api::UtxoData;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
