@@ -27,6 +27,7 @@ namespace cfd {
 
 using cfd::core::AbstractTransaction;
 using cfd::core::Address;
+using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::ByteData;
 using cfd::core::OutPoint;
@@ -199,22 +200,69 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @brief 指定されたPubkeyHash形式のTxInに署名する.
    * @param[in] outpoint    TxIn
    * @param[in] pubkey      SignatureHashの公開鍵
-   * @param[in] private_key SignatureHashの秘密鍵
+   * @param[in] privkey     SignatureHashの秘密鍵
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
    * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @param[in] has_grind_r signature計算時のオプション
    */
   void SignWithPrivkeySimple(
-      const OutPoint& outpoint, const Pubkey& pubkey,
-      const Privkey& private_key, SigHashType sighash_type = SigHashType(),
-      const Amount& value = Amount(),
-      WitnessVersion version = WitnessVersion::kVersionNone,
+      const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
+      SigHashType sighash_type = SigHashType(), const Amount& value = Amount(),
+      AddressType address_type = AddressType::kP2wpkhAddress,
       bool has_grind_r = true);
 
-  // FIXME API層から、AddSign, AddMultisigSignを移植したい。
-  // FIXME AddSignはP2sh-P2wXXXにも対応させる。
-  // TODO(k-matsuzawa): Signatureだけ生成するAPI作る？（Multisig用）
+  /**
+   * @brief add pubkey-hash sign data to target outpoint.
+   * @param[in] outpoint        TxIn
+   * @param[in] signature       signature
+   * @param[in] pubkey          pubkey
+   * @param[in] hash_type       hash-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
+   */
+  void AddPubkeyHashSign(
+      const OutPoint& outpoint, const SignParameter& signature,
+      const Pubkey& pubkey, AddressType hash_type);
+
+  /**
+   * @brief add script-hash sign data to target outpoint.
+   * @param[in] outpoint          TxIn
+   * @param[in] signatures        signature list
+   * @param[in] redeem_script     redeem script
+   * @param[in] hash_type         hash-type.(P2WSH, P2SH-P2WSH, P2SH)
+   * @param[in] is_multisig_script  use multisig script
+   */
+  void AddScriptHashSign(
+      const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
+      const Script& redeem_script, AddressType hash_type,
+      bool is_multisig_script = false);
+
+  /**
+   * @brief add multisig sign data to target outpoint.
+   * @details 追加するsignatureの順序は、redeem
+   * scriptのpubkeyとsignatures内のrelatedPubkeyで
+   *   対応をとって自動的に整列される.
+   * (relatedPubkeyが設定されていない場合は、relatedPubkeyが
+   *   設定されているsignatureを追加した後にsignParamの順序でsignatureを追加)
+   * @param[in] outpoint          TxIn
+   * @param[in] signatures        signature list
+   * @param[in] redeem_script     redeem script
+   * @param[in] hash_type         hash-type.(P2WSH, P2SH-P2WSH, P2SH)
+   */
+  void AddMultisigSign(
+      const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
+      const Script& redeem_script, AddressType hash_type);
+
+  /**
+   * @brief add sign data to target outpoint.
+   * @param[in] outpoint        TxIn
+   * @param[in] sign_params     sign data list
+   * @param[in] insert_witness  use witness
+   * @param[in] clear_stack     clear stack data before add.
+   * @return SignDataが付与されたTransactionController
+   */
+  void AddSign(
+      const OutPoint& outpoint, const std::vector<SignParameter>& sign_params,
+      bool insert_witness = true, bool clear_stack = false);
 
   /**
    * @brief Verify signature which is specified (pubkey hash) input data.
