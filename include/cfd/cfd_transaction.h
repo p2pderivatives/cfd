@@ -8,6 +8,7 @@
 #define CFD_INCLUDE_CFD_CFD_TRANSACTION_H_
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@
 
 namespace cfd {
 
+using cfd::core::AbstractTransaction;
 using cfd::core::Address;
 using cfd::core::Amount;
 using cfd::core::ByteData;
@@ -42,31 +44,47 @@ using cfd::core::WitnessVersion;
 class CFD_EXPORT TransactionContext : public Transaction {
  public:
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    */
   TransactionContext();
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] version   Transaction version
    * @param[in] locktime  Timestamp or block height
    */
   explicit TransactionContext(uint32_t version, uint32_t locktime);
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] tx_hex  Raw Transaction HEX string
    */
   explicit TransactionContext(const std::string& tx_hex);
   /**
-   * @brief コンストラクタ
+   * @brief constructor.
+   * @param[in] byte_data  Raw Transaction Data
+   */
+  explicit TransactionContext(const ByteData& byte_data);
+  /**
+   * @brief constructor
    * @param[in] context   Transaction Context
    */
   explicit TransactionContext(const TransactionContext& context);
   /**
-   * @brief デストラクタ.
+   * @brief constructor
+   * @param[in] transaction   Transaction
+   */
+  explicit TransactionContext(const Transaction& transaction);
+  /**
+   * @brief destructor.
    */
   virtual ~TransactionContext() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] context   Transaction context
+   * @return Transaction context
+   */
+  TransactionContext& operator=(const TransactionContext& context) &;
 
   /**
    * @brief add txin with utxo.
@@ -92,13 +110,6 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @return 追加したTxOutのIndex番号
    */
   uint32_t AddTxOut(const Address& address, const Amount& value);
-  /**
-   * @brief TxOutを追加する. (set locking script direct)
-   * @param[in] locking_script  送金先locking_script
-   * @param[in] value  送金額
-   * @return 追加したTxOutのIndex番号
-   */
-  uint32_t AddTxOut(const Script& locking_script, const Amount& value);
 
   /**
    * @brief TxInを除外したサイズを取得する。
@@ -194,7 +205,7 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @param[in] has_grind_r signature計算時のオプション
    */
-  void SignPrivkeySimple(
+  void SignWithPrivkeySimple(
       const OutPoint& outpoint, const Pubkey& pubkey,
       const Privkey& private_key, SigHashType sighash_type = SigHashType(),
       const Amount& value = Amount(),
@@ -276,9 +287,13 @@ class CFD_EXPORT TransactionContext : public Transaction {
    */
   std::map<OutPoint, SigHashType> signed_map_;
   /**
-   * @brief utxo verify map. (outpoint, SignVerifyType)
+   * @brief utxo verify map. (outpoint)
    */
-  std::map<OutPoint, uint32_t> verify_state_map_;
+  std::set<OutPoint> verify_map_;
+  /**
+   * @brief utxo verify ignore map. (outpoint)
+   */
+  std::set<OutPoint> verify_ignore_map_;
 };
 
 // ----------------------------------------------------------------------------
