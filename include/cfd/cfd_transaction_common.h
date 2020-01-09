@@ -72,17 +72,17 @@ enum SignVerifyType {
  * @brief UTXO構造体
  */
 struct UtxoData {
-  uint64_t block_height;   //!< blick高
-  BlockHash block_hash;    //!< block hash
-  Txid txid;               //!< txid
-  uint32_t vout;           //!< vout
-  Script locking_script;   //!< locking script
-  Script redeem_script;    //!< script
-  Address address;         //!< address
-  std::string descriptor;  //!< output descriptor
-  Amount amount;           //!< amount
-  AddressType address_type = static_cast<AddressType>(0);  //!< address type
-  void* binary_data;  //!< binary data option
+  uint64_t block_height;     //!< blick高
+  BlockHash block_hash;      //!< block hash
+  Txid txid;                 //!< txid
+  uint32_t vout;             //!< vout
+  Script locking_script;     //!< locking script
+  Script redeem_script;      //!< script
+  Address address;           //!< address
+  std::string descriptor;    //!< output descriptor
+  Amount amount;             //!< amount
+  AddressType address_type;  //!< address type
+  void* binary_data;         //!< binary data option
 #ifndef CFD_DISABLE_ELEMENTS
   ConfidentialAssetId asset;  //!< asset
   // int32_t status;           //!< utxo status (reserved)

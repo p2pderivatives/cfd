@@ -126,12 +126,15 @@ void UtxoUtil::ConvertToUtxo(
     } else if (!utxo_data.address.GetAddress().empty()) {
       output.locking_script = utxo_data.address.GetLockingScript();
       locking_script_bytes = output.locking_script.GetData().GetBytes();
-      if (utxo_data.address_type != 0) {
-        utxo->address_type = static_cast<uint16_t>(utxo_data.address_type);
+      AddressType addr_type = utxo_data.address.GetAddressType();
+      if ((addr_type == AddressType::kP2shAddress) &&
+          ((utxo_data.address_type == AddressType::kP2shP2wshAddress) ||
+           (utxo_data.address_type == AddressType::kP2shP2wpkhAddress))) {
+        // direct set. output.address_type;
       } else {
-        output.address_type = utxo_data.address.GetAddressType();
-        utxo->address_type = static_cast<uint16_t>(output.address_type);
+        output.address_type = addr_type;
       }
+      utxo->address_type = static_cast<uint16_t>(output.address_type);
     } else if (!utxo_data.locking_script.IsEmpty()) {
       locking_script_bytes = utxo_data.locking_script.GetData().GetBytes();
       if (utxo_data.locking_script.IsP2wpkhScript()) {

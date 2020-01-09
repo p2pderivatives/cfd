@@ -44,17 +44,17 @@ using cfd::core::WitnessVersion;
 class CFD_EXPORT TransactionContext : public Transaction {
  public:
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    */
   TransactionContext();
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] version   Transaction version
    * @param[in] locktime  Timestamp or block height
    */
   explicit TransactionContext(uint32_t version, uint32_t locktime);
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] tx_hex  Raw Transaction HEX string
    */
   explicit TransactionContext(const std::string& tx_hex);
@@ -64,16 +64,27 @@ class CFD_EXPORT TransactionContext : public Transaction {
    */
   explicit TransactionContext(const ByteData& byte_data);
   /**
-   * @brief コンストラクタ
+   * @brief constructor
    * @param[in] context   Transaction Context
    */
   explicit TransactionContext(const TransactionContext& context);
   /**
-   * @brief デストラクタ.
+   * @brief constructor
+   * @param[in] transaction   Transaction
+   */
+  explicit TransactionContext(const Transaction& transaction);
+  /**
+   * @brief destructor.
    */
   virtual ~TransactionContext() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] context   Transaction context
+   * @return Transaction context
+   */
+  TransactionContext& operator=(const TransactionContext& context) &;
 
   /**
    * @brief add txin with utxo.
