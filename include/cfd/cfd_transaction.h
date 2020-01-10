@@ -125,6 +125,7 @@ class CFD_EXPORT TransactionContext : public Transaction {
    */
   void CollectInputUtxo(const std::vector<UtxoData>& utxos);
 
+#if 0
   /**
    * @brief sign with privkey.
    * @param[in] outpoint      utxo target.
@@ -164,6 +165,7 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @param[in] outpoint    utxo target.
    */
   void ClearSign(const OutPoint& outpoint);
+#endif
 
   // sign-api
   /**
@@ -203,7 +205,7 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @param[in] privkey     SignatureHashの秘密鍵
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
-   * @param[in] version TxInで指定したUTXOのWitnessVersion
+   * @param[in] address_type address-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
    * @param[in] has_grind_r signature計算時のオプション
    */
   void SignWithPrivkeySimple(
@@ -217,23 +219,23 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @param[in] outpoint        TxIn
    * @param[in] signature       signature
    * @param[in] pubkey          pubkey
-   * @param[in] hash_type       hash-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
+   * @param[in] address_type    address-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
    */
   void AddPubkeyHashSign(
       const OutPoint& outpoint, const SignParameter& signature,
-      const Pubkey& pubkey, AddressType hash_type);
+      const Pubkey& pubkey, AddressType address_type);
 
   /**
    * @brief add script-hash sign data to target outpoint.
-   * @param[in] outpoint          TxIn
-   * @param[in] signatures        signature list
-   * @param[in] redeem_script     redeem script
-   * @param[in] hash_type         hash-type.(P2WSH, P2SH-P2WSH, P2SH)
+   * @param[in] outpoint            TxIn
+   * @param[in] signatures          signature list
+   * @param[in] redeem_script       redeem script
+   * @param[in] address_type        address-type.(P2WSH, P2SH-P2WSH, P2SH)
    * @param[in] is_multisig_script  use multisig script
    */
   void AddScriptHashSign(
       const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
-      const Script& redeem_script, AddressType hash_type,
+      const Script& redeem_script, AddressType address_type,
       bool is_multisig_script = false);
 
   /**
@@ -362,6 +364,10 @@ class CFD_EXPORT TransactionController
     : public AbstractTransactionController {  // NOLINT
  public:
   /**
+   * @brief コンストラクタ
+   */
+  TransactionController();  // NOLINT
+  /**
    * @brief コンストラクタ.
    * @param[in] version   Transactionのバージョン
    * @param[in] locktime  Timestamp or ブロック高
@@ -376,13 +382,19 @@ class CFD_EXPORT TransactionController
    * @brief コンストラクタ
    * @param[in] transaction   トランザクション情報
    */
-  TransactionController(const TransactionController& transaction);
+  TransactionController(const TransactionController& transaction);  // NOLINT
   /**
    * @brief デストラクタ.
    */
   virtual ~TransactionController() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] transaction   Transaction
+   * @return Transaction
+   */
+  TransactionController& operator=(const TransactionController& transaction) &;
 
   /**
    * @brief locking_scriptが空のTxInを追加する.

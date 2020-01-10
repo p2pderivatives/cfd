@@ -157,6 +157,7 @@ void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
   }
 }
 
+#if 0
 void TransactionContext::SignWithKey(
     const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
     SigHashType sighash_type, bool has_grind_r) {
@@ -208,6 +209,7 @@ void TransactionContext::ClearSign() { return; }
 
 // priority: low
 void TransactionContext::ClearSign(const OutPoint& outpoint) { return; }
+#endif
 
 ByteData TransactionContext::CreateSignatureHash(
     const Txid& txid, uint32_t vout, const Pubkey& pubkey,
@@ -244,7 +246,7 @@ void TransactionContext::SignWithPrivkeySimple(
     warn(CFD_LOG_SOURCE, "Failed to SignWithPrivkeySimple. Invalid pubkey.");
     throw CfdException(CfdError::kCfdIllegalArgumentError, "Invalid pubkey.");
   }
-  if (!privkey.IsInvalid()) {
+  if (privkey.IsInvalid()) {
     warn(CFD_LOG_SOURCE, "Failed to SignWithPrivkeySimple. Invalid privkey.");
     throw CfdException(CfdError::kCfdIllegalArgumentError, "Invalid privkey.");
   }
@@ -344,7 +346,7 @@ void TransactionContext::AddScriptHashSign(
     const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
     const Script& redeem_script, AddressType address_type,
     bool is_multisig_script) {
-  if (!redeem_script.IsEmpty()) {
+  if (redeem_script.IsEmpty()) {
     warn(CFD_LOG_SOURCE, "Failed to AddScriptHashSign. Empty script.");
     throw CfdException(CfdError::kCfdIllegalArgumentError, "Empty script.");
   }
@@ -394,7 +396,11 @@ void TransactionContext::AddScriptHashSign(
           "or \"p2sh-p2wsh\" or \"p2sh\".");  // NOLINT
   }
   if (is_multisig_script) {
-    sign_params.push_back(SignParameter(ScriptOperator::OP_0));
+    if (has_witness) {
+      sign_params.push_back(SignParameter(ByteData()));
+    } else {
+      sign_params.push_back(SignParameter(ScriptOperator::OP_0));
+    }
   }
   for (const auto& signature : signatures) {
     sign_params.push_back(signature);
@@ -512,11 +518,18 @@ uint32_t TransactionContext::GetLockTimeDisabledSequence() {
   return kSequenceDisableLockTime;
 }
 
-void TransactionContext::CallbackStateChange(uint32_t type) {}
+void TransactionContext::CallbackStateChange(uint32_t type) {
+  cfd::core::logger::trace(
+      CFD_LOG_SOURCE, "CallbackStateChange type::{}", type);
+}
 
 // -----------------------------------------------------------------------------
 // TransactionController
 // -----------------------------------------------------------------------------
+TransactionController::TransactionController() : transaction_(2, 0) {
+  tx_address_ = &transaction_;
+}
+
 TransactionController::TransactionController(
     uint32_t version, uint32_t locktime)
     : transaction_(version, locktime) {
@@ -532,6 +545,12 @@ TransactionController::TransactionController(
     const TransactionController& transaction)
     : TransactionController(transaction.GetHex()) {
   // do nothing
+}
+
+TransactionController& TransactionController::operator=(
+    const TransactionController& transaction) & {
+  transaction_ = transaction.transaction_;
+  return *this;
 }
 
 const TxInReference TransactionController::AddTxIn(
