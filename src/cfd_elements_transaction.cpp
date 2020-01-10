@@ -85,6 +85,12 @@ ConfidentialTransactionController::ConfidentialTransactionController(
   // do nothing
 }
 
+ConfidentialTransactionController& ConfidentialTransactionController::
+operator=(const ConfidentialTransactionController& transaction) & {
+  transaction_ = transaction.transaction_;
+  return *this;
+}
+
 const ConfidentialTxInReference ConfidentialTransactionController::AddTxIn(
     const Txid& txid, uint32_t vout) {
   return AddTxIn(txid, vout, GetDefaultSequence());

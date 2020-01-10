@@ -83,6 +83,13 @@ class CFD_EXPORT ConfidentialTransactionController
   virtual ~ConfidentialTransactionController() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] transaction   Transaction
+   * @return Transaction
+   */
+  ConfidentialTransactionController& operator=(
+      const ConfidentialTransactionController& transaction) &;
 
   /**
    * @brief locking_scriptが空のTxInを追加する.

@@ -12,14 +12,18 @@
 #include "cfd/cfd_transaction.h"
 #include "cfd/cfd_transaction_common.h"
 
+using cfd::SignParameter;
 using cfd::TransactionContext;
 using cfd::Utxo;
 using cfd::UtxoData;
 using cfd::core::Amount;
 using cfd::core::Address;
+using cfd::core::AddressType;
 using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdException;
+using cfd::core::NetType;
+using cfd::core::OutPoint;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::Script;
@@ -272,4 +276,32 @@ TEST(TransactionContext, Input_Output) {
 
   UtxoData utxo_stub;
   EXPECT_THROW(ctx.AddInput(utxo_stub), CfdException);
+}
+
+TEST(TransactionContext, SignWithPrivkeySimple) {
+  // P2shP2wpkh
+  TransactionContext ctx("0200000001aca6c902e9569c99e172c22182f943e4ab15f28602ab248f65c864874a9ddc860000000000ffffffff01005ed0b20000000017a914eca3232c3a28a4d0c03b374d0f6053e9e546e9978700000000");
+
+  EXPECT_NO_THROW(ctx.SignWithPrivkeySimple(
+      OutPoint(Txid("86dc9d4a8764c8658f24ab0286f215abe443f98221c272e1999c56e902c9a6ac"), 0),
+      Pubkey("02f56451fc1fd9040652ff9a700cf914ad1df1c8f9e82f3fe96ca01b6cd47293ef"),
+      Privkey::FromWif("cRar5dsNEddUTgXuuhsq5p2NRJUKiV58PUHEPgGe1k9CW8CGRzbj", NetType::kTestnet),
+      SigHashType(), Amount::CreateBySatoshiAmount(3000002000),
+      AddressType::kP2shP2wpkhAddress, true));
+  EXPECT_STREQ(ctx.GetHex().c_str(), "02000000000101aca6c902e9569c99e172c22182f943e4ab15f28602ab248f65c864874a9ddc8600000000171600141da984b5779f27a59dfb3499bce3823bf1824941ffffffff01005ed0b20000000017a914eca3232c3a28a4d0c03b374d0f6053e9e546e997870247304402205c8a6b770633449f129579776dfd0a839c9749860e17f7a2bde7927e4b9a8c7202205c5a10a57acef9cadd37d72fece91821db547e9c3447f2b1071f664d393b7a5c012102f56451fc1fd9040652ff9a700cf914ad1df1c8f9e82f3fe96ca01b6cd47293ef00000000");
+}
+
+TEST(TransactionContext, AddMultisigSign) {
+  // P2wpkhMultisig
+  TransactionContext ctx("02000000014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff0101000000000000002200201863143c14c5166804bd19203356da136c985678cd4d27a1b8c632960490326200000000");
+
+  std::vector<SignParameter> signatures;
+  ByteData der_bytes("47ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb");
+  signatures.push_back(SignParameter(der_bytes, true));
+  EXPECT_NO_THROW(ctx.AddMultisigSign(
+      OutPoint(Txid("ea9d5a9e974af1d167305aa6ee598706d63274e8a40f4f33af97db37a7adde4c"), 0),
+      signatures,
+      Script("52210205ffcdde75f262d66ada3dd877c7471f8f8ee9ee24d917c3e18d01cee458bafe2102be61f4350b4ae7544f99649a917f48ba16cf48c983ac1599774958d88ad17ec552ae"), AddressType::kP2wshAddress));
+
+  EXPECT_STREQ(ctx.GetHex().c_str(), "020000000001014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff0101000000000000002200201863143c14c5166804bd19203356da136c985678cd4d27a1b8c63296049032620300473044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb014752210205ffcdde75f262d66ada3dd877c7471f8f8ee9ee24d917c3e18d01cee458bafe2102be61f4350b4ae7544f99649a917f48ba16cf48c983ac1599774958d88ad17ec552ae00000000");
 }
