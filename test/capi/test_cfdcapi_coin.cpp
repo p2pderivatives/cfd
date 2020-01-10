@@ -5,34 +5,46 @@
 #include "capi/cfdc_internal.h"
 #include "cfd/cfd_address.h"
 #include "cfd/cfd_elements_address.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
 #include "cfd/cfdapi_address.h"
 #include "cfd/cfdapi_coin.h"
 #include "cfd/cfdapi_elements_transaction.h"
 #include "cfdc/cfdcapi_coin.h"
 #include "cfdc/cfdcapi_common.h"
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_common.h"
+#include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 
+using cfd::AddressFactory;
 using cfd::AmountMap;
 using cfd::CoinSelection;
 using cfd::CoinSelectionOption;
 using cfd::Utxo;
+using cfd::UtxoData;
 using cfd::UtxoFilter;
+using cfd::core::Address;
 using cfd::core::Amount;
+using cfd::core::AddressType;
+using cfd::core::BlockHash;
 using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::Script;
 using cfd::core::Txid;
 
 #ifndef CFD_DISABLE_ELEMENTS
+using cfd::core::BlindFactor;
 using cfd::core::ConfidentialAssetId;
+using cfd::ElementsAddressFactory;
+using cfd::core::ElementsConfidentialAddress;
 #endif  // CFD_DISABLE_ELEMENTS
 
 /**
@@ -45,16 +57,6 @@ class cfdcapi_coin : public ::testing::Test {
 };
 
 TEST(cfdcapi_coin, EstimateFeeTest) {
-  using cfd::AddressFactory;
-  using cfd::api::UtxoData;
-  using cfd::core::Address;
-  using cfd::core::Amount;
-  using cfd::core::BlockHash;
-#ifndef CFD_DISABLE_ELEMENTS
-  using cfd::core::ConfidentialAssetId;
-#endif  // CFD_DISABLE_ELEMENTS
-  using cfd::core::Script;
-  using cfd::core::Txid;
 
   AddressFactory factory;
   std::vector<UtxoData> utxos = {
@@ -68,9 +70,15 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       factory.GetAddress("33dsYKS5E5Vp3LhAw3krvhzNaWtqmrH29k"),
       "sh(wpkh([ef735203/0\'/0\'/5\']03948c01f159b4204b682668d6e850440564b6610c0e5bf30da684b2131f77c449))#2u75feqc",
       Amount::CreateBySatoshiAmount(600000000),
-      nullptr,
+      static_cast<AddressType>(0),
 #ifndef CFD_DISABLE_ELEMENTS
+      nullptr,
       ConfidentialAssetId(),
+      ElementsConfidentialAddress(),
+      BlindFactor(),
+      BlindFactor()
+#else
+      nullptr
 #endif  // CFD_DISABLE_ELEMENTS
     },
     UtxoData{
@@ -83,11 +91,17 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       factory.GetAddress("33dsYKS5E5Vp3LhAw3krvhzNaWtqmrH29k"),
       "sh(wpkh([ef735203/0\'/0\'/5\']03948c01f159b4204b682668d6e850440564b6610c0e5bf30da684b2131f77c449))#2u75feqc",
       Amount::CreateBySatoshiAmount(700000000),
-      nullptr,
+      static_cast<AddressType>(0),
 #ifndef CFD_DISABLE_ELEMENTS
+      nullptr,
       ConfidentialAssetId(),
+      ElementsConfidentialAddress(),
+      BlindFactor(),
+      BlindFactor()
+#else
+      nullptr
 #endif  // CFD_DISABLE_ELEMENTS
-    },
+    }
   };
 
   // 1 output data
@@ -392,15 +406,6 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
 }
 
 TEST(cfdcapi_coin, EstimateFeeElementsTest) {
-  using cfd::ElementsAddressFactory;
-  using cfd::api::UtxoData;
-  using cfd::core::Address;
-  using cfd::core::Amount;
-  using cfd::core::BlockHash;
-  using cfd::core::ConfidentialAssetId;
-  using cfd::core::Script;
-  using cfd::core::Txid;
-
   ElementsAddressFactory factory;
   std::vector<UtxoData> utxos = {
     UtxoData{
@@ -413,8 +418,12 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       factory.GetAddress("ert1qknynlqy3y9ha3udz66keg3z87jf8gfw7zjg8xe"),
       "wpkh([e3c39d64/0'/0'/9']029f74462149b36b8ac582a96afa8d257bbc8835c25aeab61d6712d69fbfa8e539)#mx0szvef",
       Amount::CreateBySatoshiAmount(600000000),
+      static_cast<AddressType>(0),
       nullptr,
-      ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3")
+      ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3"),
+      ElementsConfidentialAddress(),
+      BlindFactor(),
+      BlindFactor()
     },
     UtxoData{
       5,
@@ -426,9 +435,13 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       factory.GetAddress("ert1q8pz5d246lc8z9x7atnj5wycuwlv5man94nt8a7"),
       "wpkh([e3c39d64/0'/0'/10']03f78d89b000a8e747d696fb2d9f1420e24283eb49679c68bdc3a3f3a49baeb703)#wm6p842k",
       Amount::CreateBySatoshiAmount(700000000),
+      static_cast<AddressType>(0),
       nullptr,
-      ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3")
-    },
+      ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3"),
+      ElementsConfidentialAddress(),
+      BlindFactor(),
+      BlindFactor()
+    }
   };
 
   // 1 output data

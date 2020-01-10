@@ -5,15 +5,17 @@
  * @brief \~english implementation of common classes related to transaction operation
  *   \~japanese Transaction操作共通の関連クラスの実装ファイル
  */
-#include "cfd/cfd_transaction_common.h"
-
 #include <algorithm>
 #include <string>
 #include <vector>
 
+#include "cfd/cfd_common.h"
+#include "cfd/cfd_transaction_common.h"
+#include "cfd/cfd_utxo.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
@@ -24,12 +26,15 @@ namespace cfd {
 
 using cfd::core::AbstractTransaction;
 using cfd::core::Address;
+using cfd::core::AddressFormatData;
 using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::CryptoUtil;
+using cfd::core::Descriptor;
+using cfd::core::DescriptorScriptReference;
 using cfd::core::HashType;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
@@ -49,6 +54,145 @@ using cfd::core::logger::warn;
 constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
 /// シーケンス値(locktime無効)
 constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
+
+// -----------------------------------------------------------------------------
+// UtxoUtil
+// -----------------------------------------------------------------------------
+std::vector<Utxo> UtxoUtil::ConvertToUtxo(const std::vector<UtxoData>& utxos) {
+  std::vector<Utxo> result;
+  result.resize(utxos.size());
+  std::vector<Utxo>::iterator ite = result.begin();
+  for (const auto& utxo_data : utxos) {
+    ConvertToUtxo(utxo_data, &(*ite));
+    ++ite;
+  }
+  return result;
+}
+
+void UtxoUtil::ConvertToUtxo(
+    const UtxoData& utxo_data, Utxo* utxo, UtxoData* dest) {
+  if (utxo != nullptr) {
+    UtxoData output = utxo_data;
+    memset(utxo, 0, sizeof(Utxo));
+    utxo->block_height = utxo_data.block_height;
+    utxo->vout = utxo_data.vout;
+    utxo->binary_data = utxo_data.binary_data;
+    utxo->amount = utxo_data.amount.GetSatoshiValue();
+
+    ByteData block_hash = utxo_data.block_hash.GetData();
+    if (!block_hash.Empty()) {
+      memcpy(
+          utxo->block_hash, block_hash.GetBytes().data(),
+          sizeof(utxo->block_hash));
+    }
+    ByteData txid = utxo_data.txid.GetData();
+    if (!txid.Empty()) {
+      memcpy(utxo->txid, txid.GetBytes().data(), sizeof(utxo->txid));
+    }
+
+    // convert from descriptor
+    std::vector<uint8_t> locking_script_bytes;
+    if (!utxo_data.descriptor.empty()) {
+      NetType net_type = NetType::kMainnet;
+      std::vector<AddressFormatData> addr_prefixes =
+          cfd::core::GetBitcoinAddressFormatList();
+#ifndef CFD_DISABLE_ELEMENTS
+      if (!utxo_data.asset.IsEmpty()) {
+        std::vector<AddressFormatData> elements_prefixes =
+            cfd::core::GetElementsAddressFormatList();
+        addr_prefixes = elements_prefixes;
+      }
+#endif  // CFD_DISABLE_ELEMENTS
+      if (!utxo_data.address.GetAddress().empty()) {
+        addr_prefixes.clear();
+        addr_prefixes.push_back(utxo_data.address.GetAddressFormatData());
+        net_type = utxo_data.address.GetNetType();
+      }
+
+      Descriptor desc =
+          Descriptor::Parse(utxo_data.descriptor, &addr_prefixes);
+      if (desc.GetNeedArgumentNum() == 0) {
+        DescriptorScriptReference script_ref = desc.GetReference();
+        output.locking_script = script_ref.GetLockingScript();
+        locking_script_bytes = output.locking_script.GetData().GetBytes();
+        output.address_type = script_ref.GetAddressType();
+        utxo->address_type = static_cast<uint16_t>(output.address_type);
+        output.address = script_ref.GenerateAddress(net_type);
+      }
+    }
+
+    if (!locking_script_bytes.empty()) {
+      // do nothing
+    } else if (!utxo_data.address.GetAddress().empty()) {
+      output.locking_script = utxo_data.address.GetLockingScript();
+      locking_script_bytes = output.locking_script.GetData().GetBytes();
+      AddressType addr_type = utxo_data.address.GetAddressType();
+      if ((addr_type == AddressType::kP2shAddress) &&
+          ((utxo_data.address_type == AddressType::kP2shP2wshAddress) ||
+           (utxo_data.address_type == AddressType::kP2shP2wpkhAddress))) {
+        // direct set. output.address_type;
+      } else {
+        output.address_type = addr_type;
+      }
+      utxo->address_type = static_cast<uint16_t>(output.address_type);
+    } else if (!utxo_data.locking_script.IsEmpty()) {
+      locking_script_bytes = utxo_data.locking_script.GetData().GetBytes();
+      if (utxo_data.locking_script.IsP2wpkhScript()) {
+        utxo->address_type = AddressType::kP2wpkhAddress;
+      } else if (utxo_data.locking_script.IsP2wshScript()) {
+        utxo->address_type = AddressType::kP2wshAddress;
+      } else if (utxo_data.locking_script.IsP2pkhScript()) {
+        utxo->address_type = AddressType::kP2pkhAddress;
+      } else {  // TODO(k-matsuzawa): unbknown type is convert to p2sh
+        utxo->address_type = AddressType::kP2shAddress;
+      }
+      output.address_type = static_cast<AddressType>(utxo->address_type);
+    }
+
+    if (!locking_script_bytes.empty()) {
+      utxo->script_length = static_cast<uint16_t>(locking_script_bytes.size());
+      if (utxo->script_length < sizeof(utxo->locking_script)) {
+        memcpy(
+            utxo->locking_script, locking_script_bytes.data(),
+            utxo->script_length);
+      }
+    }
+
+    switch (utxo->address_type) {
+      case AddressType::kP2wpkhAddress:
+        utxo->witness_size_max = 71 + 33 + 2;
+        // fall-through
+      case AddressType::kP2shP2wpkhAddress:
+        utxo->uscript_size_max = 20 + 2;
+        break;
+      case AddressType::kP2wshAddress:
+        utxo->witness_size_max = 71 + utxo->script_length + 2;
+        // fall-through
+      case AddressType::kP2shP2wshAddress:
+        utxo->uscript_size_max = 32 + 2;
+        break;
+      case AddressType::kP2pkhAddress:
+        utxo->uscript_size_max = 71 + 33 + 3;
+        break;
+      case AddressType::kP2shAddress:
+      default:
+        utxo->uscript_size_max = 71 + utxo->script_length + 3;
+        break;
+    }
+
+#ifndef CFD_DISABLE_ELEMENTS
+    if (!utxo_data.asset.IsEmpty()) {
+      std::vector<uint8_t> asset = utxo_data.asset.GetData().GetBytes();
+      memcpy(utxo->asset, asset.data(), sizeof(utxo->asset));
+      // utxo->blinded = false;
+    }
+#endif  // CFD_DISABLE_ELEMENTS
+
+    if (dest != nullptr) {
+      *dest = output;
+    }
+  }
+}
 
 // -----------------------------------------------------------------------------
 // SignParameter

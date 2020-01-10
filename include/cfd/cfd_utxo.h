@@ -14,8 +14,6 @@
 #include <vector>
 
 #include "cfd/cfd_common.h"
-#include "cfd/cfd_elements_transaction.h"
-#include "cfd/cfd_transaction.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
@@ -24,14 +22,12 @@
 
 namespace cfd {
 
-using cfd::TransactionController;
 using cfd::core::Address;
 using cfd::core::Amount;
 using cfd::core::BlockHash;
 using cfd::core::Script;
 using cfd::core::Txid;
 #ifndef CFD_DISABLE_ELEMENTS
-using cfd::ConfidentialTransactionController;
 using cfd::core::ConfidentialAssetId;
 #endif  // CFD_DISABLE_ELEMENTS
 //! Asset Amountマップへのエイリアス (key: asset(str), value: amount)

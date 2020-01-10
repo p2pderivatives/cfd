@@ -162,3 +162,4 @@ external/*
 
 /doc/*.bat
 /tools/*localdebug.bat
+/tools/*localdebug.html

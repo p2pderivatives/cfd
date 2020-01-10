@@ -36,6 +36,7 @@ TEST(cfdcapi_key, CfdCalculateEcSignature) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ(kExtSignature, signature);
     CfdFreeStringBuffer(signature);
+    signature = NULL;
   }
 
   ret = CfdGetLastErrorCode(handle);
@@ -67,6 +68,42 @@ TEST(cfdcapi_key, CfdEncodeSignatureByDer) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ(kDerSignature, der_signature);
     CfdFreeStringBuffer(der_signature);
+    der_signature = NULL;
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, CfdNormalizeSignatureTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  // FIXME(fujita-cg): replace test data
+  // this test data comes from https://www.pebblewind.com/entry/2018/04/27/232427
+  if (ret == kCfdSuccess) {
+    const char* signature = "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5f67f6cf81a19873091aa7c9578fa2e96490e9bfc78ae7e9798004e8252c06287";
+    char* normalized;
+    ret = CfdNormalizeSignature(handle, signature, &normalized);
+    EXPECT_EQ(kCfdSuccess, ret);
+    const char* expect = "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee509809307e5e678cf6e55836a8705d16871a040ea369a21a427d2100a7d75deba";
+    EXPECT_STREQ(normalized, expect);
+    if (ret == kCfdSuccess) {
+      CfdFreeStringBuffer(normalized);
+      normalized = NULL;
+    }
   }
 
   ret = CfdGetLastErrorCode(handle);

@@ -25,6 +25,7 @@
 
 namespace cfd {
 
+using cfd::core::AbstractTransaction;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
@@ -34,6 +35,7 @@ using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::HashType;
 using cfd::core::NetType;
+using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
@@ -52,8 +54,482 @@ using cfd::core::logger::warn;
 using cfd::TransactionController;
 
 // -----------------------------------------------------------------------------
+// Define
+// -----------------------------------------------------------------------------
+/// シーケンス値(locktime有効)
+constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
+/// シーケンス値(locktime無効)
+constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
+
+// -----------------------------------------------------------------------------
 // TransactionController
 // -----------------------------------------------------------------------------
+TransactionContext::TransactionContext() {}
+
+TransactionContext::TransactionContext(uint32_t version, uint32_t locktime)
+    : Transaction(version, locktime) {}
+
+TransactionContext::TransactionContext(const std::string& tx_hex)
+    : Transaction(tx_hex) {}
+
+TransactionContext::TransactionContext(const ByteData& byte_data)
+    : Transaction(byte_data.GetHex()) {}
+
+TransactionContext::TransactionContext(const TransactionContext& context)
+    : Transaction(context.GetHex()) {
+  utxo_map_ = context.utxo_map_;
+  signed_map_ = context.signed_map_;
+  verify_map_ = context.verify_map_;
+  verify_ignore_map_ = context.verify_ignore_map_;
+}
+
+TransactionContext::TransactionContext(const Transaction& transaction)
+    : Transaction(transaction.GetHex()) {}
+
+TransactionContext& TransactionContext::operator=(
+    const TransactionContext& context) & {
+  SetFromHex(context.GetHex());
+  utxo_map_ = context.utxo_map_;
+  signed_map_ = context.signed_map_;
+  verify_map_ = context.verify_map_;
+  verify_ignore_map_ = context.verify_ignore_map_;
+  return *this;
+}
+
+void TransactionContext::AddInput(const UtxoData& utxo) {
+  AddInput(utxo, GetDefaultSequence());
+}
+
+void TransactionContext::AddInput(const UtxoData& utxo, uint32_t sequence) {
+  if (!utxo.txid.IsValid()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to AddInput. invalid utxo txid.");
+  }
+
+  UtxoData dest;
+  Utxo temp;
+  memset(&temp, 0, sizeof(temp));
+  UtxoUtil::ConvertToUtxo(utxo, &temp, &dest);
+
+  AddTxIn(utxo.txid, utxo.vout, sequence);
+  utxo_map_.emplace(OutPoint(utxo.txid, utxo.vout), dest);
+}
+
+void TransactionContext::AddInputs(const std::vector<UtxoData>& utxos) {
+  for (const auto& utxo : utxos) {
+    AddInput(utxo, GetDefaultSequence());
+  }
+}
+
+uint32_t TransactionContext::AddTxOut(
+    const Address& address, const Amount& value) {
+  const ByteData hash_data = address.GetHash();
+  Script locking_script = address.GetLockingScript();
+  return Transaction::AddTxOut(value, locking_script);
+}
+
+uint32_t TransactionContext::GetSizeIgnoreTxIn() const {
+  uint32_t result = AbstractTransaction::kTransactionMinimumSize;
+  std::vector<TxOutReference> txouts = GetTxOutList();
+  for (const auto& txout : txouts) {
+    result += txout.GetSerializeSize();
+  }
+  return result;
+}
+
+void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
+  if ((!utxos.empty()) && (utxo_map_.size() != GetTxInCount())) {
+    for (const auto& txin_ref : GetTxInList()) {
+      const Txid& txid = txin_ref.GetTxid();
+      uint32_t vout = txin_ref.GetVout();
+
+      OutPoint outpoint(txid, vout);
+      if (utxo_map_.count(outpoint) == 0) {
+        for (const auto& utxo : utxos) {
+          if ((utxo.vout == vout) && utxo.txid.Equals(txid)) {
+            utxo_map_.emplace(outpoint, utxo);
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+#if 0
+void TransactionContext::SignWithKey(
+    const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
+    SigHashType sighash_type, bool has_grind_r) {
+  if (utxo_map_.count(outpoint) == 0) {
+    warn(CFD_LOG_SOURCE, "Failed to SignWithKey. utxo not found.");
+    throw CfdException(CfdError::kCfdIllegalStateError, "utxo not found.");
+  }
+  UtxoData utxo = utxo_map_[outpoint];
+  Amount value = utxo.amount;
+
+  SignWithPrivkeySimple(
+      outpoint, pubkey, privkey, sighash_type, value, utxo.address_type,
+      has_grind_r);
+}
+
+void TransactionContext::IgnoreVerify(const OutPoint& outpoint) {
+  GetTxInIndex(outpoint.GetTxid(), outpoint.GetVout());
+  verify_ignore_map_.emplace(outpoint);
+  verify_map_.erase(outpoint);
+}
+
+void TransactionContext::Verify() {
+  // FIXME please implements.
+  return;
+}
+
+void TransactionContext::Verify(const OutPoint& outpoint) {
+  GetTxInIndex(outpoint.GetTxid(), outpoint.GetVout());
+
+  if (utxo_map_.count(outpoint) == 0) {
+    // FIXME throw utxo not found.
+  }
+
+  // FIXME please implements.
+
+  verify_map_.emplace(outpoint);
+  verify_ignore_map_.erase(outpoint);
+}
+
+ByteData TransactionContext::Finalize() {
+  if ((verify_map_.size() + verify_ignore_map_.size()) != GetTxInCount()) {
+    Verify();
+  }
+  return AbstractTransaction::GetData();
+}
+
+// priority: low
+void TransactionContext::ClearSign() { return; }
+
+// priority: low
+void TransactionContext::ClearSign(const OutPoint& outpoint) { return; }
+#endif
+
+ByteData TransactionContext::CreateSignatureHash(
+    const Txid& txid, uint32_t vout, const Pubkey& pubkey,
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  Script script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+  ByteData256 sighash = GetSignatureHash(
+      txin_index, script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
+}
+
+ByteData TransactionContext::CreateSignatureHash(
+    const Txid& txid, uint32_t vout, const Script& redeem_script,
+    SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
+  ByteData256 sighash = GetSignatureHash(
+      txin_index, redeem_script.GetData(), sighash_type, value, version);
+  return ByteData(sighash.GetBytes());
+}
+
+void TransactionContext::SignWithPrivkeySimple(
+    const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
+    SigHashType sighash_type, const Amount& value, AddressType address_type,
+    bool has_grind_r) {
+  if (!outpoint.IsValid()) {
+    warn(CFD_LOG_SOURCE, "Failed to SignWithPrivkeySimple. Invalid outpoint.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid outpoint.");
+  }
+  if (!pubkey.IsValid()) {
+    warn(CFD_LOG_SOURCE, "Failed to SignWithPrivkeySimple. Invalid pubkey.");
+    throw CfdException(CfdError::kCfdIllegalArgumentError, "Invalid pubkey.");
+  }
+  if (privkey.IsInvalid()) {
+    warn(CFD_LOG_SOURCE, "Failed to SignWithPrivkeySimple. Invalid privkey.");
+    throw CfdException(CfdError::kCfdIllegalArgumentError, "Invalid privkey.");
+  }
+
+  Txid txid = outpoint.GetTxid();
+  uint32_t vout = outpoint.GetVout();
+  WitnessVersion version = WitnessVersion::kVersionNone;
+  switch (address_type) {
+    case AddressType::kP2wshAddress:
+    case AddressType::kP2shP2wshAddress:
+    case AddressType::kP2wpkhAddress:
+    case AddressType::kP2shP2wpkhAddress:
+      version = WitnessVersion::kVersion0;
+    default:
+      break;
+  }
+
+  ByteData sighash =
+      CreateSignatureHash(txid, vout, pubkey, sighash_type, value, version);
+  ByteData signature = SignatureUtil::CalculateEcSignature(
+      ByteData256(sighash), privkey, has_grind_r);
+  SignParameter sign(signature, true, sighash_type);
+
+  AddPubkeyHashSign(outpoint, sign, pubkey, address_type);
+}
+
+void TransactionContext::AddPubkeyHashSign(
+    const OutPoint& outpoint, const SignParameter& signature,
+    const Pubkey& pubkey, AddressType address_type) {
+  if ((signature.GetDataType() != SignDataType::kSign) &&
+      (signature.GetDataType() != SignDataType::kBinary)) {
+    warn(
+        CFD_LOG_SOURCE,
+        "Failed to AddPubkeyHashSign. Invalid signature type: {}",
+        signature.GetDataType());
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Invalid signature type. signature type must be \"kSign\" "
+        "or \"kBinary\".");  // NOLINT
+  }
+  if (!pubkey.IsValid()) {
+    warn(CFD_LOG_SOURCE, "Failed to AddPubkeyHashSign. Invalid pubkey.");
+    throw CfdException(CfdError::kCfdIllegalArgumentError, "Invalid pubkey.");
+  }
+  if (!outpoint.IsValid()) {
+    warn(CFD_LOG_SOURCE, "Failed to AddPubkeyHashSign. Invalid outpoint.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid outpoint.");
+  }
+
+  bool has_witness = false;
+  bool has_scriptsig = false;
+  Script locking_script;
+  std::vector<SignParameter> sign_params;
+  switch (address_type) {
+    case AddressType::kP2wpkhAddress:
+      has_witness = true;
+      break;
+    case AddressType::kP2shP2wpkhAddress:
+      has_witness = true;
+      has_scriptsig = true;
+      locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+      break;
+    case AddressType::kP2pkhAddress:
+      has_scriptsig = true;
+      break;
+    default:
+      warn(
+          CFD_LOG_SOURCE,
+          "Failed to AddPubkeyHashSign. Invalid address_type: {}",
+          address_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid address_type. address_type must be \"p2wpkh\" "
+          "or \"p2sh-p2wpkh\" or \"p2pkh\".");  // NOLINT
+  }
+  sign_params.push_back(signature);
+  sign_params.push_back(SignParameter(pubkey));
+
+  if (has_witness) {
+    AddSign(outpoint, sign_params, true, true);
+  }
+  if (has_scriptsig) {
+    if (!locking_script.IsEmpty()) {  // p2sh-p2wpkh
+      std::vector<SignParameter> scriptsig;
+      scriptsig.push_back(SignParameter(locking_script));
+      AddSign(outpoint, scriptsig, false, true);
+    } else {
+      AddSign(outpoint, sign_params, false, true);
+    }
+  }
+
+  signed_map_.emplace(outpoint, signature.GetSigHashType());
+}
+
+void TransactionContext::AddScriptHashSign(
+    const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
+    const Script& redeem_script, AddressType address_type,
+    bool is_multisig_script) {
+  if (redeem_script.IsEmpty()) {
+    warn(CFD_LOG_SOURCE, "Failed to AddScriptHashSign. Empty script.");
+    throw CfdException(CfdError::kCfdIllegalArgumentError, "Empty script.");
+  }
+  if (!outpoint.IsValid()) {
+    warn(CFD_LOG_SOURCE, "Failed to AddPubkeyHashSign. Invalid outpoint.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid outpoint.");
+  }
+  for (const auto& signature : signatures) {
+    if ((signature.GetDataType() != SignDataType::kSign) &&
+        (signature.GetDataType() != SignDataType::kBinary)) {
+      warn(
+          CFD_LOG_SOURCE,
+          "Failed to AddScriptHashSign. Invalid signature type: {}",
+          signature.GetDataType());
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid signature type. signature type must be \"kSign\" "
+          "or \"kBinary\".");  // NOLINT
+    }
+  }
+
+  bool has_witness = false;
+  bool has_scriptsig = false;
+  Script locking_script;
+  std::vector<SignParameter> sign_params;
+  switch (address_type) {
+    case AddressType::kP2wshAddress:
+      has_witness = true;
+      break;
+    case AddressType::kP2shP2wshAddress:
+      has_witness = true;
+      has_scriptsig = true;
+      locking_script = ScriptUtil::CreateP2wshLockingScript(redeem_script);
+      break;
+    case AddressType::kP2shAddress:
+      has_scriptsig = true;
+      break;
+    default:
+      warn(
+          CFD_LOG_SOURCE,
+          "Failed to AddScriptHashSign. Invalid address_type: {}",
+          address_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid address_type. address_type must be \"p2wsh\" "
+          "or \"p2sh-p2wsh\" or \"p2sh\".");  // NOLINT
+  }
+  if (is_multisig_script) {
+    if (has_witness) {
+      sign_params.push_back(SignParameter(ByteData()));
+    } else {
+      sign_params.push_back(SignParameter(ScriptOperator::OP_0));
+    }
+  }
+  for (const auto& signature : signatures) {
+    sign_params.push_back(signature);
+  }
+  sign_params.push_back(SignParameter(redeem_script));
+
+  if (has_witness) {
+    AddSign(outpoint, sign_params, true, true);
+  }
+  if (has_scriptsig) {
+    if (!locking_script.IsEmpty()) {  // p2sh-p2wpkh
+      std::vector<SignParameter> scriptsig;
+      scriptsig.push_back(SignParameter(locking_script));
+      AddSign(outpoint, scriptsig, false, true);
+    } else {
+      AddSign(outpoint, sign_params, false, true);
+    }
+  }
+
+  // TODO(k-matsuzawa): consider to multi-signature.
+  // signed_map_.emplace(outpoint, signature.GetSigHashType());
+}
+
+void TransactionContext::AddMultisigSign(
+    const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
+    const Script& redeem_script, AddressType address_type) {
+  // FIXME ソートや検証など、色々と処理が必要なので、APIから複製する。
+  AddScriptHashSign(outpoint, signatures, redeem_script, address_type, true);
+}
+
+void TransactionContext::AddSign(
+    const OutPoint& outpoint, const std::vector<SignParameter>& sign_params,
+    bool insert_witness, bool clear_stack) {
+  if (sign_params.empty()) {
+    warn(CFD_LOG_SOURCE, "Failed to AddScriptHashSign. Empty sign_params.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Empty sign_params.");
+  }
+  if (!outpoint.IsValid()) {
+    warn(CFD_LOG_SOURCE, "Failed to AddPubkeyHashSign. Invalid outpoint.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid outpoint.");
+  }
+
+  bool has_op_code = false;
+  for (const SignParameter& sign_param : sign_params) {
+    if (sign_param.IsOpCode()) {
+      ScriptOperator op_code = sign_param.GetOpCode();
+      if (op_code.IsPushOperator()) {
+        has_op_code = true;
+      }
+    }
+  }
+  Txid txid = outpoint.GetTxid();
+  uint32_t vout = outpoint.GetVout();
+  uint32_t txin_index = GetTxInIndex(txid, vout);
+
+  if (insert_witness) {
+    if (clear_stack) {
+      RemoveScriptWitnessStackAll(txin_index);
+    }
+    for (const SignParameter& sign_param : sign_params) {
+      AddScriptWitnessStack(txin_index, sign_param.ConvertToSignature());
+    }
+  } else {
+    Script script;
+    if (!clear_stack) {
+      script = GetTxIn(txin_index).GetUnlockingScript();
+    }
+    ScriptBuilder builder;
+    for (const auto& element : script.GetElementList()) {
+      builder.AppendElement(element);
+    }
+    for (const SignParameter& sign_param : sign_params) {
+      if (has_op_code && sign_param.IsOpCode()) {
+        // Checking push-operator is performed at the time of registration.
+        builder.AppendOperator(sign_param.GetOpCode());
+      } else {
+        builder.AppendData(sign_param.ConvertToSignature());
+      }
+    }
+    SetUnlockingScript(txin_index, builder.Build());
+  }
+}
+
+bool TransactionContext::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, SigHashType sighash_type, const Amount& value,
+    WitnessVersion version) const {
+  auto sighash =
+      CreateSignatureHash(txid, vout, pubkey, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+bool TransactionContext::VerifyInputSignature(
+    const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
+    uint32_t vout, const Script& script, SigHashType sighash_type,
+    const Amount& value, WitnessVersion version) const {
+  auto sighash =
+      CreateSignatureHash(txid, vout, script, sighash_type, value, version);
+  return SignatureUtil::VerifyEcSignature(
+      ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+uint32_t TransactionContext::GetDefaultSequence() const {
+  if (GetLockTime() == 0) {
+    return kSequenceDisableLockTime;
+  } else {
+    return kSequenceEnableLockTimeMax;
+  }
+}
+
+uint32_t TransactionContext::GetLockTimeDisabledSequence() {
+  return kSequenceDisableLockTime;
+}
+
+void TransactionContext::CallbackStateChange(uint32_t type) {
+  cfd::core::logger::trace(
+      CFD_LOG_SOURCE, "CallbackStateChange type::{}", type);
+}
+
+// -----------------------------------------------------------------------------
+// TransactionController
+// -----------------------------------------------------------------------------
+TransactionController::TransactionController() : transaction_(2, 0) {
+  tx_address_ = &transaction_;
+}
+
 TransactionController::TransactionController(
     uint32_t version, uint32_t locktime)
     : transaction_(version, locktime) {
@@ -69,6 +545,12 @@ TransactionController::TransactionController(
     const TransactionController& transaction)
     : TransactionController(transaction.GetHex()) {
   // do nothing
+}
+
+TransactionController& TransactionController::operator=(
+    const TransactionController& transaction) & {
+  transaction_ = transaction.transaction_;
+  return *this;
 }
 
 const TxInReference TransactionController::AddTxIn(

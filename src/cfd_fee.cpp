@@ -11,12 +11,14 @@
 
 #include "cfd/cfd_fee.h"
 #include "cfdcore/cfdcore_amount.h"
+#include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 
 namespace cfd {
 
 using cfd::core::AbstractTransaction;
 using cfd::core::Amount;
+using cfd::core::TxIn;
 
 // -----------------------------------------------------------------------------
 // ファイル内定数
