@@ -45,6 +45,16 @@ apt-get install -y build-essential cmake python nodejs
 cmake version 3.14.2 or lower, download from website and install cmake.
 (https://cmake.org/download/)
 
+### Docker
+
+```Shell
+# build image, dependencies and run tests
+sudo docker build -t cfd .
+
+# run container and invoke shell
+sudo docker run -it cfd bash
+```
+
 ---
 
 ## Build
