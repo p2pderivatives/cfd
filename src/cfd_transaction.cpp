@@ -60,7 +60,7 @@ using cfd::TransactionController;
 constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
 /// シーケンス値(locktime無効)
 constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
-// multisig key数上限
+/// multisig key数上限
 constexpr uint32_t kMaximumMultisigKeyNum = 15;
 
 // -----------------------------------------------------------------------------
