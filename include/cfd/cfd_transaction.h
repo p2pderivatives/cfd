@@ -320,6 +320,16 @@ class CFD_EXPORT TransactionContext : public Transaction {
    */
   static uint32_t GetLockTimeDisabledSequence();
 
+  /**
+   * @brief check multisig script and parameter.
+   * @param[in] sign_list       multisig sign list.
+   * @param[in] redeem_script   multisig script.
+   * @return sorted list.
+   */
+  static std::vector<SignParameter> CheckMultisig(
+      const std::vector<SignParameter>& sign_list,
+      const Script& redeem_script);
+
  protected:
   /**
    * @brief This function is called by the state change.
