@@ -89,6 +89,16 @@ TEST(ConfidentialTransactionController, SetAssetIssuanceTest1)
                              token_address.GetLockingScript(),
                              ByteData(), is_blind,
                              contract_hash, true)));
+    if (tx.GetHex() == expect_tx.GetHex()) {
+      tx = tx_base;
+      EXPECT_NO_THROW(
+          (tx.SetAssetIssuance(txid, 1, asset_amount,
+                               asset_address.GetLockingScript(),
+                               ByteData(), token_amount,
+                               token_address.GetLockingScript(),
+                               ByteData(), is_blind,
+                               contract_hash, true)));
+    }
     EXPECT_STRNE(tx.GetHex().c_str(), expect_tx.GetHex().c_str());
 }
 
@@ -122,6 +132,14 @@ TEST(ConfidentialTransactionController, SetAssetReissuanceTest1)
                                address.GetLockingScript(),
                                ByteData(), blind_factor,
                                entropy, true, false)));
+    if (tx.GetHex() == expect_tx.GetHex()) {
+      tx = tx_base;
+      EXPECT_NO_THROW(
+          (tx.SetAssetReissuance(txid, 2, amount,
+                                 address.GetLockingScript(),
+                                 ByteData(), blind_factor,
+                                 entropy, true, false)));
+    }
     EXPECT_STRNE(tx.GetHex().c_str(), expect_tx.GetHex().c_str());
 }
 
