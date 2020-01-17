@@ -338,6 +338,26 @@ CFDC_API int CfdGetAddressFromLockingScript(
     void* handle, const char* locking_script, int network_type,
     char** address);
 
+/**
+ * @brief get address information.
+ * @details support is bitcoin or elements(liquidv1).
+ * @param[in] handle            handle pointer.
+ * @param[in] address           address.
+ * @param[out] network_type     network type. (see CfdNetworkType)
+ * @param[out] hash_type        hash type. (see CfdHashType)
+ * @param[out] witness_version  witness version. (see CfdWitnessVersion)
+ * @param[out] locking_script   locking script.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] hash             hash value.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetAddressInfo(
+    void* handle, const char* address, int* network_type, int* hash_type,
+    int* witness_version, char** locking_script, char** hash);
+
 #ifdef __cplusplus
 #if 0
 {

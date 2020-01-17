@@ -60,6 +60,8 @@ using cfd::TransactionController;
 constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
 /// シーケンス値(locktime無効)
 constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
+/// multisig key数上限
+constexpr uint32_t kMaximumMultisigKeyNum = 15;
 
 // -----------------------------------------------------------------------------
 // TransactionController
@@ -427,8 +429,9 @@ void TransactionContext::AddScriptHashSign(
 void TransactionContext::AddMultisigSign(
     const OutPoint& outpoint, const std::vector<SignParameter>& signatures,
     const Script& redeem_script, AddressType address_type) {
-  // FIXME ソートや検証など、色々と処理が必要なので、APIから複製する。
-  AddScriptHashSign(outpoint, signatures, redeem_script, address_type, true);
+  std::vector<SignParameter> sign_list =
+      CheckMultisig(signatures, redeem_script);
+  AddScriptHashSign(outpoint, sign_list, redeem_script, address_type, true);
 }
 
 void TransactionContext::AddSign(
@@ -521,6 +524,60 @@ uint32_t TransactionContext::GetLockTimeDisabledSequence() {
 void TransactionContext::CallbackStateChange(uint32_t type) {
   cfd::core::logger::trace(
       CFD_LOG_SOURCE, "CallbackStateChange type::{}", type);
+}
+
+std::vector<SignParameter> TransactionContext::CheckMultisig(
+    const std::vector<SignParameter>& sign_list, const Script& redeem_script) {
+  // check signData (too much data)
+  if (sign_list.empty() || (sign_list.size() > kMaximumMultisigKeyNum)) {
+    warn(
+        CFD_LOG_SOURCE, "Failed to CheckMultisig. sign array is '1 - {}'.",
+        kMaximumMultisigKeyNum);
+    throw CfdException(
+        CfdError::kCfdOutOfRangeError,
+        "Value out of range. sign array length fail.");
+  }
+
+  // check multisig format and extract pubkey.
+  std::vector<Pubkey> pubkeys =
+      ScriptUtil::ExtractPubkeysFromMultisigScript(redeem_script);
+
+  std::vector<SignParameter> signature_list;
+  std::vector<SignParameter> sign_params = sign_list;
+  for (const Pubkey& pubkey : pubkeys) {
+    std::string pubkey_hex = pubkey.GetHex();
+    for (auto itr = sign_params.begin(); itr != sign_params.end();) {
+      SignParameter sign_param = *itr;
+      Pubkey related_pubkey = sign_param.GetRelatedPubkey();
+      if ((!related_pubkey.IsValid()) ||
+          (related_pubkey.GetHex() != pubkey_hex)) {
+        ++itr;
+        continue;
+      }
+
+      itr = sign_params.erase(itr);
+      signature_list.push_back(sign_param);
+    }
+  }
+
+  // set the others to signature data
+  for (const auto& sign_param : sign_params) {
+    // related pubkey not found in script
+    if (sign_param.GetRelatedPubkey().IsValid()) {
+      warn(
+          CFD_LOG_SOURCE,
+          "Failed to CheckMultisig. Missing related pubkey"
+          " in script.: relatedPubkey={}, script={}",
+          sign_param.GetRelatedPubkey().GetHex(), redeem_script.GetHex());
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Missing related pubkey in script."
+          " Check your signature and pubkey pair.");
+    }
+    signature_list.push_back(sign_param);
+  }
+
+  return signature_list;
 }
 
 // -----------------------------------------------------------------------------
