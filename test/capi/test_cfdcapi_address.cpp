@@ -220,3 +220,162 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);
 }
+
+TEST(cfdcapi_address, CfdGetAddressInfoTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  struct CfdGetAddressExpectData {
+    const char* address;
+    const char* locking_script;
+    const char* hash;
+    int network;
+    int hash_type;
+    int witness_version;
+  };
+  const struct CfdGetAddressExpectData exp_datas[] = {
+    { // HashType(P2PKH) mainnet
+      "1PMycacnJaSqwwJqjawXBErnLsZ7RkXUAs",
+      "76a914f54a5851e9372b87810a8e60cdd2e7cfd80b6e3188ac",
+      "f54a5851e9372b87810a8e60cdd2e7cfd80b6e31",
+      kCfdNetworkMainnet,
+      kCfdP2pkh,
+      kCfdWitnessVersionNone,
+    },
+    { // HashType(P2PKH) testnet
+      "mjawtDFWiNppWUqczgQevgyg6Hg7J8Uxcg",
+      "76a9142ca1d2e7214b16725cf6310867460633a061edcb88ac",
+      "2ca1d2e7214b16725cf6310867460633a061edcb",
+      kCfdNetworkTestnet,
+      kCfdP2pkh,
+      kCfdWitnessVersionNone,
+    },
+    { // HashType(P2SH) mainnet
+      "3KxE77EHe1ip6WGRifwr9fZ5WBDGsLyWFz",
+      "a914c852ac34a1c76b63a279c97502c9ccc4e3cb9e8b87",
+      "c852ac34a1c76b63a279c97502c9ccc4e3cb9e8b",
+      kCfdNetworkMainnet,
+      kCfdP2sh,
+      kCfdWitnessVersionNone,
+    },
+    { // HashType(P2SH) testnet
+      "2NEbifo1SsiCYMQhGxGCg3tcTzR8xHuhqeH",
+      "a914ea3ae70e53e6e2813002738cba26bd0cfcdecb0687",
+      "ea3ae70e53e6e2813002738cba26bd0cfcdecb06",
+      kCfdNetworkTestnet,
+      kCfdP2sh,
+      kCfdWitnessVersionNone,
+    },
+    { // HashType(P2SH-P2WPKH) mainnet
+      "3JvL6Ymt8MVWiCNHC7oWU6nLeHNJKLZGLN",
+      "a914bcfeb728b584253d5f3f70bcb780e9ef218a68f487",
+      "bcfeb728b584253d5f3f70bcb780e9ef218a68f4",
+      kCfdNetworkMainnet,
+      kCfdP2sh,
+      kCfdWitnessVersionNone,
+    },
+    { // HashType(P2WPKH) mainnet
+      "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+      "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+      "751e76e8199196d454941c45d1b3a323f1433bd6",
+      kCfdNetworkMainnet,
+      kCfdP2wpkh,
+      kCfdWitnessVersion0,
+    },
+    { // HashType(P2WPKH) testnet
+      "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+      "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+      "751e76e8199196d454941c45d1b3a323f1433bd6",
+      kCfdNetworkTestnet,
+      kCfdP2wpkh,
+      kCfdWitnessVersion0,
+    },
+    { // HashType(P2WSH) mainnet
+      "bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3",
+      "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262",
+      "1863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262",
+      kCfdNetworkMainnet,
+      kCfdP2wsh,
+      kCfdWitnessVersion0,
+    },
+    { // HashType(P2WSH) testnet
+      "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
+      "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262",
+      "1863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262",
+      kCfdNetworkTestnet,
+      kCfdP2wsh,
+      kCfdWitnessVersion0,
+    },
+#ifndef CFD_DISABLE_ELEMENTS
+    { // Elements HashType(P2PKH) liquidv1
+      "QKXGAM4Cvd1fvLEz5tbq4YwNRzTjdMWi2q",
+      "76a914f42331c418ef4517ba644ad6e9fc99681ad4393788ac",
+      "f42331c418ef4517ba644ad6e9fc99681ad43937",
+      kCfdNetworkLiquidv1,
+      kCfdP2pkh,
+      kCfdWitnessVersionNone,
+    },
+    { // Elements HashType(P2SH) regtest
+      "XRpicZNrFZumBMhRV5BSYW28pGX7JyY1ua",
+      "a9149ec42b6cfa1b0bc3f55f07af29867057cb0b8a2e87",
+      "9ec42b6cfa1b0bc3f55f07af29867057cb0b8a2e",
+      kCfdNetworkElementsRegtest,
+      kCfdP2sh,
+      kCfdWitnessVersionNone,
+    },
+    { // Elements HashType(P2WPKH) regtest
+      "ert1q57etrknhl75e64jmqrvl0vwzu39xjpagaw9ynw",
+      "0014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a8",
+      "a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a8",
+      kCfdNetworkElementsRegtest,
+      kCfdP2wpkh,
+      kCfdWitnessVersion0,
+    },
+    { // Elements HashType(P2WSH) liquidv1
+      "ex1q6tayh53l97qhs7fr98x8msgmn82egptfhpkyn53vkt22lrxswztsgnpmxp",
+      "0020d2fa4bd23f2f8178792329cc7dc11b99d5940569b86c49d22cb2d4af8cd07097",
+      "d2fa4bd23f2f8178792329cc7dc11b99d5940569b86c49d22cb2d4af8cd07097",
+      kCfdNetworkLiquidv1,
+      kCfdP2wsh,
+      kCfdWitnessVersion0,
+    },
+#endif  // CFD_DISABLE_ELEMENTS
+  };
+  size_t list_size = sizeof(exp_datas) / sizeof(struct CfdGetAddressExpectData);
+
+  const char* address;
+
+  for (size_t idx = 0; idx < list_size; ++idx) {
+    int network = 0;
+    int hash_type = 0;
+    int witness_version = 0;
+    char* locking_script = nullptr;
+    char* hash = nullptr;
+    ret = CfdGetAddressInfo(
+        handle, exp_datas[idx].address, &network, &hash_type,
+        &witness_version, &locking_script, &hash);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_EQ(exp_datas[idx].network, network);
+      EXPECT_EQ(exp_datas[idx].hash_type, hash_type);
+      EXPECT_EQ(exp_datas[idx].witness_version, witness_version);
+      EXPECT_STREQ(exp_datas[idx].locking_script, locking_script);
+      EXPECT_STREQ(exp_datas[idx].hash, hash);
+      CfdFreeStringBuffer(locking_script);
+      CfdFreeStringBuffer(hash);
+    } else {
+      char* message = nullptr;
+      ret = CfdGetLastErrorMessage(handle, &message);
+      if (ret == kCfdSuccess) {
+        EXPECT_STREQ("", message);
+        CfdFreeStringBuffer(message);
+      }
+    }
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
