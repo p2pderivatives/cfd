@@ -11,3 +11,5 @@ rmdir /S /Q external\cfd-core
 
 rmdir /S /Q external\libwally-core
 
+rmdir /S /Q external\googletest
+
