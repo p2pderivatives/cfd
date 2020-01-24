@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "cfd/cfd_common.h"
 #include "cfdc/cfdcapi_common.h"
 #include "capi/cfdc_internal.h"
 #include "cfdcore/cfdcore_exception.h"
@@ -50,6 +51,31 @@ TEST(cfdcapi_common, CfdCreateSimpleHandle) {
   ret = CfdCreateSimpleHandle(&handle);
   EXPECT_EQ(kCfdSuccess, ret);
   EXPECT_FALSE((NULL == handle));
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdCloneHandle) {
+  cfd::Initialize();
+  int ret = CfdCloneHandle(NULL, NULL);
+  EXPECT_EQ(kCfdIllegalArgumentError, ret);
+
+  void* handle = NULL;
+  ret = CfdCloneHandle(NULL, &handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* handle2 = NULL;
+  ret = CfdCloneHandle(handle, &handle2);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle2));
+
+  ret = CfdCopyErrorState(handle, handle2);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  ret = CfdFreeHandle(handle2);
+  EXPECT_EQ(kCfdSuccess, ret);
 
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);

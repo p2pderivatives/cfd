@@ -33,14 +33,15 @@ using cfd::core::Script;
  * @brief DescriptorのScript系情報構造体
  */
 struct DescriptorScriptData {
-  DescriptorScriptType type;   //!< script type
-  Script locking_script;       //!< locking script
-  uint32_t depth;              //!< depth
-  Address address;             //!< address
-  AddressType address_type;    //!< address type
-  Script redeem_script;        //!< redeem script
-  DescriptorKeyType key_type;  //!< key type
-  std::string key;             //!< key string
+  DescriptorScriptType type;      //!< script type
+  Script locking_script;          //!< locking script
+  uint32_t depth;                 //!< depth
+  Address address;                //!< address
+  AddressType address_type;       //!< address type
+  Script redeem_script;           //!< redeem script
+  DescriptorKeyType key_type;     //!< key type
+  std::string key;                //!< key string
+  uint32_t multisig_req_sig_num;  //!< multisig num of require signatures
 };
 
 /**

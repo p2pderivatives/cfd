@@ -45,6 +45,16 @@ apt-get install -y build-essential cmake python nodejs
 cmake version 3.14.2 or lower, download from website and install cmake.
 (https://cmake.org/download/)
 
+### Docker
+
+```Shell
+# build image, dependencies and run tests
+sudo docker build -t cfd .
+
+# run container and invoke shell
+sudo docker run -it cfd bash
+```
+
 ---
 
 ## Build
@@ -143,3 +153,21 @@ npm run ctest
 ### Example
 
 - Not Implemented yet
+
+## Note
+
+### Git connection:
+
+Git repository connections default to HTTPS.
+However, depending on the connection settings of GitHub, you may only be able to connect via SSH.
+As a countermeasure, forcibly establish SSH connection by setting `CFD_CMAKE_GIT_SSH=1` in the environment variable.
+
+- Windows: (On the command line. Or set from the system setting screen.)
+```
+set CFD_CMAKE_GIT_SSH=1
+```
+
+- MacOS & Linux(Ubuntu):
+```
+export CFD_CMAKE_GIT_SSH=1
+```

@@ -8,6 +8,12 @@
 using cfd::core::Amount;
 using cfd::FeeCalculator;
 
+TEST(FeeCalculator, Constructor)
+{
+  FeeCalculator fee;
+  EXPECT_EQ(fee.GetFee(3000).GetSatoshiValue(), static_cast<int64_t>(3000));
+}
+
 TEST(FeeCalculator, CalculateFeeTest)
 {
   Amount amt;

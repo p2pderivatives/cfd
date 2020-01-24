@@ -49,7 +49,8 @@ enum CfdErrorCode {
   kCfdOutOfRangeError = 3,       //!< 範囲外の値
   kCfdInvalidSettingError = 4,   //!< 設定不正
   kCfdConnectionError = 5,       //!< 接続エラー
-  kCfdDiskAccessError = 6        //!< ディスクアクセスエラー
+  kCfdDiskAccessError = 6,       //!< ディスクアクセスエラー
+  kCfdSignVerificationError = 7  //!< Signature Verification 失敗時のエラー
 };
 
 /**
@@ -94,6 +95,23 @@ CFDC_API int CfdCreateHandle(void** handle);
  * @return CfdErrorCode
  */
 CFDC_API int CfdCreateSimpleHandle(void** handle);
+
+/**
+ * @brief cloning cfd handle.
+ * @param[in] source    source handle. (can use null)
+ * @param[out] handle   handle pointer.
+ *   When you are finished using it, release it with 'CfdFreeHandle'.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCloneHandle(void* source, void** handle);
+
+/**
+ * @brief copy error state on cfd handle.
+ * @param[in] source        source handle. (can use null)
+ * @param[out] destination  destination handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCopyErrorState(void* source, void* destination);
 
 /**
  * @brief cfdのハンドルを解放する。

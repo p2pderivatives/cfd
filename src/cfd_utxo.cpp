@@ -23,6 +23,7 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #ifndef CFD_DISABLE_ELEMENTS
 #include "cfdcore/cfdcore_elements_transaction.h"
@@ -34,6 +35,7 @@ using cfd::core::AbstractTransaction;
 using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::BlockHash;
+using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::kMaxAmount;
@@ -41,6 +43,8 @@ using cfd::core::RandomNumberUtil;
 using cfd::core::Script;
 using cfd::core::Txid;
 using cfd::core::TxIn;
+using cfd::core::TxOut;
+using cfd::core::TxOutReference;
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::core::ConfidentialAssetId;
 using cfd::core::ConfidentialTxIn;
@@ -138,11 +142,15 @@ void CoinSelectionOption::SetChangeSpendSize(size_t size) {
 }
 
 void CoinSelectionOption::SetEffectiveFeeBaserate(double baserate) {
-  effective_fee_baserate_ = static_cast<uint64_t>(floor(baserate * 1000));
+  if (baserate >= 0) {
+    effective_fee_baserate_ = static_cast<uint64_t>(floor(baserate * 1000));
+  }
 }
 
 void CoinSelectionOption::SetLongTermFeeBaserate(double baserate) {
-  long_term_fee_baserate_ = static_cast<uint64_t>(floor(baserate * 1000));
+  if (baserate >= 0) {
+    long_term_fee_baserate_ = static_cast<uint64_t>(floor(baserate * 1000));
+  }
 }
 
 void CoinSelectionOption::SetKnapsackMinimumChange(int64_t min_change) {
@@ -150,7 +158,9 @@ void CoinSelectionOption::SetKnapsackMinimumChange(int64_t min_change) {
 }
 
 void CoinSelectionOption::SetDustFeeRate(double baserate) {
-  dust_fee_rate_ = static_cast<uint64_t>(floor(baserate * 1000));
+  if (baserate >= 0) {
+    dust_fee_rate_ = static_cast<uint64_t>(floor(baserate * 1000));
+  }
 }
 
 void CoinSelectionOption::InitializeTxSizeInfo() {

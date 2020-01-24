@@ -2,7 +2,7 @@
 /**
  * @file cfdcapi_key.h
  *
- * @brief cfd-capiで利用する鍵関連のクラス定義
+ * @brief cfd-capiで利用する鍵関連のAPI定義
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_
@@ -58,6 +58,17 @@ CFDC_API int CfdCalculateEcSignature(
 CFDC_API int CfdEncodeSignatureByDer(
     void* handle, const char* signature, int sighash_type,
     bool sighash_anyone_can_pay, char** der_signature);
+
+/**
+ * @brief convert ec signature to low-s form
+ * @param[in] handle                  cfd handle.
+ * @param[in] signature               to convert ec signature
+ * @param[out] normalized_signature   normalized signature
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdNormalizeSignature(
+    void* handle, const char* signature, char** normalized_signature);
 
 /**
  * @brief create key pair.
