@@ -45,8 +45,8 @@ using cfd::core::logger::info;
 using cfd::core::logger::warn;
 
 #ifndef CFD_DISABLE_ELEMENTS
-using cfd::api::ElementsAddressApi;
 using cfd::ElementsAddressFactory;
+using cfd::api::ElementsAddressApi;
 #endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
@@ -477,7 +477,7 @@ int CfdGetDescriptorData(
     uint32_t* depth, int* script_type, char** locking_script, char** address,
     int* hash_type, char** redeem_script, int* key_type, char** pubkey,
     char** ext_pubkey, char** ext_privkey, bool* is_multisig,
-    uint32_t* max_key_num) {
+    uint32_t* max_key_num, uint32_t* req_sig_num) {
   char* work_locking_script = nullptr;
   char* work_address = nullptr;
   char* work_redeem_script = nullptr;
@@ -556,6 +556,9 @@ int CfdGetDescriptorData(
         if (max_key_num != nullptr) {
           *max_key_num =
               static_cast<uint32_t>(buffer->multisig_key_list->size());
+        }
+        if (req_sig_num != nullptr) {
+          *req_sig_num = static_cast<uint32_t>(desc_data.multisig_req_sig_num);
         }
       } else {
         *is_multisig = false;
@@ -863,6 +866,115 @@ int CfdGetAddressFromLockingScript(
   } catch (...) {
     SetLastFatalError(handle, "unknown error.");
   }
+  return error_code;
+}
+
+int CfdGetAddressInfo(
+    void* handle, const char* address, int* network_type, int* hash_type,
+    int* witness_version, char** locking_script, char** hash) {
+  int error_code = CfdErrorCode::kCfdUnknownError;
+  char* work_locking_script = nullptr;
+  char* work_hash = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(address)) {
+      warn(CFD_LOG_SOURCE, "address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. address is null.");
+    }
+
+    Address addr;
+#ifndef CFD_DISABLE_ELEMENTS
+    try {
+      ElementsAddressFactory factory;
+      addr = factory.GetAddress(address);
+    } catch (const CfdException& cfd_except) {
+      std::string err_msg = cfd_except.what();
+      if ((err_msg != "Base58 decode error.") &&
+          (err_msg != "Unknown address prefix.")) {
+        throw cfd_except;
+      }
+    }
+#endif  // CFD_DISABLE_ELEMENTS
+
+    if (addr.GetAddress().empty()) {
+      AddressFactory factory;
+      addr = factory.GetAddress(address);
+    }
+
+    if (network_type != nullptr) {
+      switch (addr.GetNetType()) {
+        case NetType::kMainnet:
+          *network_type = kCfdNetworkMainnet;
+          break;
+        case NetType::kTestnet:
+          *network_type = kCfdNetworkTestnet;
+          break;
+        case NetType::kRegtest:
+          *network_type = kCfdNetworkRegtest;
+          break;
+        case NetType::kLiquidV1:
+          *network_type = kCfdNetworkLiquidv1;
+          break;
+        case NetType::kElementsRegtest:
+          *network_type = kCfdNetworkElementsRegtest;
+          break;
+        default:
+          *network_type = kCfdNetworkCustomChain;
+          break;
+      }
+    }
+
+    if (hash_type != nullptr) {
+      switch (addr.GetAddressType()) {
+        case AddressType::kP2shAddress:
+          *hash_type = kCfdP2sh;
+          break;
+        case AddressType::kP2pkhAddress:
+          *hash_type = kCfdP2pkh;
+          break;
+        case AddressType::kP2wshAddress:
+          *hash_type = kCfdP2wsh;
+          break;
+        case AddressType::kP2wpkhAddress:
+          *hash_type = kCfdP2wpkh;
+          break;
+        case AddressType::kP2shP2wshAddress:
+          *hash_type = kCfdP2shP2wsh;
+          break;
+        case AddressType::kP2shP2wpkhAddress:
+          *hash_type = kCfdP2shP2wpkh;
+          break;
+        default:
+          warn(
+              CFD_LOG_SOURCE, "Illegal hash type.({})", addr.GetAddressType());
+          throw CfdException(
+              CfdError::kCfdIllegalArgumentError, "Illegal hash type.");
+      }
+    }
+
+    if (witness_version != nullptr) {
+      *witness_version = static_cast<int>(addr.GetWitnessVersion());
+    }
+    work_locking_script = CreateString(addr.GetLockingScript().GetHex());
+    work_hash = CreateString(addr.GetHash().GetHex());
+
+    if (locking_script != nullptr) {
+      *locking_script = work_locking_script;
+    }
+    if (hash != nullptr) {
+      *hash = work_hash;
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    error_code = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_locking_script, &work_hash);
   return error_code;
 }
 

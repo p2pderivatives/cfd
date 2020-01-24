@@ -12,6 +12,7 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_transaction.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
@@ -29,32 +30,6 @@ using cfd::core::Txid;
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::core::ConfidentialAssetId;
 #endif  // CFD_DISABLE_ELEMENTS
-
-/**
- * @brief UTXO構造体
- */
-struct UtxoData {
-  uint64_t block_height;   //!< blick高
-  BlockHash block_hash;    //!< block hash
-  Txid txid;               //!< txid
-  uint32_t vout;           //!< vout
-  Script locking_script;   //!< locking script
-  Script redeem_script;    //!< script
-  Address address;         //!< address
-  std::string descriptor;  //!< output descriptor
-  Amount amount;           //!< amount
-  void* binary_data;       //!< binary data option
-#ifndef CFD_DISABLE_ELEMENTS
-  ConfidentialAssetId asset;  //!< asset
-#endif                        // CFD_DISABLE_ELEMENTS
-#if 0
-  int32_t status;           //!< utxo status (reserved)
-  // elements
-  ConfidentialAddress confidential_address;   //!< Confidential address
-  BlindFactor asset_blind_factor;     //!< asset blind factor
-  BlindFactor amount_blind_factor;    //!< blind vactor
-#endif  // if 0
-};
 
 /**
  * @brief Coin関連のAPIクラス

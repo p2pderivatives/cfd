@@ -217,29 +217,32 @@ Amount TransactionApi::EstimateFee(
   size = 0;
   uint32_t witness_size = 0;
   uint32_t wit_size = 0;
+  AddressApi address_api;
   for (const auto& utxo : utxos) {
     // check descriptor
-    AddressType addr_type = utxo.address.GetAddressType();
-    // TODO(k-matsuzawa): output descriptorの正式対応後に差し替え
-    if (utxo.address.GetAddress().empty()) {
-      if (utxo.descriptor.find("wpkh(") == 0) {
-        addr_type = AddressType::kP2wpkhAddress;
-      } else if (utxo.descriptor.find("wsh(") == 0) {
-        addr_type = AddressType::kP2wshAddress;
-      } else if (utxo.descriptor.find("pkh(") == 0) {
-        addr_type = AddressType::kP2pkhAddress;
-      } else if (utxo.descriptor.find("sh(") == 0) {
-        addr_type = AddressType::kP2shAddress;
-      }
+    std::string descriptor = utxo.descriptor;
+    // set dummy NetType for getting AddressType.
+    auto data =
+        address_api.ParseOutputDescriptor(descriptor, NetType::kMainnet, "");
+
+    AddressType addr_type;
+    if (utxo.address.GetAddress().empty() ||
+        data.address_type == AddressType::kP2shP2wpkhAddress ||
+        data.address_type == AddressType::kP2shP2wshAddress) {
+      addr_type = data.address_type;
+    } else {
+      addr_type = utxo.address.GetAddressType();
     }
-    if (utxo.descriptor.find("sh(wpkh(") == 0) {
-      addr_type = AddressType::kP2shP2wpkhAddress;
-    } else if (utxo.descriptor.find("sh(wsh(") == 0) {
-      addr_type = AddressType::kP2shP2wshAddress;
+
+    Script redeem_script;
+    if (utxo.redeem_script.IsEmpty() && !data.redeem_script.IsEmpty()) {
+      redeem_script = data.redeem_script;
+    } else {
+      redeem_script = utxo.redeem_script;
     }
 
     uint32_t txin_size =
-        TxIn::EstimateTxInSize(addr_type, utxo.redeem_script, &wit_size);
+        TxIn::EstimateTxInSize(addr_type, redeem_script, &wit_size);
     txin_size -= wit_size;
     size += txin_size;
     witness_size += wit_size;

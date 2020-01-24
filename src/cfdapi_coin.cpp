@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "cfd/cfd_common.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
 #include "cfd/cfdapi_coin.h"
 

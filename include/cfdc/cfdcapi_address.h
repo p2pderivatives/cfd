@@ -2,7 +2,7 @@
 /**
  * @file cfdcapi_address.h
  *
- * @brief cfd-capiで利用するAddress操作のクラス定義
+ * @brief cfd-capiで利用するAddress操作のAPI定義
  *
  * C言語形式のAPIを提供する.
  */
@@ -52,6 +52,30 @@ enum CfdHashType {
   kCfdP2wpkh,     //!< Native segwit PublicKey Hash
   kCfdP2shP2wsh,  //!< P2sh wrapped segwit Script Hash
   kCfdP2shP2wpkh  //!< P2sh wrapped segwit Pubkey Hash
+};
+
+/**
+ * @brief witness version
+ */
+enum CfdWitnessVersion {
+  kCfdWitnessVersionNone = -1,  //!< Missing WitnessVersion
+  kCfdWitnessVersion0 = 0,      //!< version 0
+  kCfdWitnessVersion1,          //!< version 1 (for future use)
+  kCfdWitnessVersion2,          //!< version 2 (for future use)
+  kCfdWitnessVersion3,          //!< version 3 (for future use)
+  kCfdWitnessVersion4,          //!< version 4 (for future use)
+  kCfdWitnessVersion5,          //!< version 5 (for future use)
+  kCfdWitnessVersion6,          //!< version 6 (for future use)
+  kCfdWitnessVersion7,          //!< version 7 (for future use)
+  kCfdWitnessVersion8,          //!< version 8 (for future use)
+  kCfdWitnessVersion9,          //!< version 9 (for future use)
+  kCfdWitnessVersion10,         //!< version 10 (for future use)
+  kCfdWitnessVersion11,         //!< version 11 (for future use)
+  kCfdWitnessVersion12,         //!< version 12 (for future use)
+  kCfdWitnessVersion13,         //!< version 13 (for future use)
+  kCfdWitnessVersion14,         //!< version 14 (for future use)
+  kCfdWitnessVersion15,         //!< version 15 (for future use)
+  kCfdWitnessVersion16          //!< version 16 (for future use)
 };
 
 /**
@@ -214,6 +238,7 @@ CFDC_API int CfdParseDescriptor(
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @param[out] is_multisig       has multisig.
  * @param[out] max_key_num       key list count.
+ * @param[out] req_sig_num       number of require multisig signatures.
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetDescriptorData(
@@ -221,7 +246,7 @@ CFDC_API int CfdGetDescriptorData(
     uint32_t* depth, int* script_type, char** locking_script, char** address,
     int* hash_type, char** redeem_script, int* key_type, char** pubkey,
     char** ext_pubkey, char** ext_privkey, bool* is_multisig,
-    uint32_t* max_key_num);
+    uint32_t* max_key_num, uint32_t* req_sig_num);
 
 /**
  * @brief get outputDescriptor's multisig keys.
@@ -312,6 +337,26 @@ CFDC_API int CfdFreeAddressesMultisigHandle(
 CFDC_API int CfdGetAddressFromLockingScript(
     void* handle, const char* locking_script, int network_type,
     char** address);
+
+/**
+ * @brief get address information.
+ * @details support is bitcoin or elements(liquidv1).
+ * @param[in] handle            handle pointer.
+ * @param[in] address           address.
+ * @param[out] network_type     network type. (see CfdNetworkType)
+ * @param[out] hash_type        hash type. (see CfdHashType)
+ * @param[out] witness_version  witness version. (see CfdWitnessVersion)
+ * @param[out] locking_script   locking script.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] hash             hash value.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetAddressInfo(
+    void* handle, const char* address, int* network_type, int* hash_type,
+    int* witness_version, char** locking_script, char** hash);
 
 #ifdef __cplusplus
 #if 0

@@ -16,8 +16,10 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_elements_transaction.h"
+#include "cfd/cfd_fee.h"
 #include "cfd/cfd_transaction_common.h"
 #include "cfd/cfdapi_coin.h"
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_key.h"
@@ -30,6 +32,8 @@
 namespace cfd {
 namespace api {
 
+using cfd::FeeCalculator;
+using cfd::core::AddressFormatData;
 using cfd::core::Amount;
 using cfd::core::BlindFactor;
 using cfd::core::BlindParameter;

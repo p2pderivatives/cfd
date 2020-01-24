@@ -2,7 +2,7 @@
 /**
  * @file cfdcapi_elements_transaction.h
  *
- * @brief cfd-capiで利用するElements用Transaction操作のクラス定義
+ * @brief cfd-capiで利用するElements用Transaction操作のAPI定義
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
@@ -495,6 +495,31 @@ CFDC_API int CfdUnblindIssuance(
     char** asset, int64_t* asset_value, char** asset_blind_factor,
     char** asset_value_blind_factor, char** token, int64_t* token_value,
     char** token_blind_factor, char** token_value_blind_factor);
+
+/**
+ * @brief blinding transaction.
+ * @param[in] handle                  cfd handle.
+ * @param[in] tx_hex                  transaction hex.
+ * @param[in] signature               signature hex.
+ * @param[in] pubkey                  pubkey hex.
+ * @param[in] txid                    txid.
+ * @param[in] vout                    vout.
+ * @param[in] script                  script hex. (Specify NULL if disabled)
+ * @param[in] sighash_type            sighash type. (ref: CfdSighashType)
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[in] value_satoshi           value satoshi. (Specify 0 if disabled)
+ * @param[in] value_commitment        value commitment.
+ *     (Specify null if disabled)
+ * @param[in] witness_version         witness version.
+ *     (ref: CfdWitnessVersion. if not require, set kCfdWitnessVersionNone)
+ * @return CfdErrorCode
+ *     (if failed to verify signature, it returns kCfdSignVerificationError)
+ */
+CFDC_API int CfdVerifyConfidentialTxSignature(
+    void* handle, const char* tx_hex, const char* signature,
+    const char* pubkey, const char* script, const char* txid, uint32_t vout,
+    int sighash_type, bool sighash_anyone_can_pay, int64_t value_satoshi,
+    const char* value_commitment, int witness_version);
 
 /* 後回し
 CFDC_API int CfdAddElementsWitnessStack(
