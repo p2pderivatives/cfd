@@ -1,5 +1,8 @@
 project(external_download NONE)
 
+include(../cmake/EnableCcache.cmake)
+include(../cmake/ConvertSrclistFunction.cmake)
+
 find_package(cfdcore  QUIET CONFIG)
 
 # env check
