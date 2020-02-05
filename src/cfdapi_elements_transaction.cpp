@@ -105,10 +105,12 @@ ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
     const std::vector<TxInPeginParameters>& pegins,
     const std::vector<ConfidentialTxOut>& txouts,
     const std::vector<TxOutPegoutParameters>& pegouts,
-    const ConfidentialTxOut& txout_fee) const {
+    const ConfidentialTxOut& txout_fee,
+    std::map<std::string, Amount>* pegout_addresses) const {
   ConfidentialTransactionController ctxc(version, locktime);
   return AddRawTransaction(
-      ctxc.GetHex(), txins, pegins, txouts, pegouts, txout_fee);
+      ctxc.GetHex(), txins, pegins, txouts, pegouts, txout_fee,
+      pegout_addresses);
 }
 
 ConfidentialTransactionController ElementsTransactionApi::AddRawTransaction(
@@ -116,7 +118,8 @@ ConfidentialTransactionController ElementsTransactionApi::AddRawTransaction(
     const std::vector<TxInPeginParameters>& pegins,
     const std::vector<ConfidentialTxOut>& txouts,
     const std::vector<TxOutPegoutParameters>& pegouts,
-    const ConfidentialTxOut& txout_fee) const {
+    const ConfidentialTxOut& txout_fee,
+    std::map<std::string, Amount>* pegout_addresses) const {
   ConfidentialTransactionController ctxc(tx_hex);
 
   // TxInの追加
@@ -160,6 +163,10 @@ ConfidentialTransactionController ElementsTransactionApi::AddRawTransaction(
       ctxc.AddPegoutTxOut(
           pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
           pegout_data.btc_address);
+    }
+    if (pegout_addresses != nullptr) {
+      pegout_addresses->emplace(
+          pegout_address.GetAddress(), pegout_data.amount);
     }
   }
 

@@ -227,6 +227,7 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[in] txouts      tx output list
    * @param[in] pegouts     pegout tx output list
    * @param[in] txout_fee   tx output fee
+   * @param[out] pegout_addresses   pegout address list
    * @return Transaction
    */
   ConfidentialTransactionController CreateRawTransaction(
@@ -235,7 +236,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const std::vector<TxInPeginParameters>& pegins,
       const std::vector<ConfidentialTxOut>& txouts,
       const std::vector<TxOutPegoutParameters>& pegouts,
-      const ConfidentialTxOut& txout_fee) const;
+      const ConfidentialTxOut& txout_fee,
+      std::map<std::string, Amount>* pegout_addresses = nullptr) const;
 
   /**
    * @brief Add elements raw transaction.
@@ -245,6 +247,7 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[in] txouts      tx output list
    * @param[in] pegouts     pegout tx output list
    * @param[in] txout_fee   tx output fee
+   * @param[out] pegout_addresses   pegout address list
    * @return Transaction
    */
   ConfidentialTransactionController AddRawTransaction(
@@ -252,7 +255,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const std::vector<TxInPeginParameters>& pegins,
       const std::vector<ConfidentialTxOut>& txouts,
       const std::vector<TxOutPegoutParameters>& pegouts,
-      const ConfidentialTxOut& txout_fee) const;
+      const ConfidentialTxOut& txout_fee,
+      std::map<std::string, Amount>* pegout_addresses = nullptr) const;
 
   /**
    * @brief WitnessStack数を出力する.
