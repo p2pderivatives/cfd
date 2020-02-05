@@ -6,14 +6,17 @@
  *   \~japanese Elements用Address操作関連クラスの実装
  */
 #ifndef CFD_DISABLE_ELEMENTS
-#include "cfd/cfd_elements_address.h"
 #include <string>
 #include <vector>
+
+#include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_common.h"
 
 #include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_elements_script.h"
+#include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_script.h"
 
@@ -21,6 +24,8 @@ namespace cfd {
 
 using cfd::core::Address;
 using cfd::core::AddressFormatData;
+using cfd::core::CfdError;
+using cfd::core::CfdException;
 using cfd::core::ConfidentialKey;
 using cfd::core::ContractHashUtil;
 using cfd::core::ElementsAddressType;
@@ -92,11 +97,19 @@ Address ElementsAddressFactory::CreatePegInAddress(
 
 Address ElementsAddressFactory::CreatePegInAddress(
     AddressType address_type, const Script& tweak_fedpegscript) const {
-  // FIXME(fujita-cg): implements of processing by address_type
-  // create peg-in address(P2CH = P2SH-P2WSH)
-  Script witness_program =
-      ScriptUtil::CreateP2wshLockingScript(tweak_fedpegscript);
-  return Address(type_, witness_program);
+  if (address_type == AddressType::kP2shAddress) {
+    return Address(type_, tweak_fedpegscript);
+  } else if (address_type == AddressType::kP2wshAddress) {
+    return Address(type_, WitnessVersion::kVersion0, tweak_fedpegscript);
+  } else if (address_type == AddressType::kP2shP2wshAddress) {
+    Script witness_program =
+        ScriptUtil::CreateP2wshLockingScript(tweak_fedpegscript);
+    return Address(type_, witness_program);
+  } else {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Pubkey-hash cannot be used for the peg-in address type.");
+  }
 }
 
 bool ElementsAddressFactory::CheckConfidentialAddressNetType(
