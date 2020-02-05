@@ -106,7 +106,7 @@ Address ElementsAddressApi::CreatePegInAddress(
   Script tweak_fedpegscript_inner =
       ContractHashUtil::GetContractScript(claim_script_inner, fedpegscript);
 
-  // create peg-in address(P2CH = P2SH-P2WSH)
+  // create peg-in address
   Address p2ch =
       ElementsAddressFactory(net_type, addr_prefixes)
           .CreatePegInAddress(address_type, tweak_fedpegscript_inner);
