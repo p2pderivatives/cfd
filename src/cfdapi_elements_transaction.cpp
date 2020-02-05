@@ -93,8 +93,31 @@ ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
     const std::vector<ConfidentialTxIn>& txins,
     const std::vector<ConfidentialTxOut>& txouts,
     const ConfidentialTxOut& txout_fee) const {
-  // Transaction作成
+  std::vector<TxInPeginParameters> pegins;
+  std::vector<TxOutPegoutParameters> pegouts;
+  return CreateRawTransaction(
+      version, locktime, txins, pegins, txouts, pegouts, txout_fee);
+}
+
+ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
+    uint32_t version, uint32_t locktime,
+    const std::vector<ConfidentialTxIn>& txins,
+    const std::vector<TxInPeginParameters>& pegins,
+    const std::vector<ConfidentialTxOut>& txouts,
+    const std::vector<TxOutPegoutParameters>& pegouts,
+    const ConfidentialTxOut& txout_fee) const {
   ConfidentialTransactionController ctxc(version, locktime);
+  return AddRawTransaction(
+      ctxc.GetHex(), txins, pegins, txouts, pegouts, txout_fee);
+}
+
+ConfidentialTransactionController ElementsTransactionApi::AddRawTransaction(
+    const std::string& tx_hex, const std::vector<ConfidentialTxIn>& txins,
+    const std::vector<TxInPeginParameters>& pegins,
+    const std::vector<ConfidentialTxOut>& txouts,
+    const std::vector<TxOutPegoutParameters>& pegouts,
+    const ConfidentialTxOut& txout_fee) const {
+  ConfidentialTransactionController ctxc(tx_hex);
 
   // TxInの追加
   const uint32_t kLockTimeDisabledSequence =
@@ -108,11 +131,36 @@ ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
     }
   }
 
+  for (const auto& pegin_data : pegins) {
+    ctxc.AddPeginWitness(
+        pegin_data.txid, pegin_data.vout, pegin_data.amount, pegin_data.asset,
+        pegin_data.mainchain_blockhash, pegin_data.claim_script,
+        pegin_data.mainchain_raw_tx, pegin_data.mainchain_txoutproof);
+  }
+
   // TxOutの追加
   for (const auto& txout : txouts) {
     ctxc.AddTxOut(
         txout.GetLockingScript(), txout.GetConfidentialValue().GetAmount(),
         txout.GetAsset(), txout.GetNonce());
+  }
+
+  for (const auto& pegout_data : pegouts) {
+    Address pegout_address;
+    if (pegout_data.online_pubkey.IsValid() &&
+        !pegout_data.master_online_key.IsInvalid()) {
+      Address dummy_addr;
+      ctxc.AddPegoutTxOut(
+          pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
+          dummy_addr, pegout_data.net_type, pegout_data.online_pubkey,
+          pegout_data.master_online_key, pegout_data.bitcoin_descriptor,
+          pegout_data.bip32_counter, pegout_data.whitelist,
+          pegout_data.elements_net_type, &pegout_address);
+    } else {
+      ctxc.AddPegoutTxOut(
+          pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
+          pegout_data.btc_address);
+    }
   }
 
   // amountが0のfeeは無効と判定

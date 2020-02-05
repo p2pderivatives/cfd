@@ -73,10 +73,15 @@ TransactionController TransactionApi::CreateRawTransaction(
         "Invalid version number. We supports only 1, 2, 3, or 4:");
   }
 
-  // TransactionController作成
   TransactionController txc(version, locktime);
+  return AddRawTransaction(txc.GetHex(), txins, txouts);
+}
 
-  // TxInの追加
+TransactionController TransactionApi::AddRawTransaction(
+    const std::string& tx_hex, const std::vector<TxIn>& txins,
+    const std::vector<TxOut>& txouts) const {
+  TransactionController txc(tx_hex);
+
   const uint32_t kDisableLockTimeSequence =
       TransactionController::GetLockTimeDisabledSequence();
   for (TxIn txin : txins) {
@@ -88,7 +93,6 @@ TransactionController TransactionApi::CreateRawTransaction(
     }
   }
 
-  // TxOutの追加
   for (TxOut txout : txouts) {
     txc.AddTxOut(txout.GetLockingScript(), txout.GetValue());
   }

@@ -219,6 +219,42 @@ class CFD_EXPORT ElementsTransactionApi {
       const ConfidentialTxOut& txout_fee) const;
 
   /**
+   * @brief Create elements raw transaction.
+   * @param[in] version     tx version
+   * @param[in] locktime    lock time
+   * @param[in] txins       tx input list
+   * @param[in] pegins      pegin tx input list
+   * @param[in] txouts      tx output list
+   * @param[in] pegouts     pegout tx output list
+   * @param[in] txout_fee   tx output fee
+   * @return Transaction
+   */
+  ConfidentialTransactionController CreateRawTransaction(
+      uint32_t version, uint32_t locktime,
+      const std::vector<ConfidentialTxIn>& txins,
+      const std::vector<TxInPeginParameters>& pegins,
+      const std::vector<ConfidentialTxOut>& txouts,
+      const std::vector<TxOutPegoutParameters>& pegouts,
+      const ConfidentialTxOut& txout_fee) const;
+
+  /**
+   * @brief Add elements raw transaction.
+   * @param[in] tx_hex      tx hex string
+   * @param[in] txins       tx input list
+   * @param[in] pegins      pegin tx input list
+   * @param[in] txouts      tx output list
+   * @param[in] pegouts     pegout tx output list
+   * @param[in] txout_fee   tx output fee
+   * @return Transaction
+   */
+  ConfidentialTransactionController AddRawTransaction(
+      const std::string& tx_hex, const std::vector<ConfidentialTxIn>& txins,
+      const std::vector<TxInPeginParameters>& pegins,
+      const std::vector<ConfidentialTxOut>& txouts,
+      const std::vector<TxOutPegoutParameters>& pegouts,
+      const ConfidentialTxOut& txout_fee) const;
+
+  /**
    * @brief WitnessStack数を出力する.
    * @param[in] tx_hex          tx hex string
    * @param[in] txid            target tx input txid
