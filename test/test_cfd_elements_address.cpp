@@ -128,9 +128,9 @@ TEST(ElementsAddressFactory, GetAddress)
     Address address = factory.GetAddress("XVHzywLC5fPS8N1216n3b2fngqqrPzKYx9");
     EXPECT_STREQ(address.GetAddress().c_str(), "XVHzywLC5fPS8N1216n3b2fngqqrPzKYx9");
 
-    EXPECT_THROW(Address address = factory.GetAddress(""), CfdException);
-    EXPECT_THROW(Address address = factory.GetAddress("AzpwdpR9siiDBs3nG8SNpvGQcLTHP2od4MQPugUTa3zfKHKkAVwx6M4ea2W1JovrbhuErKosFpfeuxf5"), CfdException);
-    EXPECT_THROW(Address address = factory.GetAddress("bcrt1qshc8er8ycnxn5mamc9m7acaxcasplqunvaw4f6"), CfdException);
+    EXPECT_THROW(factory.GetAddress(""), CfdException);
+    EXPECT_THROW(factory.GetAddress("AzpwdpR9siiDBs3nG8SNpvGQcLTHP2od4MQPugUTa3zfKHKkAVwx6M4ea2W1JovrbhuErKosFpfeuxf5"), CfdException);
+    EXPECT_THROW(factory.GetAddress("bcrt1qshc8er8ycnxn5mamc9m7acaxcasplqunvaw4f6"), CfdException);
   }
 }
 TEST(ElementsAddressFactory, GetAddressByHash)
@@ -344,6 +344,24 @@ TEST(ElementsAddressFactory, CreatePegInAddress5)
   EXPECT_THROW(factory.CreatePegInAddress(AddressType::kP2wpkhAddress, tweak_fedpegscript), CfdException);
   EXPECT_THROW(factory.CreatePegInAddress(AddressType::kP2shP2wpkhAddress, tweak_fedpegscript), CfdException);
   EXPECT_THROW(factory.CreatePegInAddress(AddressType::kP2pkhAddress, tweak_fedpegscript), CfdException);
+}
+
+TEST(ElementsAddressFactory, CreatePegInAddressWithScript)
+{
+  Script redeem_script("522103a7bd50beb3aff9238336285c0a790169eca90b7ad807abc4b64897ca1f6dedb621039cbaf938d050dd2582e4c2f56d1f75cfc9d165f2f3270532363d9871fb7be14252ae");
+  Script tweak_fedpegscript("522102baae8e066e4f2a1da4b731017697bb8fcacc60e4569f3ec27bc31cf3fb13246221026bccd050e8ecf7a702bc9fb63205cfdf278a22ba8b1f1d3ca3d8e5b38465a9702103430d354b89d1fbe43eb54ea138a4aee1076e4c54f4c805f62f9cee965351a1d053ae");
+  Address address;
+
+  {
+    ElementsAddressFactory factory(NetType::kMainnet);
+    EXPECT_NO_THROW(address = factory.CreatePegInAddressWithScript(AddressType::kP2shP2wshAddress, redeem_script, tweak_fedpegscript));
+    EXPECT_STREQ(address.GetAddress().c_str(), "3DZHAW3TmdwfGuJTGKatD7XpCNJvnX6GiE");
+  }
+  {
+    ElementsAddressFactory factory(NetType::kRegtest);
+    EXPECT_NO_THROW(address = factory.CreatePegInAddressWithScript(AddressType::kP2shP2wshAddress, redeem_script, tweak_fedpegscript));
+    EXPECT_STREQ(address.GetAddress().c_str(), "2N57VEEyVP6T1UgvzwTCkq4X5QiX6aVKsaS");
+  }
 }
 
 TEST(ElementsAddressFactory, CheckConfidentialAddressNetType)
