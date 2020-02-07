@@ -57,11 +57,12 @@ script:
 after_success:
   - cd dist_static
   - ls -l usr/local/lib
-  - zip -r "${STATIC_ASSET_FILE_NAME}.zip" usr
+  - zip -r "../${STATIC_ASSET_FILE_NAME}.zip" usr
   - cd ..
   - cd dist_dynamic
   - ls -l usr/local/lib
-  - zip -r "${DYNAMIC_ASSET_FILE_NAME}.zip" usr
+  - zip -r "../${DYNAMIC_ASSET_FILE_NAME}.zip" usr
+  - cd ..
 
 before_deploy:
 
