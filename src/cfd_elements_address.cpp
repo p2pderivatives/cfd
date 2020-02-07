@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 
-#include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_common.h"
+#include "cfd/cfd_elements_address.h"
 
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_common.h"
@@ -83,6 +83,13 @@ Address ElementsAddressFactory::CreatePegInAddress(
     const Script& fedpegscript) const {
   // create claim_script from pubkey
   Script claim_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+  return CreatePegInAddress(address_type, claim_script, fedpegscript);
+}
+
+Address ElementsAddressFactory::CreatePegInAddressWithScript(
+    AddressType address_type, const Script& redeem_script,
+    const Script& fedpegscript) const {
+  Script claim_script = ScriptUtil::CreateP2wshLockingScript(redeem_script);
   return CreatePegInAddress(address_type, claim_script, fedpegscript);
 }
 
