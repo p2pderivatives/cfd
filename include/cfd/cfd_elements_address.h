@@ -102,8 +102,7 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
   /**
    * @brief fedpegscriptとpubkeyから、net_typeに応じたmainchain用のpeg-in
    *     addressを作成する
-   * @param[in] address_type          for future use
-   *     (currently fixed with p2sh-p2wpkh)
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
    * @param[in] pubkey 公開鍵
    * @param[in] fedpegscript elementsのfedpegscript
    * @return mainchain用peg-in address
@@ -113,10 +112,21 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
       const Script& fedpegscript) const;
 
   /**
+   * @brief fedpegscriptとredeemScriptから、net_typeに応じた
+   *     mainchain用のpeg-in addressを作成する
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
+   * @param[in] redeem_script         redeem script
+   * @param[in] fedpegscript          elements fedpegscript
+   * @return mainchain用peg-in address
+   */
+  Address CreatePegInAddressWithScript(
+      AddressType address_type, const Script& redeem_script,
+      const Script& fedpegscript) const;
+
+  /**
    * @brief fedpegscriptとclaim_scriptから、net_typeに応じたmainchain用のpeg-in
    *     addressを作成する
-   * @param[in] address_type          for future use
-   *     (currently fixed with p2sh-p2wpkh)
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
    * @param[in] claim_script sidechainでの資産引取りに必要なclaim script
    * @param[in] fedpegscript elementsのfedpegscript
    * @return mainchain用peg-in address
@@ -128,8 +138,7 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
   /**
    * @brief tweakが足されたfedpegscriptから、net_typeに応じたmainchain用のpeg-in
    *     addressを作成する
-   * @param[in] address_type          for future use
-   *     (currently fixed with p2sh-p2wpkh)
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
    * @param[in] tweak_fedpegscript
    *     fedpegscript内部のpubkeyをtweakと合成させたscript.
    *     (ref: cfd::core::ContractHashUtil)

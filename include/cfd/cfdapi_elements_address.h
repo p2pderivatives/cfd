@@ -101,8 +101,7 @@ class CFD_EXPORT ElementsAddressApi {
   /**
    * @brief bitcoin blockchainからのpeginに利用できるAddressを生成する
    * @param[in] net_type              network type of mainchain
-   * @param[in] address_type          for future use
-   *     (currently fixed with p2sh-p2wpkh)
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
    * @param[in] fedpegscript          fed peg script
    * @param[in] pubkey                pubkey related to mainchain address
    * @param[out] claim_script         claim script used when claiming peg-in bitcoin
@@ -114,6 +113,41 @@ class CFD_EXPORT ElementsAddressApi {
       NetType net_type, AddressType address_type, const Script& fedpegscript,
       const Pubkey& pubkey, Script* claim_script = nullptr,
       Script* tweak_fedpegscript = nullptr,
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+
+  /**
+   * @brief bitcoin blockchainからのpeginに利用できるAddressを生成する
+   * @param[in] net_type              network type of mainchain
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
+   * @param[in] fedpegscript          fed peg script
+   * @param[in] redeem_script         redeem script
+   * @param[out] claim_script         claim script used when claiming peg-in bitcoin
+   * @param[out] tweak_fedpegscript   fedpeg_script with pubkey added as tweak
+   * @param[in] prefix_list           address prefix list
+   * @return peg-inに利用できるAddressインスタンス
+   */
+  Address CreatePegInAddress(
+      NetType net_type, AddressType address_type, const Script& fedpegscript,
+      const Script& redeem_script, Script* claim_script = nullptr,
+      Script* tweak_fedpegscript = nullptr,
+      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+
+  /**
+   * @brief bitcoin blockchainからのpeginに利用できるAddressを生成する
+   * @param[in] net_type              network type of mainchain
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
+   * @param[in] fedpegscript          fed peg script
+   * @param[in] pubkey                pubkey related to mainchain address
+   * @param[in] redeem_script         redeem script
+   * @param[out] claim_script         claim script used when claiming peg-in bitcoin
+   * @param[out] tweak_fedpegscript   fedpeg_script with pubkey added as tweak
+   * @param[in] prefix_list           address prefix list
+   * @return peg-inに利用できるAddressインスタンス
+   */
+  Address CreatePegInAddress(
+      NetType net_type, AddressType address_type, const Script& fedpegscript,
+      const Pubkey& pubkey, const Script& redeem_script,
+      Script* claim_script = nullptr, Script* tweak_fedpegscript = nullptr,
       const std::vector<AddressFormatData>* prefix_list = nullptr) const;
 
   /**

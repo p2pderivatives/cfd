@@ -92,6 +92,26 @@ Address ElementsAddressApi::CreatePegInAddress(
     NetType net_type, AddressType address_type, const Script& fedpegscript,
     const Pubkey& pubkey, Script* claim_script, Script* tweak_fedpegscript,
     const std::vector<AddressFormatData>* prefix_list) const {
+  return CreatePegInAddress(
+      net_type, address_type, fedpegscript, pubkey, Script(), claim_script,
+      tweak_fedpegscript, prefix_list);
+}
+
+Address ElementsAddressApi::CreatePegInAddress(
+    NetType net_type, AddressType address_type, const Script& fedpegscript,
+    const Script& redeem_script, Script* claim_script,
+    Script* tweak_fedpegscript,
+    const std::vector<AddressFormatData>* prefix_list) const {
+  return CreatePegInAddress(
+      net_type, address_type, fedpegscript, Pubkey(), redeem_script,
+      claim_script, tweak_fedpegscript, prefix_list);
+}
+
+Address ElementsAddressApi::CreatePegInAddress(
+    NetType net_type, AddressType address_type, const Script& fedpegscript,
+    const Pubkey& pubkey, const Script& redeem_script, Script* claim_script,
+    Script* tweak_fedpegscript,
+    const std::vector<AddressFormatData>* prefix_list) const {
   std::vector<AddressFormatData> addr_prefixes;
   if (prefix_list == nullptr) {
     addr_prefixes = cfd::core::GetElementsAddressFormatList();
@@ -100,13 +120,18 @@ Address ElementsAddressApi::CreatePegInAddress(
   }
 
   // create claim_script from pubkey
-  Script claim_script_inner = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+  Script claim_script_inner;
+  if (pubkey.IsValid()) {
+    claim_script_inner = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+  } else {
+    claim_script_inner = ScriptUtil::CreateP2wshLockingScript(redeem_script);
+  }
 
   // tweak add claim_script with fedpegscript
   Script tweak_fedpegscript_inner =
       ContractHashUtil::GetContractScript(claim_script_inner, fedpegscript);
 
-  // create peg-in address(P2CH = P2SH-P2WSH)
+  // create peg-in address
   Address p2ch =
       ElementsAddressFactory(net_type, addr_prefixes)
           .CreatePegInAddress(address_type, tweak_fedpegscript_inner);
