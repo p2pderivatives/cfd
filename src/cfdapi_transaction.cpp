@@ -214,13 +214,12 @@ Amount TransactionApi::EstimateFee(
     Amount* tx_fee, Amount* utxo_fee, double effective_fee_rate) const {
   TransactionController txc(tx_hex);
 
-  uint32_t size;
-  size = txc.GetSizeIgnoreTxIn();
-  uint32_t tx_vsize = AbstractTransaction::GetVsizeFromSize(size, 0);
+  uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn();
 
-  size = 0;
+  uint32_t size = 0;
   uint32_t witness_size = 0;
   uint32_t wit_size = 0;
+  uint32_t nowit_size = 0;
   AddressApi address_api;
   for (const auto& utxo : utxos) {
     // check descriptor
@@ -245,10 +244,8 @@ Amount TransactionApi::EstimateFee(
       redeem_script = utxo.redeem_script;
     }
 
-    uint32_t txin_size =
-        TxIn::EstimateTxInSize(addr_type, redeem_script, &wit_size);
-    txin_size -= wit_size;
-    size += txin_size;
+    TxIn::EstimateTxInSize(addr_type, redeem_script, &wit_size, &nowit_size);
+    size += nowit_size;
     witness_size += wit_size;
   }
   uint32_t utxo_vsize =

@@ -140,6 +140,10 @@ uint32_t TransactionContext::GetSizeIgnoreTxIn() const {
   return result;
 }
 
+uint32_t TransactionContext::GetVsizeIgnoreTxIn() const {
+  return AbstractTransaction::GetVsizeFromSize(GetSizeIgnoreTxIn(), 0);
+}
+
 void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
   if ((!utxos.empty()) && (utxo_map_.size() != GetTxInCount())) {
     for (const auto& txin_ref : GetTxInList()) {
@@ -809,6 +813,10 @@ uint32_t TransactionController::GetSizeIgnoreTxIn() const {
     result += txout.GetSerializeSize();
   }
   return result;
+}
+
+uint32_t TransactionController::GetVsizeIgnoreTxIn() const {
+  return AbstractTransaction::GetVsizeFromSize(GetSizeIgnoreTxIn(), 0);
 }
 
 const TxInReference TransactionController::GetTxIn(
