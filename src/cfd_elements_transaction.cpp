@@ -406,21 +406,38 @@ ConfidentialTransactionController::GetTransaction() const {
 }
 
 uint32_t ConfidentialTransactionController::GetSizeIgnoreTxIn(
-    bool is_blinded, uint32_t* witness_stack_size) const {
-  if (witness_stack_size) {
-    *witness_stack_size = 0;
-  }
-
-  uint32_t result = ConfidentialTransaction::kElementsTransactionMinimumSize;
+    bool is_blinded, uint32_t* witness_area_size,
+    uint32_t* no_witness_area_size) const {
+  uint32_t size = ConfidentialTransaction::kElementsTransactionMinimumSize;
   std::vector<ConfidentialTxOutReference> txouts = transaction_.GetTxOutList();
+
   uint32_t witness_size = 0;
+  uint32_t no_witness_size = 0;
+  uint32_t temp_witness_size = 0;
+  uint32_t temp_no_witness_size = 0;
   for (const auto& txout : txouts) {
-    result += txout.GetSerializeSize(is_blinded, &witness_size);
-    if (witness_stack_size) {
-      *witness_stack_size += witness_size;
-    }
+    txout.GetSerializeSize(
+        is_blinded, &temp_witness_size, &temp_no_witness_size);
+    witness_size += temp_witness_size;
+    no_witness_size += temp_no_witness_size;
   }
-  return result;
+  size += no_witness_size;
+
+  if (witness_area_size != nullptr) {
+    *witness_area_size += witness_size;
+  }
+  if (no_witness_area_size != nullptr) {
+    *no_witness_area_size += size;
+  }
+  return size + witness_size;
+}
+
+uint32_t ConfidentialTransactionController::GetVsizeIgnoreTxIn(
+    bool is_blinded) const {
+  uint32_t witness_size = 0;
+  uint32_t no_witness_size = 0;
+  GetSizeIgnoreTxIn(is_blinded, &witness_size, &no_witness_size);
+  return AbstractTransaction::GetVsizeFromSize(no_witness_size, witness_size);
 }
 
 IssuanceParameter ConfidentialTransactionController::SetAssetIssuance(

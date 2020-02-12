@@ -424,11 +424,20 @@ class CFD_EXPORT ConfidentialTransactionController
   /**
    * @brief TxInを除外したサイズを取得する。
    * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
-   * @param[out] witness_stack_size   witness stack size
+   * @param[out] witness_area_size     witness area size
+   * @param[out] no_witness_area_size  no witness area size
    * @return TxInを除外したTxサイズ(Serialize)
    */
   uint32_t GetSizeIgnoreTxIn(
-      bool is_blinded = false, uint32_t* witness_stack_size = nullptr) const;
+      bool is_blinded = false, uint32_t* witness_area_size = nullptr,
+      uint32_t* no_witness_area_size = nullptr) const;
+
+  /**
+   * @brief TxInを除外した仮想サイズを取得する。
+   * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
+   * @return TxInを除外したTx仮想サイズ(Serialize)
+   */
+  uint32_t GetVsizeIgnoreTxIn(bool is_blinded = false) const;
 
   /**
    * @brief IssueAssetの情報を設定する.

@@ -250,6 +250,7 @@ TEST(TransactionContext, Input_Output) {
   EXPECT_EQ(ctx.GetTxInCount(), 4);
   EXPECT_EQ(ctx.GetTxOutCount(), 2);
   EXPECT_EQ(ctx.GetSizeIgnoreTxIn(), 73);
+  EXPECT_EQ(ctx.GetVsizeIgnoreTxIn(), 73);
   if (ctx.GetTxInCount() == 4) {
     auto ref_list = ctx.GetTxInList();
     EXPECT_STREQ(ref_list[0].GetTxid().GetHex().c_str(), utxo1.txid.GetHex().c_str());
