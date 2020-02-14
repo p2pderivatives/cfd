@@ -222,11 +222,14 @@ Amount TransactionApi::EstimateFee(
   uint32_t nowit_size = 0;
   AddressApi address_api;
   for (const auto& utxo : utxos) {
+    NetType net_type = NetType::kMainnet;
+    if (!utxo.address.GetAddress().empty()) {
+      net_type = utxo.address.GetNetType();
+    }
     // check descriptor
     std::string descriptor = utxo.descriptor;
     // set dummy NetType for getting AddressType.
-    auto data =
-        address_api.ParseOutputDescriptor(descriptor, NetType::kMainnet, "");
+    auto data = address_api.ParseOutputDescriptor(descriptor, net_type, "");
 
     AddressType addr_type;
     if (utxo.address.GetAddress().empty() ||
@@ -358,7 +361,7 @@ TransactionController TransactionApi::FundRawTransaction(
 
   // execute coinselection
   CoinApi coin_api;
-  std::vector<Utxo> utxo_list = coin_api.ConvertToUtxo(utxos);
+  std::vector<Utxo> utxo_list = UtxoUtil::ConvertToUtxo(utxos);
   Amount txin_total_amount = txin_amount;
   std::vector<Utxo> selected_coins;
   if (target_amount > 0 || fee > 0) {
