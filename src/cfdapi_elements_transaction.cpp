@@ -563,16 +563,12 @@ Amount ElementsTransactionApi::EstimateFee(
     txc.AddTxOutFee(Amount::CreateBySatoshiAmount(1), fee_asset);  // dummy fee
   }
 
-  uint32_t size;
-  uint32_t witness_size = 0;
-  size = txc.GetSizeIgnoreTxIn(is_blind, &witness_size);
-  size -= witness_size;
-  uint32_t tx_vsize =
-      AbstractTransaction::GetVsizeFromSize(size, witness_size);
+  uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn(is_blind);
 
-  size = 0;
-  witness_size = 0;
+  uint32_t size = 0;
+  uint32_t witness_size = 0;
   uint32_t wit_size = 0;
+  uint32_t txin_size = 0;
   ElementsAddressApi address_api;
   for (const auto& utxo : utxos) {
     uint32_t pegin_btc_tx_size = 0;
@@ -603,10 +599,9 @@ Amount ElementsTransactionApi::EstimateFee(
       redeem_script = utxo.utxo.redeem_script;
     }
 
-    uint32_t txin_size = ConfidentialTxIn::EstimateTxInSize(
+    ConfidentialTxIn::EstimateTxInSize(
         addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
-        utxo.is_issuance, utxo.is_blind_issuance, &wit_size);
-    txin_size -= wit_size;
+        utxo.is_issuance, utxo.is_blind_issuance, &wit_size, &txin_size);
     size += txin_size;
     witness_size += wit_size;
   }

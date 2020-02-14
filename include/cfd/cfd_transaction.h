@@ -118,6 +118,12 @@ class CFD_EXPORT TransactionContext : public Transaction {
    */
   uint32_t GetSizeIgnoreTxIn() const;
 
+  /**
+   * @brief TxInを除外した仮想サイズを取得する。
+   * @return TxInを除外したTx仮想サイズ(Serialize)
+   */
+  uint32_t GetVsizeIgnoreTxIn() const;
+
   // state-sequence-api
   /**
    * @brief collect utxo and cache into utxo_map_.
@@ -635,6 +641,12 @@ class CFD_EXPORT TransactionController
    * @return TxInを除外したTxサイズ(Serialize)
    */
   uint32_t GetSizeIgnoreTxIn() const;
+
+  /**
+   * @brief TxInを除外した仮想サイズを取得する。
+   * @return TxInを除外したTx仮想サイズ(Serialize)
+   */
+  uint32_t GetVsizeIgnoreTxIn() const;
 
   /**
    * @brief 指定されたPubkeyHash形式のTxInのSignatureHashを計算する.
