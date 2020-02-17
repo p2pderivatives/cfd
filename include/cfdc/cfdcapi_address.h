@@ -280,6 +280,20 @@ CFDC_API int CfdGetDescriptorMultisigKey(
 CFDC_API int CfdFreeDescriptorHandle(void* handle, void* descriptor_handle);
 /* @} */
 
+/**
+ * @brief get outputDescriptor's checksum.
+ * @param[in] handle                      handle pointer.
+ * @param[in] network_type                network type. (see CfdNetworkType)
+ * @param[in] descriptor                  descriptor.
+ * @param[out] descriptor_added_checksum  descriptor added checksum.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetDescriptorChecksum(
+    void* handle, int network_type, const char* descriptor,
+    char** descriptor_added_checksum);
+
 /** @addtogroup GetAddressesFromMultisig */
 /* @{ */
 /**
