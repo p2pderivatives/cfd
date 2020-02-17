@@ -629,7 +629,7 @@ int CfdGetParentExtkeyPathData(
     SetLastFatalError(handle, "unknown error.");
   }
   FreeBufferOnError(&work_key_path_data, &work_child_key);
-  return CfdErrorCode::kCfdUnknownError;
+  return result;
 }
 
 int CfdGetExtkeyInformation(
@@ -687,7 +687,7 @@ int CfdGetExtkeyInformation(
     SetLastFatalError(handle, "unknown error.");
   }
   FreeBufferOnError(&work_version, &work_fingerprint, &work_chain_code);
-  return CfdErrorCode::kCfdUnknownError;
+  return result;
 }
 
 };  // extern "C"
