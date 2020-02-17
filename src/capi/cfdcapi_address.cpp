@@ -33,6 +33,7 @@ using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::Descriptor;
 using cfd::core::DescriptorKeyType;
 using cfd::core::DescriptorScriptType;
 using cfd::core::ExtPrivkey;
@@ -691,6 +692,51 @@ int CfdFreeDescriptorHandle(void* handle, void* descriptor_handle) {
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdGetDescriptorChecksum(
+    void* handle, int network_type, const char* descriptor,
+    char** descriptor_added_checksum) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (descriptor_added_checksum == nullptr) {
+      warn(CFD_LOG_SOURCE, "descriptor_added_checksum is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to CfdGetDescriptorChecksum. added_checksum is null.");
+    }
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to CfdGetDescriptorChecksum. descriptor is null.");
+    }
+
+    bool is_bitcoin = false;
+    cfd::capi::ConvertNetType(network_type, &is_bitcoin);
+    std::string output_descriptor;
+    if (is_bitcoin) {
+      output_descriptor = Descriptor::Parse(descriptor, nullptr).ToString();
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      output_descriptor = Descriptor::ParseElements(descriptor).ToString();
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    *descriptor_added_checksum = CreateString(output_descriptor);
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
 }
 
 int CfdGetAddressesFromMultisig(
