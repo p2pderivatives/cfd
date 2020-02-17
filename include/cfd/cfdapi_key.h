@@ -50,7 +50,19 @@ class CFD_EXPORT KeyApi {
    */
   std::string GetPubkeyFromPrivkey(
       const std::string& privkey, bool is_compressed = true) const;
+
+  /**
+   * @brief Get privkey from Wallet Import Format.
+   * @param[in] wif             Wallet Import Format
+   * @param[out] net_type       network type.
+   * @param[out] is_compressed  compressed flag. (for pubkey)
+   * @return pubkey
+   */
+  Privkey GetPrivkeyFromWif(
+      const std::string& wif, NetType* net_type = nullptr,
+      bool* is_compressed = nullptr) const;
 };
+
 }  // namespace api
 }  // namespace cfd
 
