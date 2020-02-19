@@ -92,10 +92,10 @@ int CfdAddMultisigSignData(
     cfd::Initialize();
     CheckBuffer(multisign_handle, kPrefixMultisigSignData);
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
 
     CfdCapiMultisigSignData* data =
@@ -139,10 +139,10 @@ int CfdAddMultisigSignDataToDer(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
 
     // encode to der

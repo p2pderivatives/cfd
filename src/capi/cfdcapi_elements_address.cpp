@@ -68,16 +68,16 @@ int CfdCreateConfidentialAddress(
           "Failed to parameter. confidential address is null.");
     }
     if (IsEmptyString(address)) {
-      warn(CFD_LOG_SOURCE, "address is null.");
+      warn(CFD_LOG_SOURCE, "address is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. address is null.");
+          "Failed to parameter. address is null or empty.");
     }
     if (IsEmptyString(confidential_key)) {
-      warn(CFD_LOG_SOURCE, "confidential key is null.");
+      warn(CFD_LOG_SOURCE, "confidential key is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. confidential key is null.");
+          "Failed to parameter. confidential key is null or empty.");
     }
 
     ElementsAddressFactory factory;
@@ -108,10 +108,10 @@ int CfdParseConfidentialAddress(
   try {
     cfd::Initialize();
     if (IsEmptyString(confidential_address)) {
-      warn(CFD_LOG_SOURCE, "confidential address is null.");
+      warn(CFD_LOG_SOURCE, "confidential address is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. confidential address is null.");
+          "Failed to parameter. confidential address is null or empty.");
     }
 
     ElementsAddressFactory factory;
