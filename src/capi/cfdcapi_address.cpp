@@ -704,13 +704,13 @@ int CfdGetDescriptorChecksum(
       warn(CFD_LOG_SOURCE, "descriptor_added_checksum is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to CfdGetDescriptorChecksum. added_checksum is null.");
+          "Failed to get parameter. added_checksum is null.");
     }
     if (IsEmptyString(descriptor)) {
-      warn(CFD_LOG_SOURCE, "descriptor is null.");
+      warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to CfdGetDescriptorChecksum. descriptor is null.");
+          "Failed to get parameter. descriptor is null or empty.");
     }
 
     bool is_bitcoin = false;
@@ -874,10 +874,10 @@ int CfdGetAddressFromLockingScript(
   try {
     cfd::Initialize();
     if (IsEmptyString(locking_script)) {
-      warn(CFD_LOG_SOURCE, "lockingScript is null.");
+      warn(CFD_LOG_SOURCE, "lockingScript is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. lockingScript is null.");
+          "Failed to parameter. lockingScript is null or empty.");
     }
     if (address == nullptr) {
       warn(CFD_LOG_SOURCE, "address is null.");

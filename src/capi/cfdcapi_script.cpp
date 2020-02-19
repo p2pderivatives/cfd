@@ -276,10 +276,10 @@ int CfdAddMultisigScriptSigData(
     cfd::Initialize();
     CheckBuffer(multisig_handle, kPrefiMultisigScriptSig);
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
 
     CfdCapiMultisigScriptSigData* data =
@@ -323,10 +323,10 @@ int CfdAddMultisigScriptSigDataToDer(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
 
     // encode to der
@@ -357,10 +357,10 @@ int CfdFinalizeMultisigScriptSig(
     cfd::Initialize();
     CheckBuffer(multisig_handle, kPrefiMultisigScriptSig);
     if (IsEmptyString(redeem_script)) {
-      warn(CFD_LOG_SOURCE, "redeemScript is null.");
+      warn(CFD_LOG_SOURCE, "redeemScript is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (scriptsig == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");

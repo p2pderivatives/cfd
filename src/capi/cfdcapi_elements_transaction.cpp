@@ -153,16 +153,16 @@ int CfdAddConfidentialTxIn(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
@@ -194,10 +194,10 @@ int CfdAddConfidentialTxOut(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
@@ -206,16 +206,10 @@ int CfdAddConfidentialTxOut(
           "Failed to parameter. tx output is null.");
     }
     if (IsEmptyString(asset_string)) {
-      warn(CFD_LOG_SOURCE, "asset is null.");
+      warn(CFD_LOG_SOURCE, "asset is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. asset is null.");
-    }
-    if ((value_satoshi <= 0) && (IsEmptyString(value_commitment))) {
-      warn(CFD_LOG_SOURCE, "value is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. value is null.");
+          "Failed to parameter. asset is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -274,10 +268,10 @@ int CfdUpdateConfidentialTxOut(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
@@ -286,16 +280,10 @@ int CfdUpdateConfidentialTxOut(
           "Failed to parameter. tx output is null.");
     }
     if (IsEmptyString(asset_string)) {
-      warn(CFD_LOG_SOURCE, "asset is null.");
+      warn(CFD_LOG_SOURCE, "asset is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. asset is null.");
-    }
-    if ((value_satoshi <= 0) && (IsEmptyString(value_commitment))) {
-      warn(CFD_LOG_SOURCE, "value is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. value is null.");
+          "Failed to parameter. asset is null or empty.");
     }
 
     ConfidentialTransaction ctx(tx_hex_string);
@@ -357,10 +345,10 @@ int CfdGetConfidentialTxInfo(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -414,10 +402,10 @@ int CfdGetConfidentialTxIn(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -460,10 +448,10 @@ int CfdGetConfidentialTxInWitness(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (stack_data == nullptr) {
       warn(CFD_LOG_SOURCE, "stack data is null.");
@@ -512,10 +500,10 @@ int CfdGetTxInIssuanceInfo(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -598,10 +586,10 @@ int CfdGetConfidentialTxOut(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -665,10 +653,10 @@ int CfdGetConfidentialTxInCount(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -695,10 +683,10 @@ int CfdGetConfidentialTxInWitnessCount(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -725,10 +713,10 @@ int CfdGetConfidentialTxOutCount(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -759,10 +747,10 @@ int CfdSetRawReissueAsset(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx is null.");
@@ -771,22 +759,22 @@ int CfdSetRawReissueAsset(
           "Failed to parameter. output tx is null.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (IsEmptyString(blinding_nonce)) {
-      warn(CFD_LOG_SOURCE, "blinding nonce is null.");
+      warn(CFD_LOG_SOURCE, "blinding nonce is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. blinding nonce is null.");
+          "Failed to parameter. blinding nonce is null or empty.");
     }
     if (IsEmptyString(entropy)) {
-      warn(CFD_LOG_SOURCE, "entropy is null.");
+      warn(CFD_LOG_SOURCE, "entropy is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. entropy is null.");
+          "Failed to parameter. entropy is null or empty.");
     }
 
     ConfidentialTxOut asset_txout;
@@ -851,16 +839,16 @@ int CfdGetIssuanceBlindingKey(
   try {
     cfd::Initialize();
     if (IsEmptyString(master_blinding_key)) {
-      warn(CFD_LOG_SOURCE, "master blinding key is null.");
+      warn(CFD_LOG_SOURCE, "master blinding key is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. master blinding key is null.");
+          "Failed to parameter. master blinding key is null or empty.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (blinding_key == nullptr) {
       warn(CFD_LOG_SOURCE, "blinding key is null.");
@@ -938,16 +926,16 @@ int CfdAddBlindTxInData(
           "Failed to parameter. buffer state is illegal.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (IsEmptyString(asset_string)) {
-      warn(CFD_LOG_SOURCE, "asset is null.");
+      warn(CFD_LOG_SOURCE, "asset is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. asset is null.");
+          "Failed to parameter. asset is null or empty.");
     }
 
     TxInBlindParameters params;
@@ -1035,10 +1023,10 @@ int CfdFinalizeBlindTx(
     cfd::Initialize();
     CheckBuffer(blind_handle, kPrefixBlindTxData);
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx is null.");
@@ -1130,22 +1118,22 @@ int CfdAddConfidentialTxSign(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (IsEmptyString(sign_data_hex)) {
-      warn(CFD_LOG_SOURCE, "sign data is null.");
+      warn(CFD_LOG_SOURCE, "sign data is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. sign data is null.");
+          "Failed to parameter. sign data is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
@@ -1183,10 +1171,10 @@ int CfdAddConfidentialTxDerSign(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "pubkey is null.");
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. pubkey is null.");
+          "Failed to parameter. pubkey is null or empty.");
     }
 
     // encode to der
@@ -1218,16 +1206,16 @@ int CfdFinalizeElementsMultisigSign(
     cfd::Initialize();
     CheckBuffer(multisign_handle, kPrefixMultisigSignData);
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
@@ -1242,10 +1230,10 @@ int CfdFinalizeElementsMultisigSign(
     switch (addr_type) {
       case AddressType::kP2shAddress:
         if (IsEmptyString(redeem_script)) {
-          warn(CFD_LOG_SOURCE, "redeemScript is null.");
+          warn(CFD_LOG_SOURCE, "redeemScript is null or empty.");
           throw CfdException(
               CfdError::kCfdIllegalArgumentError,
-              "Failed to parameter. redeemScript is null.");
+              "Failed to parameter. redeemScript is null or empty.");
         }
         redeem_script_obj = Script(std::string(redeem_script));
         break;
@@ -1253,10 +1241,10 @@ int CfdFinalizeElementsMultisigSign(
         // fall-through
       case AddressType::kP2shP2wshAddress:
         if (IsEmptyString(witness_script)) {
-          warn(CFD_LOG_SOURCE, "witnessScript is null.");
+          warn(CFD_LOG_SOURCE, "witnessScript is null or empty.");
           throw CfdException(
               CfdError::kCfdIllegalArgumentError,
-              "Failed to parameter. witnessScript is null.");
+              "Failed to parameter. witnessScript is null or empty.");
         }
         witness_script_obj = Script(std::string(witness_script));
         break;
@@ -1328,16 +1316,16 @@ int CfdCreateConfidentialSighash(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (sighash == nullptr) {
       warn(CFD_LOG_SOURCE, "sighash is null.");
@@ -1376,19 +1364,19 @@ int CfdCreateConfidentialSighash(
     if ((core_hash_type == HashType::kP2sh) ||
         (core_hash_type == HashType::kP2wsh)) {
       if (IsEmptyString(redeem_script)) {
-        warn(CFD_LOG_SOURCE, "redeem script is null.");
+        warn(CFD_LOG_SOURCE, "redeem script is null or empty.");
         throw CfdException(
             CfdError::kCfdIllegalArgumentError,
-            "Failed to parameter. redeem script is null.");
+            "Failed to parameter. redeem script is null or empty.");
       }
       Script redeem_script_obj = Script(redeem_script);
       key_data = redeem_script_obj.GetData();
     } else {
       if (IsEmptyString(pubkey)) {
-        warn(CFD_LOG_SOURCE, "pubkey is null.");
+        warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
         throw CfdException(
             CfdError::kCfdIllegalArgumentError,
-            "Failed to parameter. pubkey is null.");
+            "Failed to parameter. pubkey is null or empty.");
       }
       Pubkey pubkey_obj = Pubkey(pubkey);
       key_data = pubkey_obj.GetData();
@@ -1430,16 +1418,16 @@ int CfdUnblindTxOut(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (IsEmptyString(blinding_key)) {
-      warn(CFD_LOG_SOURCE, "blinding key is null.");
+      warn(CFD_LOG_SOURCE, "blinding key is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. blinding key is null.");
+          "Failed to parameter. blinding key is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -1499,10 +1487,10 @@ int CfdUnblindIssuance(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex_string)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex_string);
@@ -1596,22 +1584,22 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
   try {
     cfd::Initialize();
     if (IsEmptyString(tx_hex)) {
-      warn(CFD_LOG_SOURCE, "tx is null.");
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx is null.");
+          "Failed to parameter. tx is null or empty.");
     }
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
     if (IsEmptyString(pubkey)) {
-      warn(CFD_LOG_SOURCE, "pubkey is null.");
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. pubkey is null.");
+          "Failed to parameter. pubkey is null or empty.");
     }
 
     ConfidentialTransactionController ctxc(tx_hex);

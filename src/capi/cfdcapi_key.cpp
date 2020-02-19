@@ -75,16 +75,16 @@ int CfdCalculateEcSignature(
   try {
     cfd::Initialize();
     if (IsEmptyString(sighash)) {
-      warn(CFD_LOG_SOURCE, "sighash is null.");
+      warn(CFD_LOG_SOURCE, "sighash is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. sighash is null.");
+          "Failed to parameter. sighash is null or empty.");
     }
     if (IsEmptyString(privkey) && IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "privkey is null.");
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. privkey is null.");
+          "Failed to parameter. privkey is null or empty.");
     }
     if (signature == nullptr) {
       warn(CFD_LOG_SOURCE, "signature is null.");
@@ -123,10 +123,10 @@ int CfdEncodeSignatureByDer(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
     if (signature == nullptr) {
       warn(CFD_LOG_SOURCE, "der_signature is null.");
@@ -157,10 +157,10 @@ int CfdNormalizeSignature(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
     if (normalized_signature == nullptr) {
       warn(CFD_LOG_SOURCE, "normalized_signature is null.");
@@ -240,10 +240,10 @@ int CfdGetPrivkeyFromWif(
           "Failed to parameter. privkey is null.");
     }
     if (IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "wif is null.");
+      warn(CFD_LOG_SOURCE, "wif is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. wif is null.");
+          "Failed to parameter. wif is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -275,10 +275,10 @@ int CfdGetPrivkeyWif(
           "Failed to parameter. wif is null.");
     }
     if (IsEmptyString(privkey)) {
-      warn(CFD_LOG_SOURCE, "privkey is null.");
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. privkey is null.");
+          "Failed to parameter. privkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -304,10 +304,10 @@ int CfdParsePrivkeyWif(
   try {
     cfd::Initialize();
     if (IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "wif is null.");
+      warn(CFD_LOG_SOURCE, "wif is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. wif is null.");
+          "Failed to parameter. wif is null or empty.");
     }
 
     NetType temp_nettype = NetType::kMainnet;
@@ -350,10 +350,10 @@ int CfdGetPubkeyFromPrivkey(
           "Failed to parameter. pubkey is null.");
     }
     if (IsEmptyString(privkey) && IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "privkey is null.");
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. privkey is null.");
+          "Failed to parameter. privkey is null or empty.");
     }
 
     KeyApi api;
@@ -389,10 +389,10 @@ int CfdCreateExtkeyFromSeed(
           "Failed to parameter. extkey is null.");
     }
     if (IsEmptyString(seed_hex)) {
-      warn(CFD_LOG_SOURCE, "seed is null.");
+      warn(CFD_LOG_SOURCE, "seed is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. seed is null.");
+          "Failed to parameter. seed is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -426,10 +426,10 @@ int CfdCreateExtkeyFromParentPath(
           "Failed to parameter. child extkey is null.");
     }
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     std::string path_string;
@@ -466,10 +466,10 @@ int CfdCreateExtPubkey(
           "Failed to parameter. extpubkey is null.");
     }
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -497,10 +497,10 @@ int CfdGetPrivkeyFromExtkey(
   try {
     cfd::Initialize();
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -543,10 +543,10 @@ int CfdGetPubkeyFromExtkey(
           "Failed to parameter. pubkey is null.");
     }
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -575,10 +575,10 @@ int CfdGetParentExtkeyPathData(
   try {
     cfd::Initialize();
     if (IsEmptyString(parent_extkey)) {
-      warn(CFD_LOG_SOURCE, "parent extkey is null.");
+      warn(CFD_LOG_SOURCE, "parent extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to CfdGetParentExtkeyPathData. parent extkey is null.");
+          "Failed to get parameter. parent extkey is null or empty.");
     }
 
     std::string path_from_parent;
@@ -642,10 +642,10 @@ int CfdGetExtkeyInformation(
   try {
     cfd::Initialize();
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "parent extkey is null.");
+      warn(CFD_LOG_SOURCE, "parent extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to CfdGetParentExtkeyPathData. parent extkey is null.");
+          "Failed to get parameter. parent extkey is null or empty.");
     }
 
     std::string extkey_string = extkey;
