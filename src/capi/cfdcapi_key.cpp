@@ -14,6 +14,7 @@
 #include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_key.h"
 #include "cfdcore/cfdcore_common.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
@@ -28,6 +29,9 @@ using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::CryptoUtil;
+using cfd::core::DescriptorKeyInfo;
+using cfd::core::ExtPrivkey;
+using cfd::core::ExtPubkey;
 using cfd::core::NetType;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
@@ -71,16 +75,16 @@ int CfdCalculateEcSignature(
   try {
     cfd::Initialize();
     if (IsEmptyString(sighash)) {
-      warn(CFD_LOG_SOURCE, "sighash is null.");
+      warn(CFD_LOG_SOURCE, "sighash is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. sighash is null.");
+          "Failed to parameter. sighash is null or empty.");
     }
     if (IsEmptyString(privkey) && IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "privkey is null.");
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. privkey is null.");
+          "Failed to parameter. privkey is null or empty.");
     }
     if (signature == nullptr) {
       warn(CFD_LOG_SOURCE, "signature is null.");
@@ -119,10 +123,10 @@ int CfdEncodeSignatureByDer(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
     if (signature == nullptr) {
       warn(CFD_LOG_SOURCE, "der_signature is null.");
@@ -153,10 +157,10 @@ int CfdNormalizeSignature(
   try {
     cfd::Initialize();
     if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
+          "Failed to parameter. signature is null or empty.");
     }
     if (normalized_signature == nullptr) {
       warn(CFD_LOG_SOURCE, "normalized_signature is null.");
@@ -236,10 +240,10 @@ int CfdGetPrivkeyFromWif(
           "Failed to parameter. privkey is null.");
     }
     if (IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "wif is null.");
+      warn(CFD_LOG_SOURCE, "wif is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. wif is null.");
+          "Failed to parameter. wif is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -247,6 +251,81 @@ int CfdGetPrivkeyFromWif(
         wif, net_type, (strlen(wif) != kPrivkeyWifUncompressSize));
     *privkey = CreateString(key.GetHex());
 
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdGetPrivkeyWif(
+    void* handle, const char* privkey, int network_type, bool is_compressed,
+    char** wif) {
+  try {
+    cfd::Initialize();
+    if (wif == nullptr) {
+      warn(CFD_LOG_SOURCE, "wif is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. wif is null.");
+    }
+    if (IsEmptyString(privkey)) {
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey is null or empty.");
+    }
+
+    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    Privkey key(privkey);
+    std::string privkey_wif = key.ConvertWif(net_type, is_compressed);
+    *wif = CreateString(privkey_wif);
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdParsePrivkeyWif(
+    void* handle, const char* wif, char** privkey, int* network_type,
+    bool* is_compressed) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(wif)) {
+      warn(CFD_LOG_SOURCE, "wif is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. wif is null or empty.");
+    }
+
+    NetType temp_nettype = NetType::kMainnet;
+    bool temp_is_compressed = false;
+    KeyApi api;
+    Privkey key =
+        api.GetPrivkeyFromWif(wif, &temp_nettype, &temp_is_compressed);
+    if (privkey != nullptr) *privkey = CreateString(key.GetHex());
+    if (is_compressed != nullptr) {
+      *is_compressed = temp_is_compressed;
+    }
+    if (network_type != nullptr) {
+      if (temp_nettype == NetType::kMainnet) {
+        *network_type = kCfdNetworkMainnet;
+      } else {
+        *network_type = kCfdNetworkTestnet;
+      }
+    }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
@@ -271,10 +350,10 @@ int CfdGetPubkeyFromPrivkey(
           "Failed to parameter. pubkey is null.");
     }
     if (IsEmptyString(privkey) && IsEmptyString(wif)) {
-      warn(CFD_LOG_SOURCE, "privkey is null.");
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. privkey is null.");
+          "Failed to parameter. privkey is null or empty.");
     }
 
     KeyApi api;
@@ -310,10 +389,10 @@ int CfdCreateExtkeyFromSeed(
           "Failed to parameter. extkey is null.");
     }
     if (IsEmptyString(seed_hex)) {
-      warn(CFD_LOG_SOURCE, "seed is null.");
+      warn(CFD_LOG_SOURCE, "seed is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. seed is null.");
+          "Failed to parameter. seed is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -347,10 +426,10 @@ int CfdCreateExtkeyFromParentPath(
           "Failed to parameter. child extkey is null.");
     }
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     std::string path_string;
@@ -387,10 +466,10 @@ int CfdCreateExtPubkey(
           "Failed to parameter. extpubkey is null.");
     }
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -418,10 +497,10 @@ int CfdGetPrivkeyFromExtkey(
   try {
     cfd::Initialize();
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -464,10 +543,10 @@ int CfdGetPubkeyFromExtkey(
           "Failed to parameter. pubkey is null.");
     }
     if (IsEmptyString(extkey)) {
-      warn(CFD_LOG_SOURCE, "extkey is null.");
+      warn(CFD_LOG_SOURCE, "extkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. extkey is null.");
+          "Failed to parameter. extkey is null or empty.");
     }
 
     cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
@@ -485,6 +564,130 @@ int CfdGetPubkeyFromExtkey(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdGetParentExtkeyPathData(
+    void* handle, const char* parent_extkey, const char* path,
+    int child_key_type, char** key_path_data, char** child_key) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_key_path_data = nullptr;
+  char* work_child_key = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(parent_extkey)) {
+      warn(CFD_LOG_SOURCE, "parent extkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to get parameter. parent extkey is null or empty.");
+    }
+
+    std::string path_from_parent;
+    if (!IsEmptyString(path)) {
+      path_from_parent = path;
+    }
+
+    std::string parent_info;
+    std::string child_key_string;
+    std::string parent_key = parent_extkey;
+    std::string hdkey_top;
+    if (parent_key.size() > 4) {
+      hdkey_top = parent_key.substr(1, 3);
+    }
+    if (hdkey_top == "prv") {
+      ExtPrivkey ext_privkey(parent_key);
+      parent_info = DescriptorKeyInfo::GetExtPrivkeyInformation(
+          ext_privkey, path_from_parent);
+      if (!path_from_parent.empty()) {
+        ext_privkey = ext_privkey.DerivePrivkey(path_from_parent);
+        if (child_key_type == kCfdExtPrivkey) {
+          child_key_string = ext_privkey.ToString();
+        } else {
+          child_key_string = ext_privkey.GetExtPubkey().ToString();
+        }
+      }
+    } else {
+      ExtPubkey ext_pubkey(parent_key);
+      parent_info = DescriptorKeyInfo::GetExtPubkeyInformation(
+          ext_pubkey, path_from_parent);
+      if (!path_from_parent.empty()) {
+        ext_pubkey = ext_pubkey.DerivePubkey(path_from_parent);
+        child_key_string = ext_pubkey.ToString();
+      }
+    }
+
+    work_key_path_data = CreateString(parent_info);
+    work_child_key = CreateString(child_key_string);
+
+    if (key_path_data != nullptr) *key_path_data = work_key_path_data;
+    if (child_key != nullptr) *child_key = work_child_key;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_key_path_data, &work_child_key);
+  return result;
+}
+
+int CfdGetExtkeyInformation(
+    void* handle, const char* extkey, char** version, char** fingerprint,
+    char** chain_code, uint32_t* depth, uint32_t* child_number) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_version = nullptr;
+  char* work_fingerprint = nullptr;
+  char* work_chain_code = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(extkey)) {
+      warn(CFD_LOG_SOURCE, "parent extkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to get parameter. parent extkey is null or empty.");
+    }
+
+    std::string extkey_string = extkey;
+    std::string hdkey_top;
+    uint32_t work_depth = 0;
+    uint32_t work_child_number = 0;
+    if (extkey_string.size() > 4) {
+      hdkey_top = extkey_string.substr(1, 3);
+    }
+    if (hdkey_top == "prv") {
+      ExtPrivkey ext_privkey(extkey_string);
+      work_version = CreateString(ext_privkey.GetVersionData().GetHex());
+      work_fingerprint =
+          CreateString(ext_privkey.GetFingerprintData().GetHex());
+      work_chain_code = CreateString(ext_privkey.GetChainCode().GetHex());
+      work_depth = ext_privkey.GetDepth();
+      work_child_number = ext_privkey.GetChildNum();
+    } else {
+      ExtPubkey ext_pubkey(extkey_string);
+      work_version = CreateString(ext_pubkey.GetVersionData().GetHex());
+      work_fingerprint =
+          CreateString(ext_pubkey.GetFingerprintData().GetHex());
+      work_chain_code = CreateString(ext_pubkey.GetChainCode().GetHex());
+      work_depth = ext_pubkey.GetDepth();
+      work_child_number = ext_pubkey.GetChildNum();
+    }
+
+    if (version != nullptr) *version = work_version;
+    if (fingerprint != nullptr) *fingerprint = work_fingerprint;
+    if (chain_code != nullptr) *chain_code = work_chain_code;
+    if (depth != nullptr) *depth = work_depth;
+    if (child_number != nullptr) *child_number = work_child_number;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_version, &work_fingerprint, &work_chain_code);
+  return result;
 }
 
 };  // extern "C"
