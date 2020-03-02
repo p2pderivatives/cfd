@@ -5,6 +5,7 @@ TEST_CFD_SOURCES= \
     test_cfd_fee.cpp \
     test_cfd_signparameter.cpp \
     test_cfd_confidentialtx_controller.cpp \
+    test_cfd_confidentialtx_context.cpp \
     test_cfd_transaction_controller.cpp \
     test_cfd_transaction_context.cpp \
     test_cfd_coin_selection.cpp \
