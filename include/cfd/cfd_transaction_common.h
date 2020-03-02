@@ -41,6 +41,7 @@ using cfd::core::Txid;
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::core::BlindFactor;
 using cfd::core::ConfidentialAssetId;
+using cfd::core::ConfidentialValue;
 using cfd::core::ElementsConfidentialAddress;
 #endif  // CFD_DISABLE_ELEMENTS
 
@@ -78,6 +79,7 @@ struct UtxoData {
   ElementsConfidentialAddress confidential_address;  //!< Confidential address
   BlindFactor asset_blind_factor;                    //!< asset blind factor
   BlindFactor amount_blind_factor;                   //!< blind vactor
+  ConfidentialValue value_commitment;                //!< value commitment
 #endif                                               // CFD_DISABLE_ELEMENTS
 };
 

@@ -10,6 +10,7 @@ CFD_SOURCES = \
   cfd_manager.cpp \
   cfd_fee.cpp \
   cfd_transaction_common.cpp \
+  cfd_transaction_internal.cpp \
   cfd_transaction.cpp \
   cfd_address.cpp \
   cfd_utxo.cpp \

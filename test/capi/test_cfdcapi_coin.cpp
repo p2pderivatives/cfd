@@ -43,6 +43,7 @@ using cfd::core::Txid;
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::core::BlindFactor;
 using cfd::core::ConfidentialAssetId;
+using cfd::core::ConfidentialValue;
 using cfd::ElementsAddressFactory;
 using cfd::core::ElementsConfidentialAddress;
 #endif  // CFD_DISABLE_ELEMENTS
@@ -76,7 +77,8 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       ConfidentialAssetId(),
       ElementsConfidentialAddress(),
       BlindFactor(),
-      BlindFactor()
+      BlindFactor(),
+      ConfidentialValue()
 #else
       nullptr
 #endif  // CFD_DISABLE_ELEMENTS
@@ -97,7 +99,8 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       ConfidentialAssetId(),
       ElementsConfidentialAddress(),
       BlindFactor(),
-      BlindFactor()
+      BlindFactor(),
+      ConfidentialValue()
 #else
       nullptr
 #endif  // CFD_DISABLE_ELEMENTS
@@ -423,7 +426,8 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3"),
       ElementsConfidentialAddress(),
       BlindFactor(),
-      BlindFactor()
+      BlindFactor(),
+      ConfidentialValue()
     },
     UtxoData{
       5,
@@ -440,7 +444,8 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       ConfidentialAssetId("6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3"),
       ElementsConfidentialAddress(),
       BlindFactor(),
-      BlindFactor()
+      BlindFactor(),
+      ConfidentialValue()
     }
   };
 
