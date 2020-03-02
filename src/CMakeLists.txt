@@ -199,7 +199,7 @@ add_custom_target(
   lcov_cfd21
   lcov -c -d . -o cfd2.info
   COMMAND lcov -o cfd_capi.info -e cfd2.info "*/cfdcapi_*"
-  DEPENDS lcov_cfd00
+  DEPENDS lcov_cfd00 lcov_cfd12
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir/capi
 )
 add_custom_target(
