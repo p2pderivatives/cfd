@@ -88,29 +88,72 @@ class CFD_EXPORT TransactionContext : public Transaction {
   TransactionContext& operator=(const TransactionContext& context) &;
 
   /**
-   * @brief add txin with utxo.
-   * @param[in] utxo  UTXO
+   * @brief Transaction's GetTxInIndex.
    */
-  void AddInput(const UtxoData& utxo);
+  using Transaction::GetTxInIndex;
   /**
-   * @brief add txin with utxo.
-   * @param[in] utxo      UTXO
-   * @param[in] sequence  unlock sequence value.
+   * @brief TxInのindexを取得する.
+   * @param[in] outpoint  TxIn txid and vout
+   * @return 条件に合致するTxInのindex番号
    */
-  void AddInput(const UtxoData& utxo, uint32_t sequence);
+  virtual uint32_t GetTxInIndex(const OutPoint& outpoint) const;
   /**
-   * @brief add txins with utxo.
-   * @param[in] utxos   UTXO's
+   * @brief Transaction's GetTxOutIndex.
    */
-  void AddInputs(const std::vector<UtxoData>& utxos);
+  using Transaction::GetTxOutIndex;
+  /**
+   * @brief TxOutのindexを取得する.
+   * @param[in] address  address
+   * @return 条件に合致するTxOutのindex番号
+   */
+  virtual uint32_t GetTxOutIndex(const Address& address) const;
+  /**
+   * @brief TxInの有無を確認する.
+   * @param[in] outpoint  TxIn txid and vout
+   * @param[out] index  txout index.
+   * @retval true  存在
+   * @retval false 未存在
+   */
+  bool IsFindTxIn(const OutPoint& outpoint, uint32_t* index = nullptr) const;
+  /**
+   * @brief TxOutの有無を確認する.
+   * @param[in] locking_script  locking script
+   * @param[out] index  txout index.
+   * @retval true  存在
+   * @retval false 未存在
+   */
+  bool IsFindTxOut(
+      const Script& locking_script, uint32_t* index = nullptr) const;
+  /**
+   * @brief TxOutの有無を確認する.
+   * @param[in] address  address
+   * @param[out] index  txout index.
+   * @retval true  存在
+   * @retval false 未存在
+   */
+  bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
 
+  /**
+   * @brief Transaction's AddTxIn.
+   */
+  using Transaction::AddTxIn;
+  /**
+   * @brief TxInを追加する.
+   * @param[in] outpoint  TxIn txid and vout
+   * @return 追加したTxInのindex位置
+   */
+  virtual uint32_t AddTxIn(const OutPoint& outpoint);
+  /**
+   * @brief Transaction's AddTxOut.
+   */
+  using Transaction::AddTxOut;
   /**
    * @brief TxOutを追加する.
    * @param[in] address  送金先アドレス
    * @param[in] value  送金額
    * @return 追加したTxOutのIndex番号
    */
-  uint32_t AddTxOut(const Address& address, const Amount& value);
+  virtual uint32_t AddTxOut(const Address& address, const Amount& value);
 
   /**
    * @brief TxInを除外したサイズを取得する。
@@ -126,12 +169,31 @@ class CFD_EXPORT TransactionContext : public Transaction {
 
   // state-sequence-api
   /**
+   * @brief add txin with utxo.
+   * @param[in] utxo  UTXO
+   */
+  void AddInput(const UtxoData& utxo);
+  /**
+   * @brief add txin with utxo.
+   * @param[in] utxo      UTXO
+   * @param[in] sequence  unlock sequence value.
+   */
+  void AddInput(const UtxoData& utxo, uint32_t sequence);
+  /**
+   * @brief add txins with utxo.
+   * @param[in] utxos   UTXO's
+   */
+  void AddInputs(const std::vector<UtxoData>& utxos);
+  /**
    * @brief collect utxo and cache into utxo_map_.
    * @param[in] utxos   utxo list.
    */
   void CollectInputUtxo(const std::vector<UtxoData>& utxos);
-
-#if 0
+  /**
+   * @brief TxOutのFee額を取得する.
+   * @return Fee額
+   */
+  Amount GetFeeAmount() const;
   /**
    * @brief sign with privkey.
    * @param[in] outpoint      utxo target.
@@ -162,6 +224,8 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @return transaction raw data.
    */
   ByteData Finalize();
+
+#if 0
   /**
    * @brief clear sign area all.
    */
@@ -176,31 +240,29 @@ class CFD_EXPORT TransactionContext : public Transaction {
   // sign-api
   /**
    * @brief 指定されたPubkeyHash形式のTxInのSignatureHashを計算する.
-   * @param[in] txid SignatureHash算出対象のTxInのtxid
-   * @param[in] vout SignatureHash算出対象のTxInのvout
+   * @param[in] outpoint SignatureHash算出対象のTxInのtxid&vout
    * @param[in] pubkey SignatureHashの公開鍵
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
    * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
-  ByteData CreateSignatureHash(
-      const Txid& txid, uint32_t vout, const Pubkey& pubkey,
-      SigHashType sighash_type, const Amount& value = Amount(),
+  virtual ByteData CreateSignatureHash(
+      const OutPoint& outpoint, const Pubkey& pubkey, SigHashType sighash_type,
+      const Amount& value = Amount(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
   /**
    * @brief 指定されたScriptHash形式のTxInのSignatureHashを計算する.
    * @details OP_CODESEPARATORが存在するScriptについては未対応
-   * @param[in] txid SignatureHash算出対象のTxInのtxid
-   * @param[in] vout SignatureHash算出対象のTxInのvout
+   * @param[in] outpoint SignatureHash算出対象のTxInのtxid&vout
    * @param[in] redeem_script ScriptHashのRedeem Script
    * @param[in] sighash_type SigHashType値
    * @param[in] value TxInで指定したUTXOのamount
    * @param[in] version TxInで指定したUTXOのWitnessVersion
    * @return 算出されたSignatureHashのHex文字列
    */
-  ByteData CreateSignatureHash(
-      const Txid& txid, uint32_t vout, const Script& redeem_script,
+  virtual ByteData CreateSignatureHash(
+      const OutPoint& outpoint, const Script& redeem_script,
       SigHashType sighash_type, const Amount& value = Amount(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
 
@@ -277,8 +339,7 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @details Not supported yet the script which includes OP_CODESEPARATOR.
    * @param[in] signature           signature to be verified.
    * @param[in] pubkey              public key to verify signature.
-   * @param[in] txid                target input's transaction id.
-   * @param[in] vout                target input's previous output index.
+   * @param[in] outpoint            TxIn
    * @param[in] sighash_type        sighash type class. (SigHashType)
    * @param[in] value               previous output amount.
    *     (require if the previous output send to witness.)
@@ -288,16 +349,16 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @retval false      incorrect signature.
    */
   bool VerifyInputSignature(
-      const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
-      uint32_t vout, SigHashType sighash_type, const Amount& value = Amount(),
+      const ByteData& signature, const Pubkey& pubkey,
+      const OutPoint& outpoint, SigHashType sighash_type,
+      const Amount& value = Amount(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
   /**
    * @brief Verify signature which is specified (script hash) input data.
    * @details Not supported yet the script which includes OP_CODESEPARATOR.
    * @param[in] signature           signature to be verified.
    * @param[in] pubkey              public key to verify signature.
-   * @param[in] txid                target input's transaction id.
-   * @param[in] vout                target input's previous output index.
+   * @param[in] outpoint            TxIn
    * @param[in] script              redeem script related previous output.
    * @param[in] sighash_type        sighash type class. (SigHashType)
    * @param[in] value               previous output amount.
@@ -308,8 +369,8 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @retval false      incorrect signature.
    */
   bool VerifyInputSignature(
-      const ByteData& signature, const Pubkey& pubkey, const Txid& txid,
-      uint32_t vout, const Script& script, SigHashType sighash_type,
+      const ByteData& signature, const Pubkey& pubkey,
+      const OutPoint& outpoint, const Script& script, SigHashType sighash_type,
       const Amount& value = Amount(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
 

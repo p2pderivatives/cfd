@@ -35,6 +35,7 @@ using cfd::core::CfdException;
 using cfd::core::CryptoUtil;
 using cfd::core::Descriptor;
 using cfd::core::DescriptorScriptReference;
+using cfd::core::DescriptorScriptType;
 using cfd::core::HashType;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
@@ -115,9 +116,12 @@ void UtxoUtil::ConvertToUtxo(
         DescriptorScriptReference script_ref = desc.GetReference();
         output.locking_script = script_ref.GetLockingScript();
         locking_script_bytes = output.locking_script.GetData().GetBytes();
-        output.address_type = script_ref.GetAddressType();
         utxo->address_type = static_cast<uint16_t>(output.address_type);
-        output.address = script_ref.GenerateAddress(net_type);
+        if (script_ref.GetScriptType() !=
+            DescriptorScriptType::kDescriptorScriptRaw) {
+          output.address_type = script_ref.GetAddressType();
+          output.address = script_ref.GenerateAddress(net_type);
+        }
       }
     }
 
