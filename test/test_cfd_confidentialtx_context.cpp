@@ -88,7 +88,7 @@ TEST(ConfidentialTransactionContext, AddTxInOut)
       ConfidentialAssetId("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225"));
   txc.AddTxOut(
       ct_addr,
-      Amount::CreateBySatoshiAmount(209998999992700),
+      Amount::CreateBySatoshiAmount(int64_t{209998999992700}),
       ConfidentialAssetId("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225"));
 
   EXPECT_STREQ(txc.GetHex().c_str(), "020000000002a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0200000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000001c8400000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000befe33cc397c03f234757d0e00e6a7a7a3b4b2b31fb0328d7b9f755cd1093d9f61892fef3116871976a91435ef6d4b59f26089dfe2abca21408e15fee42a3388ac00000000");
@@ -419,7 +419,7 @@ TEST(ConfidentialTransactionContext, AddPeginTxIn)
   ElementsConfidentialAddress ct_addr("CTEyBCf1WzQDpbv6sXLTnFaknGK2UJMHqjyGJjQGq9NEytBR2JLHR9cHJSk4MbLVcKQYWsWERUEYN6R3");
   Address addr = ct_addr.GetUnblindedAddress();
   OutPoint outpoint = OutPoint(Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3"), 2);
-  Amount pegin_amount(209998999992700);
+  Amount pegin_amount(int64_t{209998999992700});
   ConfidentialAssetId asset("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
   BlockHash mainchain_hash("06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f");
   Script claim_script("0014e8d28b573816ddfcf98578d7b28543e273f5a72a");

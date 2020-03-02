@@ -75,8 +75,8 @@ TEST(TransactionContext, AddTxInOut)
   OutPoint outpoint = OutPoint(Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3"), 2);
   txc.AddTxIn(OutPoint(Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3"), 0));
   txc.AddTxIn(outpoint);
-  txc.AddTxOut(script_addr, Amount(100000000000000));
-  txc.AddTxOut(addr, Amount(109998999992700));
+  txc.AddTxOut(script_addr, Amount(int64_t{100000000000000}));
+  txc.AddTxOut(addr, Amount(int64_t{109998999992700}));
 
   EXPECT_STREQ(txc.GetHex().c_str(), "0200000002a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0200000000ffffffff0200407a10f35a000017a91419970f64fb36fe3b7b21eca335ff70dde51eb8c8877cf951230b6400001976a914925d4028880bd0c9d68fbc7fc7dfee976698629c88ac00000000");
   EXPECT_STREQ(addr.GetAddress().c_str(), "1ELuNB5fLNUcrLzb93oJDPmjxjnsVwhNHn");
@@ -315,7 +315,7 @@ TEST(TransactionContext, SignWithPrivkeySimple) {
       OutPoint(Txid("86dc9d4a8764c8658f24ab0286f215abe443f98221c272e1999c56e902c9a6ac"), 0),
       Pubkey("02f56451fc1fd9040652ff9a700cf914ad1df1c8f9e82f3fe96ca01b6cd47293ef"),
       Privkey::FromWif("cRar5dsNEddUTgXuuhsq5p2NRJUKiV58PUHEPgGe1k9CW8CGRzbj", NetType::kTestnet),
-      SigHashType(), Amount::CreateBySatoshiAmount(3000002000),
+      SigHashType(), Amount::CreateBySatoshiAmount(int64_t{3000002000}),
       AddressType::kP2shP2wpkhAddress, true));
   EXPECT_STREQ(ctx.GetHex().c_str(), "02000000000101aca6c902e9569c99e172c22182f943e4ab15f28602ab248f65c864874a9ddc8600000000171600141da984b5779f27a59dfb3499bce3823bf1824941ffffffff01005ed0b20000000017a914eca3232c3a28a4d0c03b374d0f6053e9e546e997870247304402205c8a6b770633449f129579776dfd0a839c9749860e17f7a2bde7927e4b9a8c7202205c5a10a57acef9cadd37d72fece91821db547e9c3447f2b1071f664d393b7a5c012102f56451fc1fd9040652ff9a700cf914ad1df1c8f9e82f3fe96ca01b6cd47293ef00000000");
 }
