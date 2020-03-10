@@ -1131,12 +1131,6 @@ int CfdAddConfidentialTxSign(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. txid is null or empty.");
     }
-    if (IsEmptyString(sign_data_hex)) {
-      warn(CFD_LOG_SOURCE, "sign data is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. sign data is null or empty.");
-    }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
       throw CfdException(
@@ -1144,8 +1138,16 @@ int CfdAddConfidentialTxSign(
           "Failed to parameter. tx output is null.");
     }
 
+    // if using witness, enable empty data.
+    if ((is_witness && (sign_data_hex == nullptr)) ||
+        (!is_witness && IsEmptyString(sign_data_hex))) {
+      warn(CFD_LOG_SOURCE, "sign data is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sign data is null or empty.");
+    }
+
     std::vector<SignParameter> sign_list;
-    // SignParameter param();
     sign_list.emplace_back(std::string(sign_data_hex));
 
     ElementsTransactionApi api;
