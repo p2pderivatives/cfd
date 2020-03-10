@@ -60,6 +60,21 @@ CFDC_API int CfdEncodeSignatureByDer(
     bool sighash_anyone_can_pay, char** der_signature);
 
 /**
+ * @brief decode ec signature from der encoding.
+ * @param[in] handle                   cfd handle.
+ * @param[in] der_signature            signature encoded by der encoding.
+ * @param[out] signature               compact signature string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] sighash_type            sign sighash type.
+ * @param[out] sighash_anyone_can_pay  flag of signing only the current input.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdDecodeSignatureFromDer(
+    void* handle, const char* der_signature, char** signature,
+    int* sighash_type, bool* sighash_anyone_can_pay);
+
+/**
  * @brief convert ec signature to low-s form
  * @param[in] handle                  cfd handle.
  * @param[in] signature               to convert ec signature
