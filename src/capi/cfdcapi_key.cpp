@@ -152,6 +152,44 @@ int CfdEncodeSignatureByDer(
   }
 }
 
+int CfdDecodeSignatureFromDer(
+    void* handle, const char* der_signature, char** signature,
+    int* sighash_type, bool* sighash_anyone_can_pay) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(der_signature)) {
+      warn(CFD_LOG_SOURCE, "der_signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. der_signature is null or empty.");
+    }
+    if (signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null.");
+    }
+
+    SigHashType type;
+    ByteData sig =
+        CryptoUtil::ConvertSignatureFromDer(ByteData(der_signature), &type);
+    *signature = CreateString(sig.GetHex());
+    if (sighash_type) *sighash_type = int{type.GetSigHashAlgorithm()};
+    if (sighash_anyone_can_pay)
+      *sighash_anyone_can_pay = type.IsAnyoneCanPay();
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
 int CfdNormalizeSignature(
     void* handle, const char* signature, char** normalized_signature) {
   try {
