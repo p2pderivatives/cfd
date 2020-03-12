@@ -155,6 +155,22 @@ CFDC_API int CfdGetLastErrorCode(void* handle);
  */
 CFDC_API int CfdGetLastErrorMessage(void* handle, char** message);
 
+/**
+ * @brief Request execute function by json string.
+ * @param[in] handle                 handle pointer.
+ * @param[in] name                   request name.
+ * @param[in] json_string            request json data.
+ * @param[out] response_json_string  response json data.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @retval kCfdSuccess               success
+ * @retval kCfdIllegalArgumentError  value is NULL.
+ * @retval kCfdIllegalStateError     not supported function.(disable definition)
+ */
+CFDC_API int CfdRequestExecuteJson(
+    void* handle, const char* name, const char* json_string,
+    char** response_json_string);
+
 #ifdef __cplusplus
 #if 0
 {
