@@ -155,6 +155,21 @@ CFDC_API int CfdGetConfidentialTxInWitness(
     uint32_t stack_index, char** stack_data);
 
 /**
+ * @brief get elements transaction input pegin witness stack.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txin_index        txin index.
+ * @param[in] stack_index       witness stack index.
+ * @param[out] stack_data       witness stack data.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInPeginWitness(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t stack_index, char** stack_data);
+
+/**
  * @brief get elements issuance information.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     transaction hex.
@@ -242,6 +257,18 @@ CFDC_API int CfdGetConfidentialTxInWitnessCount(
     uint32_t* count);
 
 /**
+ * @brief get elements transaction input pegin witness stack count.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txin_index        txin index.
+ * @param[out] count            witness stack count.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInPeginWitnessCount(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t* count);
+
+/**
  * @brief get elements transaction output count.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     transaction hex.
@@ -250,6 +277,32 @@ CFDC_API int CfdGetConfidentialTxInWitnessCount(
  */
 CFDC_API int CfdGetConfidentialTxOutCount(
     void* handle, const char* tx_hex_string, uint32_t* count);
+
+/**
+ * @brief get tx-input index.
+ * @param[in] handle          cfd handle.
+ * @param[in] tx_hex_string   tx hex.
+ * @param[in] txid            txin txid.
+ * @param[in] vout            txin vout.
+ * @param[out] index          txin index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInIndex(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    uint32_t* index);
+
+/**
+ * @brief get tx-input index.
+ * @param[in] handle                 cfd handle.
+ * @param[in] tx_hex_string          tx hex.
+ * @param[in] address                txout address.
+ * @param[in] direct_locking_script  txout locking script. (not use address)
+ * @param[out] index                 txout index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxOutIndex(
+    void* handle, const char* tx_hex_string, const char* address,
+    const char* direct_locking_script, uint32_t* index);
 
 /**
  * @brief set reissue transaction data.
@@ -554,20 +607,6 @@ CFDC_API int CfdUpdateConfidentialTxIn(
 CFDC_API int CfdAddPeginWitnessStack(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     const char* hex_data, char** tx_string);
-
-CFDC_API int CfdGetElementsWitnessStack(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, char** hex_string);
-CFDC_API int CfdGetPeginWitnessStack(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, char** hex_string);
-
-CFDC_API int CfdGetElementsWitnessStackCount(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, uint32_t* count);
-CFDC_API int CfdGetPeginWitnessStackCount(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, uint32_t* count);
 
 */
 
