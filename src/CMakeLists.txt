@@ -198,7 +198,7 @@ if(ENABLE_DEBUG AND ENABLE_COVERAGE)
 add_custom_target(
   lcov_cfd00
   ${CMAKE_COMMAND} -E make_directory ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output
-  COMMAND ${CMAKE_COMMAND} -E remove -f cfd1.info cfd_api.info cfd_cfd.info cfd_cfd1.info cfd.info capi/cfd2.info capi/cfd_capi.info
+  COMMAND ${CMAKE_COMMAND} -E remove -f cfd1.info cfd12.info cfd_api.info cfd_cfd.info cfd_cfd1.info cfd.info capi/cfd2.info capi/cfd_capi.info jsonapi/cfd3.info jsonapi/cfd_jsonapi.info
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
 )
 add_custom_target(
@@ -210,7 +210,7 @@ add_custom_target(
 add_custom_target(
   lcov_cfd12
   lcov -o cfd_api.info -e cfd1.info "*/cfdapi_*"
-  COMMAND lcov -o cfd_cfd.info -e cfd1.info "*/cfd_*"
+  COMMAND lcov -o cfd_cfd.info -e cfd1.info "*/src/cfd_*"
   DEPENDS lcov_cfd11
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
 )
@@ -223,8 +223,7 @@ add_custom_target(
 )
 add_custom_target(
   lcov_cfd31
-  lcov -c -d . -o cfd3.info
-  COMMAND lcov -o cfd_jsonapi.info -e cfd3.info "*/cfd_*"
+  lcov -o cfd_jsonapi.info -e ../cfd1.info "*/jsonapi/cfd_json_*"
   DEPENDS lcov_cfd00 lcov_cfd12
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir/jsonapi
 )
@@ -238,7 +237,7 @@ add_custom_target(
 #  COMMAND gcov -f -m *.gcda > console.log
 add_custom_target(
   lcov_cfd
-  lcov -a cfd_cfd1.info -a capi/cfd_capi.info -o cfd.info
+  lcov -a cfd_cfd2.info -a capi/cfd_capi.info -o cfd.info
   COMMAND genhtml -s --demangle-cpp -o ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output cfd.info
   DEPENDS lcov_cfd1
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
