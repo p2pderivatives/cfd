@@ -130,7 +130,8 @@
     "build_and_debug": "run-s cmake_debug_build_parallel test_cfd_debug lint_check doxygen_check",
     "check": "run-s doxygen_check ctest_quiet lint_check",
     "check_debug": "run-s doxygen_check lint_check ctest_debug",
-    "check_all": "run-s cmake_clean git_subm_update cmake_quiet doxygen_check ctest_quiet lint_check"
+    "check_all": "run-s cmake_clean git_subm_update cmake_quiet doxygen_check ctest_quiet lint_check",
+    "convert_json": "node ./tools/generate_json_map_class.js"
   },
   "author": "",
   "license": "MIT",
