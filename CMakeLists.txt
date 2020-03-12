@@ -10,6 +10,7 @@ include(./cmake/CfdCommonOption.cmake)
 include(./cmake/CfdWallyOption.cmake)
 
 option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
+option(ENABLE_JSONAPI  "enable json-api (ON or OFF. default:ON)" ON)
 
 ####################
 # common setting

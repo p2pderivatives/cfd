@@ -13,6 +13,7 @@ include(../cmake/CfdCommonSetting.cmake)
 
 option(CFD_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
 option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
+option(ENABLE_JSONAPI  "enable json-api (ON or OFF. default:ON)" ON)
 
 if(CFD_SHARED AND (WIN32 OR APPLE))
 set(USE_CFD_SHARED  TRUE)
@@ -46,6 +47,12 @@ else()
 set(CFD_CAPI_USE   "")
 endif()
 
+if(NOT ENABLE_JSONAPI)
+set(CFD_JSONAPI_USE   CFD_DISABLE_JSONAPI)
+else()
+set(CFD_JSONAPI_USE   "")
+endif()
+
 if(ENABLE_SHARED)
 set(CFD_CORE_SHARED_OPT  CFD_CORE_SHARED=1)  # msvc only
 else()
@@ -76,13 +83,20 @@ endif()
 if(NOT ENABLE_CAPI)
 target_sources(${PROJECT_NAME}
   PRIVATE
-    ${CFD_SOURCES}
+    ${CFD_SOURCES} ${CFD_JSONAPI_SOURCES}
 )
 else()
+if(NOT ENABLE_JSONAPI)
 target_sources(${PROJECT_NAME}
   PRIVATE
     ${CFD_SOURCES} ${CFD_CAPI_SOURCES}
 )
+else()
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ${CFD_SOURCES} ${CFD_JSONAPI_SOURCES} ${CFD_CAPI_SOURCES}
+)
+endif()
 endif()
 
 target_compile_options(${PROJECT_NAME}
@@ -101,6 +115,7 @@ target_compile_definitions(${PROJECT_NAME}
     CFD_BUILD=1
     ${CFD_ELEMENTS_USE}
     ${CFD_CAPI_USE}
+    ${CFD_JSONAPI_USE}
     ${CFD_CORE_SHARED_OPT}
 )
 
@@ -111,6 +126,8 @@ target_include_directories(${PROJECT_NAME}
     $<INSTALL_INTERFACE:include>
   PRIVATE
     .
+    jsonapi
+    jsonapi/autogen
     ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
 )
 target_link_directories(${PROJECT_NAME}
@@ -125,6 +142,8 @@ target_include_directories(${PROJECT_NAME}
     $<INSTALL_INTERFACE:include>
   PRIVATE
     .
+    jsonapi
+    jsonapi/autogen
     ${cfdcore_DIR}/../include
     ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
 )
@@ -203,9 +222,17 @@ add_custom_target(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir/capi
 )
 add_custom_target(
+  lcov_cfd31
+  lcov -c -d . -o cfd3.info
+  COMMAND lcov -o cfd_jsonapi.info -e cfd3.info "*/cfd_*"
+  DEPENDS lcov_cfd00 lcov_cfd12
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir/jsonapi
+)
+add_custom_target(
   lcov_cfd1
-  COMMAND lcov -a cfd_cfd.info -a cfd_api.info -o cfd_cfd1.info
-  DEPENDS lcov_cfd12 lcov_cfd21
+  lcov -a cfd_cfd.info -a cfd_api.info -o cfd_cfd1.info
+  COMMAND lcov -a cfd_cfd1.info -a jsonapi/cfd_jsonapi.info -o cfd_cfd2.info
+  DEPENDS lcov_cfd12 lcov_cfd21 lcov_cfd31
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
 )
 #  COMMAND gcov -f -m *.gcda > console.log
