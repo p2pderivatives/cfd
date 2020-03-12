@@ -17,7 +17,6 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_script.h"
 #include "jsonapi/autogen/cfd_api_json_autogen.h"  // NOLINT
-#include "jsonapi/cfd_json_internal.h"          // NOLINT
 #include "jsonapi/cfd_json_transaction.h"  // NOLINT
 
 namespace cfd {

@@ -18,7 +18,6 @@
 #include "jsonapi/autogen/cfd_api_json_autogen.h"  // NOLINT
 #include "jsonapi/cfd_json_elements_transaction.h"
 #include "jsonapi/cfd_json_transaction.h"
-#include "jsonapi/cfd_json_internal.h"                   // NOLINT
 
 namespace cfd {
 namespace api {
