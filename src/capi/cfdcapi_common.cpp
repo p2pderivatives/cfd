@@ -11,6 +11,9 @@
 
 #include "capi/cfdc_internal.h"
 #include "cfd/cfd_common.h"
+#ifndef CFD_DISABLE_JSONAPI
+#include "cfd/cfd_json_mapping_api.h"
+#endif  // CFD_DISABLE_JSONAPI
 #include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_address.h"
@@ -510,6 +513,52 @@ extern "C" int CfdGetLastErrorMessage(void* handle, char** message) {
   } catch (...) {
     return kCfdUnknownError;
   }
+}
+
+extern "C" int CfdRequestExecuteJson(
+    void* handle, const char* name, const char* json_string,
+    char** response_json_string) {
+#ifndef CFD_DISABLE_JSONAPI
+  using cfd::api::json::JsonMappingApi;
+  try {
+    if ((name == nullptr) || (json_string == nullptr) ||
+        (response_json_string == nullptr)) {
+      return kCfdIllegalArgumentError;
+    }
+
+    std::string result;
+    std::string command(name);
+    if (command == "ElementsDecodeRawTransaction") {
+#ifndef CFD_DISABLE_ELEMENTS
+      result = JsonMappingApi::ElementsDecodeRawTransaction(
+          std::string(json_string));
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "elements not support.");
+#endif  // CFD_DISABLE_ELEMENTS
+    } else if (command == "DecodeRawTransaction") {
+      result = JsonMappingApi::DecodeRawTransaction(std::string(json_string));
+    } else {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "unknown request name.");
+    }
+
+    if (!result.empty() && (response_json_string != nullptr)) {
+      *response_json_string = cfd::capi::CreateString(result);
+    }
+    return kCfdSuccess;
+  } catch (const CfdException& except) {
+    return cfd::capi::SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    cfd::capi::SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    cfd::capi::SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+#else
+  return kCfdIllegalStateError;
+#endif  // CFD_DISABLE_JSONAPI
 }
 
 #endif  // CFD_DISABLE_CAPI
