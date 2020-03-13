@@ -60,6 +60,21 @@ CFDC_API int CfdEncodeSignatureByDer(
     bool sighash_anyone_can_pay, char** der_signature);
 
 /**
+ * @brief decode ec signature from der encoding.
+ * @param[in] handle                   cfd handle.
+ * @param[in] der_signature            signature encoded by der encoding.
+ * @param[out] signature               compact signature string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] sighash_type            sign sighash type.
+ * @param[out] sighash_anyone_can_pay  flag of signing only the current input.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdDecodeSignatureFromDer(
+    void* handle, const char* der_signature, char** signature,
+    int* sighash_type, bool* sighash_anyone_can_pay);
+
+/**
  * @brief convert ec signature to low-s form
  * @param[in] handle                  cfd handle.
  * @param[in] signature               to convert ec signature
@@ -102,6 +117,36 @@ CFDC_API int CfdCreateKeyPair(
  */
 CFDC_API int CfdGetPrivkeyFromWif(
     void* handle, const char* wif, int network_type, char** privkey);
+
+/**
+ * @brief get privkey WIF from hex.
+ * @param[in] handle         cfd handle.
+ * @param[in] privkey        privkey hex.
+ * @param[in] network_type   privkey wif network type.
+ * @param[in] is_compressed  compress flag.
+ * @param[out] wif           privkey wif.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPrivkeyWif(
+    void* handle, const char* privkey, int network_type, bool is_compressed,
+    char** wif);
+
+/**
+ * @brief parse privkey WIF information.
+ * @param[in] handle          cfd handle.
+ * @param[in] wif             privkey wif.
+ * @param[out] privkey        privkey hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] network_type   network type.
+ * @param[out] is_compressed  compress flag.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdParsePrivkeyWif(
+    void* handle, const char* wif, char** privkey, int* network_type,
+    bool* is_compressed);
 
 /**
  * @brief get pubkey from privkey.
@@ -190,6 +235,45 @@ CFDC_API int CfdGetPrivkeyFromExtkey(
  */
 CFDC_API int CfdGetPubkeyFromExtkey(
     void* handle, const char* extkey, int network_type, char** pubkey);
+
+/**
+ * @brief get parent key path data.
+ * @param[in] handle             handle pointer.
+ * @param[in] parent_extkey      parent ext key string.
+ * @param[in] path               child path.
+ * @param[in] child_key_type     child key type. (see CfdDescriptorKeyType)
+ * @param[out] key_path_data     key path data.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] child_key         child ext key string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetParentExtkeyPathData(
+    void* handle, const char* parent_extkey, const char* path,
+    int child_key_type, char** key_path_data, char** child_key);
+
+/**
+ * @brief get extkey information.
+ * @param[in] handle             handle pointer.
+ * @param[in] extkey             ext key string.
+ * @param[out] version           version.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] fingerprint       parent fingerprint.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] chain_code        chain code.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] depth             depth.
+ * @param[out] child_number      child number.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetExtkeyInformation(
+    void* handle, const char* extkey, char** version, char** fingerprint,
+    char** chain_code, uint32_t* depth, uint32_t* child_number);
 
 #if 0
 /*

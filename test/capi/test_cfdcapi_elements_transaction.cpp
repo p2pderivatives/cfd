@@ -33,6 +33,7 @@ TEST(cfdcapi_elements_transaction, CreateRawTransaction) {
   char* tx_string = nullptr;
   char* tx_string2 = nullptr;
   int64_t satoshi;
+  uint32_t index = 0;
 
   ret = CfdInitializeConfidentialTx(handle, 2, 0, &tx_string);
   EXPECT_EQ(kCfdSuccess, ret);
@@ -65,6 +66,28 @@ TEST(cfdcapi_elements_transaction, CreateRawTransaction) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ("020000000002bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffff0000000000", tx_string);
 
+    ret = CfdAddConfidentialTxIn(
+      handle, tx_string, "1497e1f146bc5fe00b6268ea16a7069ecb90a2a41a183446d5df8965d2356dc1", 2,
+      4294967295U, &tx_string2);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    CfdFreeStringBuffer(tx_string);
+    tx_string = tx_string2;
+    tx_string2 = nullptr;
+  }
+
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("020000000003bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140200000000ffffffff0000000000", tx_string);
+
+    index = 0;
+    ret = CfdGetConfidentialTxInIndex(
+      handle, tx_string, "1497e1f146bc5fe00b6268ea16a7069ecb90a2a41a183446d5df8965d2356dc1", 1,
+      &index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(1, index);
+  }
+
+  if (ret == kCfdSuccess) {
     satoshi = 100000000;
     ret = CfdAddConfidentialTxOut(
       handle, tx_string, "ef47c42d34de1b06a02212e8061323f50d5f02ceed202f1cb375932aa299f751",
@@ -78,7 +101,7 @@ TEST(cfdcapi_elements_transaction, CreateRawTransaction) {
   }
 
   if (ret == kCfdSuccess) {
-    EXPECT_STREQ("020000000002bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffff010151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac00000000", tx_string);
+    EXPECT_STREQ("020000000003bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140200000000ffffffff010151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac00000000", tx_string);
 
     satoshi = 1900500000;
     ret = CfdAddConfidentialTxOut(
@@ -93,7 +116,7 @@ TEST(cfdcapi_elements_transaction, CreateRawTransaction) {
   }
 
   if (ret == kCfdSuccess) {
-    EXPECT_STREQ("020000000002bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffff020151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000071475420001976a914fdd725970db682de970e7669646ed7afb8348ea188ac00000000", tx_string);
+    EXPECT_STREQ("020000000003bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140200000000ffffffff020151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000071475420001976a914fdd725970db682de970e7669646ed7afb8348ea188ac00000000", tx_string);
 
     satoshi = 500000;
     ret = CfdAddConfidentialTxOut(
@@ -108,10 +131,44 @@ TEST(cfdcapi_elements_transaction, CreateRawTransaction) {
   }
 
   if (ret == kCfdSuccess) {
-    EXPECT_STREQ("020000000002bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffff030151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000071475420001976a914fdd725970db682de970e7669646ed7afb8348ea188ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000", tx_string);
+    ret = CfdGetConfidentialTxOutIndex(
+      handle, tx_string, "CTEw7oSCUWDfmfhCEdsB3gsG7D9b4xLCZEq71H8JxRFeBu7yQN3CbSF6qT6J4F7qji4bq1jVSdVcqvRJ", NULL,
+      &index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(0, index);
+  }
 
-    CfdFreeStringBuffer(tx_string);
-    tx_string = nullptr;
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxOutIndex(
+      handle, tx_string, "", "76a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac", &index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(0, index);
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxOutIndex(
+      handle, tx_string, "2dxZw5iVZ6Pmqoc5Vn8gkUWDGB5dXuMBCmM", NULL,
+      &index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(1, index);
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxOutIndex(
+      handle, tx_string, "", "76a914fdd725970db682de970e7669646ed7afb8348ea188ac", &index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(1, index);
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxOutIndex(
+      handle, tx_string, NULL, NULL, &index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(2, index);
+  }
+
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("020000000003bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140200000000ffffffff030151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000071475420001976a914fdd725970db682de970e7669646ed7afb8348ea188ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000", tx_string);
   }
 
   ret = CfdGetLastErrorCode(handle);
@@ -122,6 +179,39 @@ TEST(cfdcapi_elements_transaction, CreateRawTransaction) {
     EXPECT_STREQ("", str_buffer);
     CfdFreeStringBuffer(str_buffer);
     str_buffer = NULL;
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxInIndex(
+      handle, tx_string, "1497e1f146bc5fe00b6268ea16a7069ecb90a2a41a183446d5df8965d2356dc1", 3,
+      &index);
+    EXPECT_EQ(kCfdIllegalArgumentError, ret);
+    if (ret == kCfdIllegalArgumentError) {
+      ret = kCfdSuccess;
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxOutIndex(
+      handle, tx_string, NULL, "76a914fdd825970db682de970e7669646ed7afb8348ea188ac", &index);
+    EXPECT_EQ(kCfdIllegalArgumentError, ret);
+    if (ret == kCfdIllegalArgumentError) {
+      ret = kCfdSuccess;
+    }
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("Failed to parameter. search target is not found.", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  if (tx_string != nullptr) {
+    CfdFreeStringBuffer(tx_string);
   }
 
   ret = CfdFreeHandle(handle);
@@ -242,6 +332,77 @@ TEST(cfdcapi_elements_transaction, GetTransactionData) {
       CfdFreeStringBuffer(value_commitment);
       CfdFreeStringBuffer(nonce);
       CfdFreeStringBuffer(locking_script);
+    }
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_elements_transaction, GetPeginWitnessData) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  static const char* tx_data = "0200000001017926299350fdc2f4d0da1d4f0fbbd3789d29f9dc016358ae42463c0cebf393f30000004000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000002540ba97c0017a91414b71442e11941fd7807a82eabee13d6ec171ed9870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000003a84000000000000000000060800e40b54020000002025b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f16001412dcdeef890f60967896391c95b0e02c9258dfe5fdda060200000000010a945efd42ce42de413aa7398a95c35facc14ec5d35bb23e5f980014e94ab96a620000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffffe50b46ecadb5cc52a7ef149a23323464353415f02d7b4a943963b26a9beb2a030000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffff67173609ca4c13662356a2507c71e5d497baeff56a3c42af989f3b270bc870560000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffff784a9fd151fe2808949fae18afcf52244a77702b9a83950bc7ec52a8239104850000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffff259618278cecbae1bed8b7806133d14987c3c6118d2744707f509c58ea2c0e870000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffff5c30c2fdcb6ce0b666120777ec18ce5211dd4741f40f033648432694b0919da50000000017160014a8a7c0032d1d283e39889861b3f05156e379cfb6feffffffbb0f857d4b143c74c7fdb678bf41b65e7e3f2e7644b3613ae6370d21c0882ad60000000017160014a8a7c0032d1d283e39889861b3f05156e379cfb6feffffffbce488c283e07bf364edb5057e020aa3d137d8d6130711dc12f03f35564945680000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffff258cb927989780ac92a3952ffd1f54e9b65e59fb07219eb106840b5d76b547fb0000000017160014ca2041536307bbe086e8c7fe8563e1c9b9b6eb84feffffffe98ec686efbca9bdd18ae85a3a8235a607e1cfb6138bac1461d400cbbabbe00f0000000017160014a8a7c0032d1d283e39889861b3f05156e379cfb6feffffff0100e40b540200000017a91472c44f957fc011d97e3406667dca5b1c930c4026870247304402206b4de54956e864dfe3ff3a4957e329cf171e919498bb8f98c242bef7b0d5e3350220505355401a500aabf193b93492d6bceb93c3b183034f252d65a139245c7486a601210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f40247304402200fc48c7b5bd6de74c951250c60e8e6c9d3a605dc557bdc93ce86e85d2f27834a02205d2a8768adad669683416d1126c8537ab1eb36b0e83d5d9e6a583297b7f9d2cb01210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f40247304402207ad97500fbe6049d559a1e10586cd0b1f02baeb98dc641a971a506a57288aa0002202a6646bc4262904f6d1a9288c12ff586b5a674f5a351dfaba2698c8b8265366f01210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f4024730440220271e41a1e8f953b6817333e43d6a5e2924b291d52120011a5f7f1fb8049ae41b02200f1a25ed9da813122caadf8edf8d01da190f9407c2b61c27d4b671e07136bce701210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f402473044022050291184dcd4733de6e6a43d9efb1e21e7d2c563e9138481f04010f3acbb139f02206c01c3bfe4e5b71c4aac524a18f35e25ae7306ca110b3c3b079ae6da2b0a0a5701210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f402473044022045a188c10aec4f1a3a6c8a3a3c9f7d4dc63b9eacc011839c907d1c5da206a1390220399ca60516204efd9d220eaa0c804867137133c4d70780223fdde699288af3790121031c01fd031bc09b385d138b3b2f44ec04c03934b66f6485f37a17b4899f1b8d7802473044022053621a5c74b313c648d179041c154152372060941d9c9080340eb913358b705602201ac178f639360356ca7d75656d92bd7801d976e74bd5d2e30d6310a94940d0bc0121031c01fd031bc09b385d138b3b2f44ec04c03934b66f6485f37a17b4899f1b8d780247304402207b4a7a271a8fc03e8045ca367cb64046fa06e5b13a105e67efe7dd6571503fcb022072852e1c3f87eeac039601a0df855fb5d65bbdcd3ad95ff96bfc7b534fd89f7601210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f402473044022037e9f0943a79e155a57526e251cfd39e004552b76c0de892448eb939d2d12fdf02203a02f0045e8f90739eddc06c026c95b4a653aeb89528d851ab75952fd7db07b801210281465587e09d80f5a7b8ce94bab4a4571dc8cff4483cc9eb89e76ecfa650b6f402473044022057a9953ba83d5e710fc64e1c533d81b0913f434b3e1c865cebd6cb106e09fa77022012930afe63ae7f1115a2f3b13039e71387fc2d4ed0e36eaa7be55a754c8c84830121031c01fd031bc09b385d138b3b2f44ec04c03934b66f6485f37a17b4899f1b8d78130e00009700000020fe3b574c1ce6d5cb68fc518e86f7976e599fafc0a2e5754aace7ca16d97a7c78ef9325b8d4f0a4921e060fc5e71435f46a18fa339688142cd4b028c8488c9f8dd1495b5dffff7f200200000002000000024a180a6822abffc3b1080c49016899c6dac25083936df14af12f58db11958ef27926299350fdc2f4d0da1d4f0fbbd3789d29f9dc016358ae42463c0cebf393f3010500000000";
+
+  uint32_t pegin_count = 0;
+  char* stack_data = nullptr;
+
+  ret = CfdGetConfidentialTxInPeginWitnessCount(handle, tx_data, 0, &pegin_count);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_EQ(6, pegin_count);
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxInPeginWitness(
+        handle, tx_data, 0, 0, &stack_data);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("00e40b5402000000", stack_data);
+      CfdFreeStringBuffer(stack_data);
+      stack_data = nullptr;
+    }
+  }
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxInPeginWitness(
+        handle, tx_data, 0, 0, &stack_data);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("00e40b5402000000", stack_data);
+      CfdFreeStringBuffer(stack_data);
+      stack_data = nullptr;
+    }
+  }
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxInPeginWitness(
+        handle, tx_data, 0, 2, &stack_data);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f", stack_data);
+      CfdFreeStringBuffer(stack_data);
+      stack_data = nullptr;
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetConfidentialTxInPeginWitness(
+        handle, tx_data, 0, 3, &stack_data);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("001412dcdeef890f60967896391c95b0e02c9258dfe5", stack_data);
+      CfdFreeStringBuffer(stack_data);
+      stack_data = nullptr;
     }
   }
 
@@ -603,6 +764,97 @@ TEST(cfdcapi_elements_transaction, AddSignConfidentialTx) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_elements_transaction, AddSignConfidentialTxEmptyWitness) {
+  static const char* const kTxData = "0200000000020f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570000000000ffffffff0f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c346000004017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b947f6002200d8510dfcf8e2330c0795c771d1e6064daab2f274ac32a6e2708df9bfa893d17a914ef3e40882e17d6e477082fcafeb0f09dc32d377b87010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b9270002cc645552109331726c0ffadccab21620dd7a5a33260c6ac7bd1c78b98cb1e35a1976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000000000c350000001cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c3460003ce4c4eac09fe317f365e45c00ffcf2e9639bc0fd792c10f72cdc173c4e5ed8791976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac00000000";
+  static const char* pubkey1 = "02715ed9a5f16153c5216a6751b7d84eba32076f0b607550a58b209077ab7c30ad";
+  static const char* privkey1 = "cRVLMWHogUo51WECRykTbeLNbm5c57iEpSegjdxco3oef6o5dbFi";
+  static const char* pubkey2 = "02bfd7daa5d113fcbd8c2f374ae58cbb89cbed9570e898f1af5ff989457e2d4d71";
+  static const char* privkey2 = "cQUTZ8VbWNYBEtrB7xwe41kqiKMQPRZshTvBHmkoJGaUfmS5pxzR";
+  static const char* multisig_script = "522102bfd7daa5d113fcbd8c2f374ae58cbb89cbed9570e898f1af5ff989457e2d4d712102715ed9a5f16153c5216a6751b7d84eba32076f0b607550a58b209077ab7c30ad52ae";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* tx_string = nullptr;
+  char* tx_string2 = nullptr;
+  ret = CfdAddConfidentialTxSign(
+      handle, kTxData, "57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f", 0,
+      true, "", true, &tx_string);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    char* sighash = nullptr;
+    int64_t satoshi = 13000000000000;
+    char* signature = nullptr;
+    ret = CfdCreateConfidentialSighash(
+        handle, tx_string, "57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f", 0,
+        kCfdP2wsh, nullptr, multisig_script, satoshi, nullptr, kCfdSigHashAll, false, &sighash);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("d17f091203341a0d1f0101c6d010a40ce0f3cef8a09b2b605b77bb6cfc23359f", sighash);
+
+      ret = CfdCalculateEcSignature(
+        handle, sighash, nullptr, privkey2, kCfdNetworkRegtest, true, &signature);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        ret = CfdAddConfidentialTxDerSign(
+          handle, tx_string, "57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f", 0,
+          true, signature, kCfdSigHashAll, false, false, &tx_string2);
+        EXPECT_EQ(kCfdSuccess, ret);
+        CfdFreeStringBuffer(signature);
+      }
+    }
+
+    if (ret == kCfdSuccess) {
+      CfdFreeStringBuffer(tx_string);
+      tx_string = nullptr;
+
+      ret = CfdCalculateEcSignature(
+        handle, sighash, nullptr, privkey1, kCfdNetworkRegtest, true, &signature);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        ret = CfdAddConfidentialTxDerSign(
+          handle, tx_string2, "57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f",
+           0, true, signature, kCfdSigHashAll, false, false, &tx_string);
+        EXPECT_EQ(kCfdSuccess, ret);
+        CfdFreeStringBuffer(signature);
+      }
+    }
+
+    if (ret == kCfdSuccess) {
+      CfdFreeStringBuffer(tx_string2);
+      tx_string2 = nullptr;
+
+      ret = CfdAddConfidentialTxSign(
+        handle, tx_string, "57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f", 0,
+        true, multisig_script, false, &tx_string2);
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("0200000001020f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570000000000ffffffff0f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c346000004017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b947f6002200d8510dfcf8e2330c0795c771d1e6064daab2f274ac32a6e2708df9bfa893d17a914ef3e40882e17d6e477082fcafeb0f09dc32d377b87010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b9270002cc645552109331726c0ffadccab21620dd7a5a33260c6ac7bd1c78b98cb1e35a1976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000000000c350000001cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c3460003ce4c4eac09fe317f365e45c00ffcf2e9639bc0fd792c10f72cdc173c4e5ed8791976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac00000000000004004730440220795dbf165d3197fe27e2b73d57cacfb8d742029c972b109040c7785aee4e75ea022065f7a985efe82eba1d0e0cafd7cf711bb8c65485bddc4e495315dd92bd7e4a790147304402202ce4acde192e4109832d46970b510158d42fc156c92afff137157ebfc2a03e2a02200b7dfd3a92770d79d29b3c55fb6325b22bce0e1362de74b2dac80d9689b5a89b0147522102bfd7daa5d113fcbd8c2f374ae58cbb89cbed9570e898f1af5ff989457e2d4d712102715ed9a5f16153c5216a6751b7d84eba32076f0b607550a58b209077ab7c30ad52ae00000000000000000000000000", tx_string2);
+    }
+    CfdFreeStringBuffer(sighash);
+
+    CfdFreeStringBuffer(tx_string);
+    CfdFreeStringBuffer(tx_string2);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 TEST(cfdcapi_elements_transaction, AddMultisigSignConfidentialTx) {
   static const char* const kTxData = "0200000000020f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570000000000ffffffff0f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c346000004017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b947f6002200d8510dfcf8e2330c0795c771d1e6064daab2f274ac32a6e2708df9bfa893d17a914ef3e40882e17d6e477082fcafeb0f09dc32d377b87010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b9270002cc645552109331726c0ffadccab21620dd7a5a33260c6ac7bd1c78b98cb1e35a1976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000000000c350000001cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c3460003ce4c4eac09fe317f365e45c00ffcf2e9639bc0fd792c10f72cdc173c4e5ed8791976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac00000000";
   static const char* pubkey1 = "02715ed9a5f16153c5216a6751b7d84eba32076f0b607550a58b209077ab7c30ad";
@@ -750,6 +1002,43 @@ TEST(cfdcapi_elements_transaction, BlindTx_VerifySignatureTest) {
     ret = CfdVerifyConfidentialTxSignature(handle, kTxHex, kSignature, kPubkey,
         kScript, kTxid, kVout, CfdSighashType::kCfdSigHashAll, false, 0,
         value_commitment, CfdWitnessVersion::kCfdWitnessVersion0);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_elements_transaction, VerifyConfidentialTxSign) {
+  static const char* const kTxHex = "0200000001020f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570000000000ffffffff0f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c346000004017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b947f6002200d8510dfcf8e2330c0795c771d1e6064daab2f274ac32a6e2708df9bfa893d17a914ef3e40882e17d6e477082fcafeb0f09dc32d377b87010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b9270002cc645552109331726c0ffadccab21620dd7a5a33260c6ac7bd1c78b98cb1e35a1976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000000000c350000001cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c3460003ce4c4eac09fe317f365e45c00ffcf2e9639bc0fd792c10f72cdc173c4e5ed8791976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac0000000000000247304402200268633a57723c6612ef217c49bdf804c632a14be2967c76afec4fd5781ad4c20220131f358b2381a039c8c502959c64fbfeccf287be7dae710b4446968553aefbea012103f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d600000000000000000000000000";
+  // static const char* const kSignature = "0268633a57723c6612ef217c49bdf804c632a14be2967c76afec4fd5781ad4c2131f358b2381a039c8c502959c64fbfeccf287be7dae710b4446968553aefbea";
+  // static const char* const kPubkey = "03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6";
+  // static const char* const kPrivkey = "cU4KjNUT7GjHm7CkjRjG46SzLrXHXoH3ekXmqa2jTCFPMkQ64sw1";
+  static const char* const kTxid = "57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f";
+  static const uint32_t kVout = 0;
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  if (ret == kCfdSuccess) {
+    // Verification Success Case
+    int64_t satoshi = 13000000000000;
+    // const char* value_commitment = "0993c069270bf8d090ce8695b82e52fb2959a9765d987d4ffd7a767b0c5b1c4cbc";
+    ret = CfdVerifyConfidentialTxSign(handle, kTxHex,
+        kTxid, kVout, "ert1qav7q64dhpx9y4m62rrhpa67trmvjf2ptxfddld",
+        kCfdP2wpkhAddress, NULL, satoshi, NULL);
     EXPECT_EQ(kCfdSuccess, ret);
   }
 

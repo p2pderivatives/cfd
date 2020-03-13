@@ -10,6 +10,7 @@ CFD_SOURCES = \
   cfd_manager.cpp \
   cfd_fee.cpp \
   cfd_transaction_common.cpp \
+  cfd_transaction_internal.cpp \
   cfd_transaction.cpp \
   cfd_address.cpp \
   cfd_utxo.cpp \
@@ -30,4 +31,10 @@ CFD_CAPI_SOURCES = \
   capi/cfdcapi_elements_transaction.cpp \
   capi/cfdcapi_key.cpp \
   capi/cfdcapi_transaction.cpp
+
+CFD_JSONAPI_SOURCES = \
+  jsonapi/cfd_json_elements_transaction.cpp \
+  jsonapi/cfd_json_mapping_api.cpp \
+  jsonapi/cfd_json_transaction.cpp \
+  jsonapi/autogen/cfd_api_json_autogen.cpp
 

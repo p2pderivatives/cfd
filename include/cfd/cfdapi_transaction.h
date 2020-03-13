@@ -61,6 +61,17 @@ class CFD_EXPORT TransactionApi {
       const std::vector<TxOut>& txouts) const;
 
   /**
+   * @brief Raw Transactionに追加する.
+   * @param[in] tx_hex      tx hex string
+   * @param[in] txins       tx input list
+   * @param[in] txouts      tx output list
+   * @return transaction controller
+   */
+  TransactionController AddRawTransaction(
+      const std::string& tx_hex, const std::vector<TxIn>& txins,
+      const std::vector<TxOut>& txouts) const;
+
+  /**
    * @brief WitnessStack数を出力する.
    * @param[in] tx_hex          tx hex string
    * @param[in] txid            target tx input txid
