@@ -168,13 +168,9 @@ void CoinSelectionOption::InitializeTxSizeInfo() {
   Script wpkh_script("0014ffffffffffffffffffffffffffffffffffffffff");
   TxOut txout(Amount(), wpkh_script);
   TxOutReference txout_ref(txout);
-  uint32_t size = txout_ref.GetSerializeSize();
-  change_output_size_ = AbstractTransaction::GetVsizeFromSize(size, 0);
-  uint32_t witness_size = 0;
-  uint32_t total_size = TxIn::EstimateTxInSize(
-      AddressType::kP2wpkhAddress, Script(), &witness_size);
-  change_spend_size_ = AbstractTransaction::GetVsizeFromSize(
-      (total_size - witness_size), witness_size);
+  change_output_size_ = txout_ref.GetSerializeVsize();
+  change_spend_size_ =
+      TxIn::EstimateTxInVsize(AddressType::kP2wpkhAddress, Script());
 }
 
 #ifndef CFD_DISABLE_ELEMENTS
@@ -194,10 +190,7 @@ Amount CoinSelectionOption::GetConfidentialDustFeeAmount(
   ConfidentialTxOut ctxout(
       locking_script, ConfidentialAssetId(), ConfidentialValue());
   ConfidentialTxOutReference txout(ctxout);
-  uint32_t witness_size = 0;
-  uint32_t size = txout.GetSerializeSize(true, &witness_size);
-  size = AbstractTransaction::GetVsizeFromSize(
-      (size - witness_size), witness_size);
+  uint32_t size = txout.GetSerializeVsize(true);
 
   // Reference: bitcoin/src/policy/policy.cpp : GetDustThreshold()
   if (locking_script.IsWitnessProgram()) {
@@ -211,25 +204,14 @@ Amount CoinSelectionOption::GetConfidentialDustFeeAmount(
 }
 
 void CoinSelectionOption::InitializeConfidentialTxSizeInfo() {
-  uint32_t size;
-  uint32_t witness_size = 0;
-
   // wpkh想定
   Script wpkh_script("0014ffffffffffffffffffffffffffffffffffffffff");
   ConfidentialTxOut ctxout(
       wpkh_script, ConfidentialAssetId(), ConfidentialValue());
   ConfidentialTxOutReference txout(ctxout);
-  witness_size = 0;
-  size = txout.GetSerializeSize(true, &witness_size);
-  change_output_size_ = AbstractTransaction::GetVsizeFromSize(
-      (size - witness_size), witness_size);
-
-  witness_size = 0;
-  size = ConfidentialTxIn::EstimateTxInSize(
-      AddressType::kP2wpkhAddress, Script(), 0, Script(), false, false,
-      &witness_size);
-  change_spend_size_ = AbstractTransaction::GetVsizeFromSize(
-      (size - witness_size), witness_size);
+  change_output_size_ = txout.GetSerializeVsize(true);
+  change_spend_size_ = ConfidentialTxIn::EstimateTxInVsize(
+      AddressType::kP2wpkhAddress, Script(), 0, Script(), false, false);
 }
 #endif  // CFD_DISABLE_ELEMENTS
 

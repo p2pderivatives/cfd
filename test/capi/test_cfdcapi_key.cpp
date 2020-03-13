@@ -85,6 +85,43 @@ TEST(cfdcapi_key, CfdEncodeSignatureByDer) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_key, CfdDecodeSignatureFromDer) {
+  static constexpr const char* kSignature = "47ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb";
+  static constexpr const char* kDerSignature = "3044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb01";
+
+  void* handle = nullptr;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((nullptr == handle));
+
+  char* signature = nullptr;
+  int sighash = 0;
+  bool is_anyone_can_pay = false;
+  ret = CfdDecodeSignatureFromDer(handle, kDerSignature, &signature,
+      &sighash, &is_anyone_can_pay);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(kSignature, signature);
+    EXPECT_EQ(kCfdSigHashAll, sighash);
+    EXPECT_FALSE(is_anyone_can_pay);
+    CfdFreeStringBuffer(signature);
+    signature = nullptr;
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 TEST(cfdcapi_key, CfdNormalizeSignatureTest) {
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
@@ -128,11 +165,14 @@ TEST(cfdcapi_key, PrivkeyAndPubkeyTest) {
 
   static constexpr const int kNetwork = kCfdNetworkRegtest;
 
+  bool is_compressed = false;
+  int network_type = kCfdNetworkRegtest;
   char* pubkey = nullptr;
   char* pubkey2 = nullptr;
   char* privkey = nullptr;
   char* privkey2 = nullptr;
   char* wif = nullptr;
+  char* wif2 = nullptr;
   ret = CfdCreateKeyPair(handle, true, kNetwork, &pubkey, &privkey, &wif);
   EXPECT_EQ(kCfdSuccess, ret);
   if (ret == kCfdSuccess) {
@@ -171,6 +211,23 @@ TEST(cfdcapi_key, PrivkeyAndPubkeyTest) {
     if (ret == kCfdSuccess) {
       EXPECT_STREQ(privkey, privkey2);
       CfdFreeStringBuffer(privkey2);
+    }
+
+    ret = CfdParsePrivkeyWif(
+        handle, wif, &privkey2, &network_type, &is_compressed);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_EQ(network_type, kCfdNetworkTestnet);
+      EXPECT_FALSE(is_compressed);
+      EXPECT_STREQ(privkey, privkey2);
+      CfdFreeStringBuffer(privkey2);
+    }
+
+    ret = CfdGetPrivkeyWif(handle, privkey, kNetwork, false, &wif2);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(wif, wif2);
+      CfdFreeStringBuffer(wif2);
     }
 
     ret = CfdGetPubkeyFromPrivkey(handle, privkey, nullptr, false, &pubkey2);
@@ -214,7 +271,9 @@ TEST(cfdcapi_key, ExtkeyTest) {
   char* extprivkey1 = nullptr;
   char* extprivkey2 = nullptr;
   char* extprivkey3 = nullptr;
+  char* extprivkey4 = nullptr;
   char* extpubkey1 = nullptr;
+  char* key_path_data = nullptr;
   ret = CfdCreateExtkeyFromSeed(
       handle, kSeed, kNetwork, kCfdExtPrivkey, &extprivkey1);
   EXPECT_EQ(kCfdSuccess, ret);
@@ -256,6 +315,33 @@ TEST(cfdcapi_key, ExtkeyTest) {
   }
   if (ret == kCfdSuccess) {
     EXPECT_STREQ("031d7463018f867de51a27db866f869ceaf52abab71827a6051bab8a0fd020f4c1", pubkey);
+
+    ret = CfdGetParentExtkeyPathData(
+        handle, extprivkey2, "0h/0h/2", kCfdExtPrivkey, &key_path_data, &extprivkey4);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("[03af54a0/0h/0h/2]", key_path_data);
+    EXPECT_STREQ(extprivkey3, extprivkey4);
+
+    char* version = nullptr;
+    char* fingerprint = nullptr;
+    char* chain_code = nullptr;
+    uint32_t depth = 0;
+    uint32_t child_number = 0;
+    ret = CfdGetExtkeyInformation(handle, extprivkey2, &version,
+        &fingerprint, &chain_code, &depth, &child_number);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("0488ade4", version);
+      EXPECT_STREQ("03af54a0", fingerprint);
+      EXPECT_STREQ("16ddac07d3c3110f0292136af4bc476323e87b6da49ac0b8eef5bcde17e8a672", chain_code);
+      EXPECT_EQ(1, depth);
+      EXPECT_EQ(2147483692, child_number);
+      CfdFreeStringBuffer(version);
+      CfdFreeStringBuffer(fingerprint);
+      CfdFreeStringBuffer(chain_code);
+    }
   }
 
   CfdFreeStringBuffer(extprivkey1);

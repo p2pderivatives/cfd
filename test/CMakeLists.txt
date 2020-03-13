@@ -7,27 +7,14 @@ cmake_policy(SET CMP0076 NEW)
 ####################
 # options
 ####################
+include(../cmake/EnableCcache.cmake)
+include(../cmake/ConvertSrclistFunction.cmake)
+include(../cmake/CfdCommonOption.cmake)
+include(../cmake/CfdCommonSetting.cmake)
+
 option(CFD_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
-if(CMAKE_JS_INC)
-option(ENABLE_SHARED "enable shared library (ON or OFF. default:ON)" ON)
-else()
-option(ENABLE_SHARED "enable shared library (ON or OFF. default:OFF)" OFF)
-endif()
-option(ENABLE_DEBUG "enable debugging (ON or OFF. default:OFF)" OFF)
-option(ENABLE_ELEMENTS "enable elements code (ON or OFF. default:ON)" ON)
-option(ENABLE_BITCOIN  "enable bitcoin code (ON or OFF. default:ON)" ON)
 option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
-
-if(NOT WIN32)
-option(TARGET_RPATH "target rpath list (separator is ';') (default:@rpath;./)" OFF)
-endif()
-
-if(ENABLE_DEBUG)
-set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:Debug>:DEBUGBUILD>)
-set(STACK_PROTECTOR_OPT  $<IF:$<CXX_COMPILER_ID:MSVC>,/GS,-fstack-check -fstack-protector>)
-else()
-set(STACK_PROTECTOR_OPT  "")
-endif()
+option(ENABLE_JSONAPI  "enable json-api (ON or OFF. default:ON)" ON)
 
 if(CFD_SHARED AND (WIN32 OR APPLE))
 set(USE_CFD_SHARED  TRUE)
@@ -35,62 +22,6 @@ else()
 set(USE_CFD_SHARED  FALSE)
 endif()
 
-####################
-# common setting
-####################
-set(WORK_WINDOWS_BINARY_DIR_NAME  $<IF:$<CONFIG:Debug>,Debug,Release>)
-if(NOT CFD_OBJ_BINARY_DIR)
-set(CFD_OBJ_BINARY_DIR   ${CMAKE_BINARY_DIR}/${WORK_WINDOWS_BINARY_DIR_NAME})
-set(CFD_ROOT_BINARY_DIR
-  $<IF:$<PLATFORM_ID:Windows>,${CFD_OBJ_BINARY_DIR},${CMAKE_BINARY_DIR}>)
-endif()
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR})
-
-if(NOT CFD_SRC_ROOT_DIR)
-set(CFD_SRC_ROOT_DIR   ${CMAKE_SOURCE_DIR})
-endif()
-
-if(NOT ENABLE_BITCOIN)
-set(CFD_BITCOIN_USE   CFD_DISABLE_BITCOIN)
-else()
-set(CFD_BITCOIN_USE   "")
-endif()
-
-if(NOT ENABLE_ELEMENTS)
-set(ELEMENTS_COMP_OPT "")
-set(CFD_ELEMENTS_USE   CFD_DISABLE_ELEMENTS)
-else()
-set(ELEMENTS_COMP_OPT  BUILD_ELEMENTS)
-set(CFD_ELEMENTS_USE   "")
-endif()
-
-if(NOT ENABLE_CAPI)
-set(CFD_CAPI_USE   CFD_DISABLE_CAPI)
-else()
-set(CFD_CAPI_USE   "")
-endif()
-
-if(NOT WIN32)
-if(APPLE)
-set(CMAKE_MACOSX_RPATH 1)
-endif()
-set(CMAKE_SKIP_BUILD_RPATH  FALSE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-if(TARGET_RPATH)
-set(CMAKE_INSTALL_RPATH "${TARGET_RPATH};./;@rpath")
-else()
-set(CMAKE_INSTALL_RPATH "./;@rpath")
-endif()
-endif()
-
-####################
-# cfd setting
-####################
-transform_makefile_srclist("Makefile.srclist" "${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake")
-include(${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake)
 
 ####################
 # cfd test
@@ -100,24 +31,33 @@ enable_testing()
 include(CTest)
 project(cfd_test CXX)
 
-find_package(cfdcore  QUIET)
+transform_makefile_srclist("Makefile.srclist" "${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake")
+include(${CMAKE_CURRENT_BINARY_DIR}/Makefile.srclist.cmake)
+include(../cmake/Cpp11Setting.cmake)
 
-if(MSVC)
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /Od /Zi")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od /Zi")
-else()
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -O0 -ggdb")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb")
+if(NOT CFD_SRC_ROOT_DIR)
+set(CFD_SRC_ROOT_DIR   ${CMAKE_SOURCE_DIR})
 endif()
+
+if(NOT ENABLE_CAPI)
+set(CFD_CAPI_USE   CFD_DISABLE_CAPI)
+else()
+set(CFD_CAPI_USE   "")
+endif()
+
+if(NOT ENABLE_JSONAPI)
+set(CFD_JSONAPI_USE   CFD_DISABLE_JSONAPI)
+else()
+set(CFD_JSONAPI_USE   "")
+endif()
+
+find_package(cfdcore  QUIET)
 
 set(LIBWALLY_LIBRARY wally)
 set(UNIVALUE_LIBRARY univalue)
 set(CFDCORE_LIBRARY cfdcore)
 set(CFD_LIBRARY cfd)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 if(WIN32 AND ENABLE_SHARED)
 if(NOT ENABLE_CAPI)
 add_executable(${PROJECT_NAME} ${TEST_CFD_SOURCES})
@@ -150,7 +90,7 @@ target_compile_definitions(${PROJECT_NAME}
     CFD_CORE_SHARED=1
     ${ELEMENTS_COMP_OPT}
     ${CFD_CAPI_USE}
-    ${CFD_BITCOIN_USE}
+    ${CFD_JSONAPI_USE}
     ${CFD_ELEMENTS_USE}
 )
 else()
@@ -158,7 +98,7 @@ target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     ${ELEMENTS_COMP_OPT}
     ${CFD_CAPI_USE}
-    ${CFD_BITCOIN_USE}
+    ${CFD_JSONAPI_USE}
     ${CFD_ELEMENTS_USE}
 )
 endif()

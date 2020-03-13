@@ -114,6 +114,32 @@ CFDC_API int CfdCreateSighash(void* handle, const char* tx_hex_string,
     int64_t value_satoshi,
     uint8_t** sighash, uint32_t* sighash_size);
 
+/**
+ * @brief get tx-input index.
+ * @param[in] handle          cfd handle.
+ * @param[in] tx_hex_string   tx hex.
+ * @param[in] txid            txin txid.
+ * @param[in] vout            txin vout.
+ * @param[out] index          txin index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInIndex(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    uint32_t* index);
+
+/**
+ * @brief get tx-input index.
+ * @param[in] handle                 cfd handle.
+ * @param[in] tx_hex_string          tx hex.
+ * @param[in] address                txout address.
+ * @param[in] direct_locking_script  txout locking script. (not use address)
+ * @param[out] index                 txout index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxOutIndex(
+    void* handle, const char* tx_hex_string, const char* address,
+    const char* direct_locking_script, uint32_t* index);
+
 - AddTxIn
 - AddWitnessStack
 - AddTxOut

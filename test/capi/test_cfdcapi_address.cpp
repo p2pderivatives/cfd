@@ -221,6 +221,51 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_address, CfdGetDescriptorChecksum) {
+  std::string descriptor;
+  std::string checksum;
+  char* output_descriptor = nullptr;
+  int ret;
+
+  descriptor = "wpkh(02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9)";
+  ret = CfdGetDescriptorChecksum(nullptr, kCfdNetworkMainnet,
+      descriptor.c_str(), &output_descriptor);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == output_descriptor));
+  if (kCfdSuccess == ret) {
+    checksum = "#8zl0zxma";
+    EXPECT_STREQ((descriptor + checksum).c_str(), output_descriptor);
+    CfdFreeStringBuffer(output_descriptor);
+    output_descriptor = nullptr;
+  }
+
+  descriptor = "addr(bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4)";
+  ret = CfdGetDescriptorChecksum(nullptr, kCfdNetworkMainnet,
+      descriptor.c_str(), &output_descriptor);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == output_descriptor));
+  if (kCfdSuccess == ret) {
+    checksum = "#uyjndxcw";
+    EXPECT_STREQ((descriptor + checksum).c_str(), output_descriptor);
+    CfdFreeStringBuffer(output_descriptor);
+    output_descriptor = nullptr;
+  }
+
+#ifndef CFD_DISABLE_ELEMENTS
+  descriptor = "addr(ert1q57etrknhl75e64jmqrvl0vwzu39xjpagaw9ynw)";
+  ret = CfdGetDescriptorChecksum(nullptr, kCfdNetworkElementsRegtest,
+      descriptor.c_str(), &output_descriptor);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == output_descriptor));
+  if (kCfdSuccess == ret) {
+    checksum = "#87kymh3n";
+    EXPECT_STREQ((descriptor + checksum).c_str(), output_descriptor);
+    CfdFreeStringBuffer(output_descriptor);
+    output_descriptor = nullptr;
+  }
+#endif  // CFD_DISABLE_ELEMENTS
+}
+
 TEST(cfdcapi_address, CfdGetAddressInfoTest) {
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
@@ -344,8 +389,6 @@ TEST(cfdcapi_address, CfdGetAddressInfoTest) {
 #endif  // CFD_DISABLE_ELEMENTS
   };
   size_t list_size = sizeof(exp_datas) / sizeof(struct CfdGetAddressExpectData);
-
-  const char* address;
 
   for (size_t idx = 0; idx < list_size; ++idx) {
     int network = 0;

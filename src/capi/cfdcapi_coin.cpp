@@ -213,10 +213,10 @@ int CfdAddCoinSelectionUtxo(
           "Failed to parameter. coinselect handle is null.");
     }
     if (IsEmptyString(txid)) {
-      warn(CFD_LOG_SOURCE, "txid is null.");
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null.");
+          "Failed to parameter. txid is null or empty.");
     }
     if (utxo_index < 0) {
       warn(CFD_LOG_SOURCE, "utxoIndex is under 0.");
@@ -565,10 +565,10 @@ int CfdAddTxInForEstimateFee(
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
     if (IsEmptyString(descriptor)) {
-      warn(CFD_LOG_SOURCE, "descriptor is null.");
+      warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. descriptor is null.");
+          "Failed to parameter. descriptor is null or empty.");
     }
     CfdCapiEstimateFeeData* buffer =
         static_cast<CfdCapiEstimateFeeData*>(fee_handle);
@@ -580,10 +580,10 @@ int CfdAddTxInForEstimateFee(
 #ifndef CFD_DISABLE_ELEMENTS
     if (buffer->is_elements) {
       if (IsEmptyString(asset)) {
-        warn(CFD_LOG_SOURCE, "utxo asset is null.");
+        warn(CFD_LOG_SOURCE, "utxo asset is null or empty.");
         throw CfdException(
             CfdError::kCfdIllegalArgumentError,
-            "Failed to parameter. utxo asset is null.");
+            "Failed to parameter. utxo asset is null or empty.");
       }
       utxo.asset = ConfidentialAssetId(asset);
 

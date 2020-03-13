@@ -73,10 +73,15 @@ TransactionController TransactionApi::CreateRawTransaction(
         "Invalid version number. We supports only 1, 2, 3, or 4:");
   }
 
-  // TransactionController作成
   TransactionController txc(version, locktime);
+  return AddRawTransaction(txc.GetHex(), txins, txouts);
+}
 
-  // TxInの追加
+TransactionController TransactionApi::AddRawTransaction(
+    const std::string& tx_hex, const std::vector<TxIn>& txins,
+    const std::vector<TxOut>& txouts) const {
+  TransactionController txc(tx_hex);
+
   const uint32_t kDisableLockTimeSequence =
       TransactionController::GetLockTimeDisabledSequence();
   for (TxIn txin : txins) {
@@ -88,7 +93,6 @@ TransactionController TransactionApi::CreateRawTransaction(
     }
   }
 
-  // TxOutの追加
   for (TxOut txout : txouts) {
     txc.AddTxOut(txout.GetLockingScript(), txout.GetValue());
   }
@@ -210,20 +214,22 @@ Amount TransactionApi::EstimateFee(
     Amount* tx_fee, Amount* utxo_fee, double effective_fee_rate) const {
   TransactionController txc(tx_hex);
 
-  uint32_t size;
-  size = txc.GetSizeIgnoreTxIn();
-  uint32_t tx_vsize = AbstractTransaction::GetVsizeFromSize(size, 0);
+  uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn();
 
-  size = 0;
+  uint32_t size = 0;
   uint32_t witness_size = 0;
   uint32_t wit_size = 0;
+  uint32_t nowit_size = 0;
   AddressApi address_api;
   for (const auto& utxo : utxos) {
+    NetType net_type = NetType::kMainnet;
+    if (!utxo.address.GetAddress().empty()) {
+      net_type = utxo.address.GetNetType();
+    }
     // check descriptor
     std::string descriptor = utxo.descriptor;
     // set dummy NetType for getting AddressType.
-    auto data =
-        address_api.ParseOutputDescriptor(descriptor, NetType::kMainnet, "");
+    auto data = address_api.ParseOutputDescriptor(descriptor, net_type, "");
 
     AddressType addr_type;
     if (utxo.address.GetAddress().empty() ||
@@ -241,10 +247,8 @@ Amount TransactionApi::EstimateFee(
       redeem_script = utxo.redeem_script;
     }
 
-    uint32_t txin_size =
-        TxIn::EstimateTxInSize(addr_type, redeem_script, &wit_size);
-    txin_size -= wit_size;
-    size += txin_size;
+    TxIn::EstimateTxInSize(addr_type, redeem_script, &wit_size, &nowit_size);
+    size += nowit_size;
     witness_size += wit_size;
   }
   uint32_t utxo_vsize =
@@ -357,7 +361,7 @@ TransactionController TransactionApi::FundRawTransaction(
 
   // execute coinselection
   CoinApi coin_api;
-  std::vector<Utxo> utxo_list = coin_api.ConvertToUtxo(utxos);
+  std::vector<Utxo> utxo_list = UtxoUtil::ConvertToUtxo(utxos);
   Amount txin_total_amount = txin_amount;
   std::vector<Utxo> selected_coins;
   if (target_amount > 0 || fee > 0) {

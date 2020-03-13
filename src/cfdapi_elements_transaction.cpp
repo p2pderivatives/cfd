@@ -93,8 +93,34 @@ ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
     const std::vector<ConfidentialTxIn>& txins,
     const std::vector<ConfidentialTxOut>& txouts,
     const ConfidentialTxOut& txout_fee) const {
-  // Transaction作成
+  std::vector<TxInPeginParameters> pegins;
+  std::vector<TxOutPegoutParameters> pegouts;
+  return CreateRawTransaction(
+      version, locktime, txins, pegins, txouts, pegouts, txout_fee);
+}
+
+ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
+    uint32_t version, uint32_t locktime,
+    const std::vector<ConfidentialTxIn>& txins,
+    const std::vector<TxInPeginParameters>& pegins,
+    const std::vector<ConfidentialTxOut>& txouts,
+    const std::vector<TxOutPegoutParameters>& pegouts,
+    const ConfidentialTxOut& txout_fee,
+    std::map<std::string, Amount>* pegout_addresses) const {
   ConfidentialTransactionController ctxc(version, locktime);
+  return AddRawTransaction(
+      ctxc.GetHex(), txins, pegins, txouts, pegouts, txout_fee,
+      pegout_addresses);
+}
+
+ConfidentialTransactionController ElementsTransactionApi::AddRawTransaction(
+    const std::string& tx_hex, const std::vector<ConfidentialTxIn>& txins,
+    const std::vector<TxInPeginParameters>& pegins,
+    const std::vector<ConfidentialTxOut>& txouts,
+    const std::vector<TxOutPegoutParameters>& pegouts,
+    const ConfidentialTxOut& txout_fee,
+    std::map<std::string, Amount>* pegout_addresses) const {
+  ConfidentialTransactionController ctxc(tx_hex);
 
   // TxInの追加
   const uint32_t kLockTimeDisabledSequence =
@@ -108,11 +134,40 @@ ConfidentialTransactionController ElementsTransactionApi::CreateRawTransaction(
     }
   }
 
+  for (const auto& pegin_data : pegins) {
+    ctxc.AddPeginWitness(
+        pegin_data.txid, pegin_data.vout, pegin_data.amount, pegin_data.asset,
+        pegin_data.mainchain_blockhash, pegin_data.claim_script,
+        pegin_data.mainchain_raw_tx, pegin_data.mainchain_txoutproof);
+  }
+
   // TxOutの追加
   for (const auto& txout : txouts) {
     ctxc.AddTxOut(
         txout.GetLockingScript(), txout.GetConfidentialValue().GetAmount(),
         txout.GetAsset(), txout.GetNonce());
+  }
+
+  for (const auto& pegout_data : pegouts) {
+    Address pegout_address;
+    if (pegout_data.online_pubkey.IsValid() &&
+        !pegout_data.master_online_key.IsInvalid()) {
+      Address dummy_addr;
+      ctxc.AddPegoutTxOut(
+          pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
+          dummy_addr, pegout_data.net_type, pegout_data.online_pubkey,
+          pegout_data.master_online_key, pegout_data.bitcoin_descriptor,
+          pegout_data.bip32_counter, pegout_data.whitelist,
+          pegout_data.elements_net_type, &pegout_address);
+    } else {
+      ctxc.AddPegoutTxOut(
+          pegout_data.amount, pegout_data.asset, pegout_data.genesisblock_hash,
+          pegout_data.btc_address);
+    }
+    if (pegout_addresses != nullptr) {
+      pegout_addresses->emplace(
+          pegout_address.GetAddress(), pegout_data.amount);
+    }
   }
 
   // amountが0のfeeは無効と判定
@@ -508,16 +563,12 @@ Amount ElementsTransactionApi::EstimateFee(
     txc.AddTxOutFee(Amount::CreateBySatoshiAmount(1), fee_asset);  // dummy fee
   }
 
-  uint32_t size;
-  uint32_t witness_size = 0;
-  size = txc.GetSizeIgnoreTxIn(is_blind, &witness_size);
-  size -= witness_size;
-  uint32_t tx_vsize =
-      AbstractTransaction::GetVsizeFromSize(size, witness_size);
+  uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn(is_blind);
 
-  size = 0;
-  witness_size = 0;
+  uint32_t size = 0;
+  uint32_t witness_size = 0;
   uint32_t wit_size = 0;
+  uint32_t txin_size = 0;
   ElementsAddressApi address_api;
   for (const auto& utxo : utxos) {
     uint32_t pegin_btc_tx_size = 0;
@@ -548,10 +599,9 @@ Amount ElementsTransactionApi::EstimateFee(
       redeem_script = utxo.utxo.redeem_script;
     }
 
-    uint32_t txin_size = ConfidentialTxIn::EstimateTxInSize(
+    ConfidentialTxIn::EstimateTxInSize(
         addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
-        utxo.is_issuance, utxo.is_blind_issuance, &wit_size);
-    txin_size -= wit_size;
+        utxo.is_issuance, utxo.is_blind_issuance, &wit_size, &txin_size);
     size += txin_size;
     witness_size += wit_size;
   }

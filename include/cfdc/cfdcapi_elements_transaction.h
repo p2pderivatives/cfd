@@ -155,6 +155,21 @@ CFDC_API int CfdGetConfidentialTxInWitness(
     uint32_t stack_index, char** stack_data);
 
 /**
+ * @brief get elements transaction input pegin witness stack.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txin_index        txin index.
+ * @param[in] stack_index       witness stack index.
+ * @param[out] stack_data       witness stack data.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInPeginWitness(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t stack_index, char** stack_data);
+
+/**
  * @brief get elements issuance information.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     transaction hex.
@@ -242,6 +257,18 @@ CFDC_API int CfdGetConfidentialTxInWitnessCount(
     uint32_t* count);
 
 /**
+ * @brief get elements transaction input pegin witness stack count.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txin_index        txin index.
+ * @param[out] count            witness stack count.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInPeginWitnessCount(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t* count);
+
+/**
  * @brief get elements transaction output count.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     transaction hex.
@@ -250,6 +277,32 @@ CFDC_API int CfdGetConfidentialTxInWitnessCount(
  */
 CFDC_API int CfdGetConfidentialTxOutCount(
     void* handle, const char* tx_hex_string, uint32_t* count);
+
+/**
+ * @brief get tx-input index.
+ * @param[in] handle          cfd handle.
+ * @param[in] tx_hex_string   tx hex.
+ * @param[in] txid            txin txid.
+ * @param[in] vout            txin vout.
+ * @param[out] index          txin index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInIndex(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    uint32_t* index);
+
+/**
+ * @brief get tx-input index.
+ * @param[in] handle                 cfd handle.
+ * @param[in] tx_hex_string          tx hex.
+ * @param[in] address                txout address.
+ * @param[in] direct_locking_script  txout locking script. (not use address)
+ * @param[out] index                 txout index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxOutIndex(
+    void* handle, const char* tx_hex_string, const char* address,
+    const char* direct_locking_script, uint32_t* index);
 
 /**
  * @brief set reissue transaction data.
@@ -497,7 +550,7 @@ CFDC_API int CfdUnblindIssuance(
     char** token_blind_factor, char** token_value_blind_factor);
 
 /**
- * @brief blinding transaction.
+ * @brief verify signature data.
  * @param[in] handle                  cfd handle.
  * @param[in] tx_hex                  transaction hex.
  * @param[in] signature               signature hex.
@@ -521,6 +574,29 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
     int sighash_type, bool sighash_anyone_can_pay, int64_t value_satoshi,
     const char* value_commitment, int witness_version);
 
+/**
+ * @brief verify transaction's scriptsig or witness stack.
+ * @details support type is p2pkh, p2wpkh, p2sh-p2wpkh,
+ *     multisig(for p2sh, p2wsh, p2sh-p2wsh)
+ * @param[in] handle                  cfd handle.
+ * @param[in] tx_hex                  transaction hex.
+ * @param[in] txid                    txid.
+ * @param[in] vout                    vout.
+ * @param[in] address                 utxo address.
+ * @param[in] address_type            address type. (ref: CfdAddressType)
+ * @param[in] direct_locking_script   utxo locking script.
+ *     (set when address is empty.)
+ * @param[in] value_satoshi           value satoshi. (Specify 0 if disabled)
+ * @param[in] value_commitment        value commitment.
+ *     (Specify null if disabled)
+ * @return CfdErrorCode
+ *     (if failed to verify signature, it returns kCfdSignVerificationError)
+ */
+CFDC_API int CfdVerifyConfidentialTxSign(
+    void* handle, const char* tx_hex, const char* txid, uint32_t vout,
+    const char* address, int address_type, const char* direct_locking_script,
+    int64_t value_satoshi, const char* value_commitment);
+
 /* 後回し
 CFDC_API int CfdAddElementsWitnessStack(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
@@ -531,20 +607,6 @@ CFDC_API int CfdUpdateConfidentialTxIn(
 CFDC_API int CfdAddPeginWitnessStack(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     const char* hex_data, char** tx_string);
-
-CFDC_API int CfdGetElementsWitnessStack(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, char** hex_string);
-CFDC_API int CfdGetPeginWitnessStack(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, char** hex_string);
-
-CFDC_API int CfdGetElementsWitnessStackCount(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, uint32_t* count);
-CFDC_API int CfdGetPeginWitnessStackCount(
-    void* handle, const char* tx_hex_string, uint32_t index,
-    uint32_t witness_index, uint32_t* count);
 
 */
 

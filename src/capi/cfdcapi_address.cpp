@@ -33,6 +33,7 @@ using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::Descriptor;
 using cfd::core::DescriptorKeyType;
 using cfd::core::DescriptorScriptType;
 using cfd::core::ExtPrivkey;
@@ -693,6 +694,51 @@ int CfdFreeDescriptorHandle(void* handle, void* descriptor_handle) {
   }
 }
 
+int CfdGetDescriptorChecksum(
+    void* handle, int network_type, const char* descriptor,
+    char** descriptor_added_checksum) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (descriptor_added_checksum == nullptr) {
+      warn(CFD_LOG_SOURCE, "descriptor_added_checksum is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to get parameter. added_checksum is null.");
+    }
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to get parameter. descriptor is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    cfd::capi::ConvertNetType(network_type, &is_bitcoin);
+    std::string output_descriptor;
+    if (is_bitcoin) {
+      output_descriptor = Descriptor::Parse(descriptor, nullptr).ToString();
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      output_descriptor = Descriptor::ParseElements(descriptor).ToString();
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Elements not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    *descriptor_added_checksum = CreateString(output_descriptor);
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 int CfdGetAddressesFromMultisig(
     void* handle, const char* redeem_script, int network_type, int hash_type,
     void** addr_multisig_keys_handle, uint32_t* max_key_num) {
@@ -828,10 +874,10 @@ int CfdGetAddressFromLockingScript(
   try {
     cfd::Initialize();
     if (IsEmptyString(locking_script)) {
-      warn(CFD_LOG_SOURCE, "lockingScript is null.");
+      warn(CFD_LOG_SOURCE, "lockingScript is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. lockingScript is null.");
+          "Failed to parameter. lockingScript is null or empty.");
     }
     if (address == nullptr) {
       warn(CFD_LOG_SOURCE, "address is null.");
