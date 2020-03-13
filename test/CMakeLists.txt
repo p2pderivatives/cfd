@@ -14,6 +14,7 @@ include(../cmake/CfdCommonSetting.cmake)
 
 option(CFD_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
 option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
+option(ENABLE_JSONAPI  "enable json-api (ON or OFF. default:ON)" ON)
 
 if(CFD_SHARED AND (WIN32 OR APPLE))
 set(USE_CFD_SHARED  TRUE)
@@ -42,6 +43,12 @@ if(NOT ENABLE_CAPI)
 set(CFD_CAPI_USE   CFD_DISABLE_CAPI)
 else()
 set(CFD_CAPI_USE   "")
+endif()
+
+if(NOT ENABLE_JSONAPI)
+set(CFD_JSONAPI_USE   CFD_DISABLE_JSONAPI)
+else()
+set(CFD_JSONAPI_USE   "")
 endif()
 
 find_package(cfdcore  QUIET)
@@ -83,6 +90,7 @@ target_compile_definitions(${PROJECT_NAME}
     CFD_CORE_SHARED=1
     ${ELEMENTS_COMP_OPT}
     ${CFD_CAPI_USE}
+    ${CFD_JSONAPI_USE}
     ${CFD_ELEMENTS_USE}
 )
 else()
@@ -90,6 +98,7 @@ target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     ${ELEMENTS_COMP_OPT}
     ${CFD_CAPI_USE}
+    ${CFD_JSONAPI_USE}
     ${CFD_ELEMENTS_USE}
 )
 endif()

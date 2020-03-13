@@ -31,6 +31,7 @@
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 
+using cfd::ConfidentialTransactionContext;
 using cfd::ConfidentialTransactionController;
 using cfd::ElementsAddressFactory;
 using cfd::SignParameter;
@@ -61,6 +62,7 @@ using cfd::core::ConfidentialValue;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::HashType;
 using cfd::core::NetType;
+using cfd::core::OutPoint;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::Script;
@@ -486,6 +488,49 @@ int CfdGetConfidentialTxInWitness(
   }
 }
 
+int CfdGetConfidentialTxInPeginWitness(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t stack_index, char** stack_data) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (stack_data == nullptr) {
+      warn(CFD_LOG_SOURCE, "stack data is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. stack data is null.");
+    }
+
+    ConfidentialTransactionContext tx(tx_hex_string);
+    const ConfidentialTxInReference ref = tx.GetTxIn(txin_index);
+
+    const std::vector<ByteData> witness_stack =
+        ref.GetPeginWitness().GetWitness();
+    if (witness_stack.size() <= stack_index) {
+      warn(CFD_LOG_SOURCE, "stackIndex is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. stackIndex out of pegin witness.");
+    }
+    *stack_data = CreateString(witness_stack[stack_index].GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
 int CfdGetTxInIssuanceInfo(
     void* handle, const char* tx_hex_string, uint32_t index, char** entropy,
     char** nonce, int64_t* asset_amount, char** asset_value,
@@ -689,12 +734,40 @@ int CfdGetConfidentialTxInWitnessCount(
           "Failed to parameter. tx is null or empty.");
     }
 
-    ConfidentialTransactionController ctxc(tx_hex_string);
-    const ConfidentialTransaction& tx = ctxc.GetTransaction();
+    ConfidentialTransactionContext tx(tx_hex_string);
     const ConfidentialTxInReference ref = tx.GetTxIn(txin_index);
 
     if (count != nullptr) {
       *count = ref.GetScriptWitnessStackNum();
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdGetConfidentialTxInPeginWitnessCount(
+    void* handle, const char* tx_hex_string, uint32_t txin_index,
+    uint32_t* count) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+
+    ConfidentialTransactionContext tx(tx_hex_string);
+    const ConfidentialTxInReference ref = tx.GetTxIn(txin_index);
+    if (count != nullptr) {
+      *count = ref.GetPeginWitnessStackNum();
     }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -719,12 +792,97 @@ int CfdGetConfidentialTxOutCount(
           "Failed to parameter. tx is null or empty.");
     }
 
-    ConfidentialTransactionController ctxc(tx_hex_string);
-    const ConfidentialTransaction& tx = ctxc.GetTransaction();
+    ConfidentialTransactionContext tx(tx_hex_string);
 
     if (count != nullptr) {
       *count = tx.GetTxOutCount();
     }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdGetConfidentialTxInIndex(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    uint32_t* index) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    ConfidentialTransactionContext tx(tx_hex_string);
+    OutPoint outpoint(Txid(txid), vout);
+    if (index != nullptr) {
+      *index = tx.GetTxInIndex(outpoint);
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdGetConfidentialTxOutIndex(
+    void* handle, const char* tx_hex_string, const char* address,
+    const char* direct_locking_script, uint32_t* index) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+
+    ConfidentialTransactionContext tx(tx_hex_string);
+    bool is_find = false;
+
+    if (!IsEmptyString(direct_locking_script)) {
+      is_find = tx.IsFindTxOut(Script(direct_locking_script), index);
+    } else if (!IsEmptyString(address)) {
+      ElementsAddressFactory address_factory;
+      std::string addr_str(address);
+      Address addr;
+      if (ElementsConfidentialAddress::IsConfidentialAddress(addr_str)) {
+        addr = address_factory.GetConfidentialAddress(addr_str)
+                   .GetUnblindedAddress();
+      } else {
+        addr = address_factory.GetAddress(addr_str);
+      }
+      is_find = tx.IsFindTxOut(addr, index);
+    } else {
+      // fee
+      is_find = tx.IsFindFeeTxOut(index);
+    }
+    if (!is_find) {
+      warn(CFD_LOG_SOURCE, "target not found.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. search target is not found.");
+    }
+
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
@@ -1129,12 +1287,6 @@ int CfdAddConfidentialTxSign(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. txid is null or empty.");
     }
-    if (IsEmptyString(sign_data_hex)) {
-      warn(CFD_LOG_SOURCE, "sign data is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. sign data is null or empty.");
-    }
     if (tx_string == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
       throw CfdException(
@@ -1142,8 +1294,16 @@ int CfdAddConfidentialTxSign(
           "Failed to parameter. tx output is null.");
     }
 
+    // if using witness, enable empty data.
+    if ((is_witness && (sign_data_hex == nullptr)) ||
+        (!is_witness && IsEmptyString(sign_data_hex))) {
+      warn(CFD_LOG_SOURCE, "sign data is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sign data is null or empty.");
+    }
+
     std::vector<SignParameter> sign_list;
-    // SignParameter param();
     sign_list.emplace_back(std::string(sign_data_hex));
 
     ElementsTransactionApi api;
@@ -1638,6 +1798,78 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+CFDC_API int CfdVerifyConfidentialTxSign(
+    void* handle, const char* tx_hex, const char* txid, uint32_t vout,
+    const char* address, int address_type, const char* direct_locking_script,
+    int64_t value_satoshi, const char* value_commitment) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null or empty.");
+    }
+    ConfidentialTransactionContext ctxc(tx_hex);
+    OutPoint outpoint(Txid(txid), vout);
+    ctxc.GetTxInIndex(outpoint);
+
+    UtxoData utxo;
+    utxo.block_height = 0;
+    utxo.binary_data = nullptr;
+    utxo.descriptor = "";
+    utxo.txid = outpoint.GetTxid();
+    utxo.vout = outpoint.GetVout();
+    utxo.address_type = AddressType::kP2shAddress;
+
+    ElementsAddressFactory address_factory;
+    if (!IsEmptyString(address)) {
+      std::string addr(address);
+      if (ElementsConfidentialAddress::IsConfidentialAddress(addr)) {
+        ElementsConfidentialAddress confidential_addr(addr);
+        utxo.address = confidential_addr.GetUnblindedAddress();
+      } else {
+        utxo.address = address_factory.GetAddress(addr);
+      }
+      utxo.locking_script = utxo.address.GetLockingScript();
+      utxo.address_type = static_cast<AddressType>(address_type);
+    } else if (!IsEmptyString(direct_locking_script)) {
+      utxo.locking_script = Script(direct_locking_script);
+    }
+
+    ConfidentialValue value;
+    if (!IsEmptyString(value_commitment)) {
+      utxo.value_commitment = ConfidentialValue(value_commitment);
+    } else {
+      utxo.amount = Amount::CreateBySatoshiAmount(value_satoshi);
+    }
+
+    std::vector<UtxoData> utxos = {utxo};
+    ctxc.CollectInputUtxo(utxos);
+
+    result = CfdErrorCode::kCfdSignVerificationError;
+    ctxc.Verify(outpoint);
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (result != CfdErrorCode::kCfdSignVerificationError) {
+      result = SetLastError(handle, except);
+    }
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
 }
 
 };  // extern "C"

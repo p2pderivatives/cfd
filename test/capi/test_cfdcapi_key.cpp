@@ -85,6 +85,43 @@ TEST(cfdcapi_key, CfdEncodeSignatureByDer) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_key, CfdDecodeSignatureFromDer) {
+  static constexpr const char* kSignature = "47ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb";
+  static constexpr const char* kDerSignature = "3044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb01";
+
+  void* handle = nullptr;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((nullptr == handle));
+
+  char* signature = nullptr;
+  int sighash = 0;
+  bool is_anyone_can_pay = false;
+  ret = CfdDecodeSignatureFromDer(handle, kDerSignature, &signature,
+      &sighash, &is_anyone_can_pay);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(kSignature, signature);
+    EXPECT_EQ(kCfdSigHashAll, sighash);
+    EXPECT_FALSE(is_anyone_can_pay);
+    CfdFreeStringBuffer(signature);
+    signature = nullptr;
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 TEST(cfdcapi_key, CfdNormalizeSignatureTest) {
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
