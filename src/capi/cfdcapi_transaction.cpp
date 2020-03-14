@@ -109,7 +109,7 @@ int CfdAddTxSign(
     }
 
     if ((sign_data_hex == nullptr) ||
-        (IsEmptyString(sign_data_hex) && (use_der_encode || is_witness))) {
+        (IsEmptyString(sign_data_hex) && (use_der_encode || !is_witness))) {
       warn(CFD_LOG_SOURCE, "sign data is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
