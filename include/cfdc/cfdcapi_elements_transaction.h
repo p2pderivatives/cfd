@@ -467,6 +467,29 @@ CFDC_API int CfdFinalizeElementsMultisigSign(
     const char* redeem_script, bool clear_stack, char** tx_string);
 
 /**
+ * @brief add keyhash sign with privkey.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.(p2pkh, p2wpkh, p2sh-p2wpkh)
+ * @param[in] pubkey            pubkey hex.
+ * @param[in] privkey           privkey (WIF or hex).
+ * @param[in] value_satoshi     satoshi value. (Specify 0 if disabled)
+ * @param[in] value_commitment  value commitment. (Specify null if disabled)
+ * @param[in] sighash_type            sighash type.
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[in] has_grind_r     ec-signature Grind-R flag.
+ * @param[out] tx_string      signed transaction hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddConfidentialTxSignWithPrivkeySimple(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    int hash_type, const char* pubkey, const char* privkey,
+    int64_t value_satoshi, const char* value_commitment, int sighash_type,
+    bool sighash_anyone_can_pay, bool has_grind_r, char** tx_string);
+
+/**
  * @brief create confidential transaction sighash.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     tx hex.
