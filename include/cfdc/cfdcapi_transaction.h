@@ -27,7 +27,70 @@ enum CfdSequenceLockTime {
   kCfdSequenceLockTimeEnableMax = 0xfffffffeU,
 };
 
-// FIXME elementsを先に作る
+// FIXME elements first.
+
+/**
+ * @brief add sign to transaction.
+ * @param[in] handle          cfd handle.
+ * @param[in] net_type        network type.
+ * @param[in] tx_hex_string   transaction hex.
+ * @param[in] txid            txin txid.
+ * @param[in] vout            txin vout.
+ * @param[in] hash_type       hash type.
+ * @param[in] sign_data_hex   add sign data hex.
+ * @param[in] use_der_encode  der encode flag.
+ * @param[in] sighash_type            sighash type.
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[in] clear_stack     cleanup scriptSig stack data.
+ * @param[out] tx_string      signed transaction hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddTxSign(
+    void* handle, int net_type, const char* tx_hex_string, const char* txid,
+    uint32_t vout, int hash_type, const char* sign_data_hex,
+    bool use_der_encode, int sighash_type, bool sighash_anyone_can_pay,
+    bool clear_stack, char** tx_string);
+
+/**
+ * @brief add sign signature and pubkey to transaction.
+ * @param[in] handle          cfd handle.
+ * @param[in] net_type        network type.
+ * @param[in] tx_hex_string   transaction hex.
+ * @param[in] txid            txin txid.
+ * @param[in] vout            txin vout.
+ * @param[in] hash_type       hash type.
+ * @param[in] pubkey          pubkey hex.
+ * @param[in] signature       add sign data signature.
+ * @param[in] use_der_encode  der encode flag.
+ * @param[in] sighash_type            sighash type.
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[out] tx_string      signed transaction hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddPubkeyHashSign(
+    void* handle, int net_type, const char* tx_hex_string, const char* txid,
+    uint32_t vout, int hash_type, const char* pubkey, const char* signature,
+    bool use_der_encode, int sighash_type, bool sighash_anyone_can_pay,
+    char** tx_string);
+
+/**
+ * @brief add redeem script to transaction.
+ * @details using after CfdAddTxSign.
+ * @param[in] handle          cfd handle.
+ * @param[in] net_type        network type.
+ * @param[in] tx_hex_string   transaction hex.
+ * @param[in] txid            txin txid.
+ * @param[in] vout            txin vout.
+ * @param[in] hash_type       hash type.
+ * @param[in] redeem_script   redeem script.
+ * @param[in] clear_stack     cleanup scriptSig stack data.
+ * @param[out] tx_string      signed transaction hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddScriptHashSign(
+    void* handle, int net_type, const char* tx_hex_string, const char* txid,
+    uint32_t vout, int hash_type, const char* redeem_script, bool clear_stack,
+    char** tx_string);
 
 /**
  * @brief initialized for multisig sign.
@@ -64,28 +127,25 @@ CFDC_API int CfdAddMultisigSignDataToDer(
     void* handle, void* multisign_handle, const char* signature,
     int sighash_type, bool sighash_anyone_can_pay, const char* related_pubkey);
 
-#if 0
 /**
  * @brief append multisig sign to transaction.
- * @param[in] handle                  cfd handle.
- * @param[in] multisign_handle        multisig sign handle.
- * @param[in] tx_hex_string           tx hex.
- * @param[in] txid                    txin txid.
- * @param[in] vout                    txin vout.
- * @param[in] hash_type       hash type.
- * @param[in] witness_script  witness script for segwit.
- * @param[in] redeem_script   redeem script for p2sh.
- * @param[out] tx_string              signed tx hex.
+ * @param[in] handle            cfd handle.
+ * @param[in] multisign_handle  multisig sign handle.
+ * @param[in] net_type        network type.
+ * @param[in] tx_hex_string     tx hex.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.
+ * @param[in] redeem_script     multisig redeem script.
+ * @param[out] tx_string        signed tx hex.
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
 CFDC_API int CfdFinalizeMultisigSign(
-    void* handle, void* multisign_handle,
-    const char* tx_hex_string, const char* txid, uint32_t vout,
-    int hash_type, const char* witness_script, const char* redeem_script,
-    char** tx_string);
-#endif
+    void* handle, void* multisign_handle, int net_type,
+    const char* tx_hex_string, const char* txid, uint32_t vout, int hash_type,
+    const char* redeem_script, char** tx_string);
 
 /**
  * @brief free multisig sign handle.
