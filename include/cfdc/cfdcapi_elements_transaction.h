@@ -620,6 +620,20 @@ CFDC_API int CfdVerifyConfidentialTxSign(
     const char* address, int address_type, const char* direct_locking_script,
     int64_t value_satoshi, const char* value_commitment);
 
+/**
+ * @brief get elements value hex.
+ * @param[in] handle                cfd handle.
+ * @param[in] value_satoshi         value of satoshi.
+ * @param[in] ignore_version_info   ignore version header. (delete top 1byte)
+ * @param[out] value_hex            value hex. (8-9 byte (16-18 char))
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialValueHex(
+    void* handle, int64_t value_satoshi, bool ignore_version_info,
+    char** value_hex);
+
 /* 後回し
 CFDC_API int CfdAddElementsWitnessStack(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,

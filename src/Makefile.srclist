@@ -30,6 +30,7 @@ CFD_CAPI_SOURCES = \
   capi/cfdcapi_elements_address.cpp \
   capi/cfdcapi_elements_transaction.cpp \
   capi/cfdcapi_key.cpp \
+  capi/cfdcapi_ledger.cpp \
   capi/cfdcapi_transaction.cpp
 
 CFD_JSONAPI_SOURCES = \

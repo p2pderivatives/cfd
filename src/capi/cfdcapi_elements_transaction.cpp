@@ -1952,6 +1952,40 @@ CFDC_API int CfdVerifyConfidentialTxSign(
   return result;
 }
 
+int CfdGetConfidentialValueHex(
+    void* handle, int64_t value_satoshi, bool ignore_version_info,
+    char** value_hex) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (value_hex == nullptr) {
+      warn(CFD_LOG_SOURCE, "value_hex is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. value_hex is null.");
+    }
+    Amount amount(value_satoshi);
+    ConfidentialValue value(amount);
+    std::string hex_str = value.GetHex();
+
+    if (ignore_version_info) {  // erase first 1byte (2 char)
+      hex_str = hex_str.substr(2);
+    }
+    *value_hex = CreateString(hex_str);
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (result != CfdErrorCode::kCfdSignVerificationError) {
+      result = SetLastError(handle, except);
+    }
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 };  // extern "C"
 
 #endif  // CFD_DISABLE_ELEMENTS
