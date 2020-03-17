@@ -1343,4 +1343,41 @@ TEST(cfdcapi_elements_transaction, VerifyConfidentialTxSign) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_elements_transaction, CfdGetConfidentialValueHex) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  if (ret == kCfdSuccess) {
+    int64_t satoshi = 13000000000000;
+    char* value_hex;
+    ret = CfdGetConfidentialValueHex(handle, satoshi, false, &value_hex);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("0100000bd2cc61d000", value_hex);
+      CfdFreeStringBuffer(value_hex);
+      value_hex = nullptr;
+    }
+
+    ret = CfdGetConfidentialValueHex(handle, satoshi, true, &value_hex);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("00000bd2cc61d000", value_hex);
+      CfdFreeStringBuffer(value_hex);
+      value_hex = nullptr;
+    }
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 #endif  // CFD_DISABLE_ELEMENTS
