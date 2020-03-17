@@ -60,6 +60,7 @@ struct CfdCapiLedgerMetaData {
   std::vector<CfdCapiLedgerMetaDataStackItem>* metadata_stack;
 };
 
+#ifndef CFD_DISABLE_ELEMENTS
 /**
  * @brief serialize ledger format (confidential transaction).
  * @param[in] tx                confidential transaction.
@@ -165,6 +166,7 @@ ByteData SerializeLedgerFormat(
 
   return data;
 }
+#endif  // CFD_DISABLE_ELEMENTS
 
 }  // namespace capi
 }  // namespace cfd
