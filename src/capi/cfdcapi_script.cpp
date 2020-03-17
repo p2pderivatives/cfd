@@ -360,7 +360,7 @@ int CfdFinalizeMultisigScriptSig(
       warn(CFD_LOG_SOURCE, "redeemScript is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txid is null or empty.");
+          "Failed to parameter. redeemScript is null or empty.");
     }
     if (scriptsig == nullptr) {
       warn(CFD_LOG_SOURCE, "tx output is null.");
