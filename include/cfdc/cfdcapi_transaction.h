@@ -173,6 +173,7 @@ CFDC_API int CfdCreateSighash(void* handle, const char* tx_hex_string,
     int address_type, const char* pubkey, const char* redeem_script,
     int64_t value_satoshi,
     uint8_t** sighash, uint32_t* sighash_size);
+*/
 
 /**
  * @brief get tx-input index.
@@ -200,6 +201,7 @@ CFDC_API int CfdGetTxOutIndex(
     void* handle, const char* tx_hex_string, const char* address,
     const char* direct_locking_script, uint32_t* index);
 
+/*
 - AddTxIn
 - AddWitnessStack
 - AddTxOut
