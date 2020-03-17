@@ -188,9 +188,12 @@ using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
 using cfd::capi::IsEmptyString;
 using cfd::capi::kPrefixLedgerMetaData;
-using cfd::capi::SerializeLedgerFormat;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
+
+#ifndef CFD_DISABLE_ELEMENTS
+using cfd::capi::SerializeLedgerFormat;
+#endif  // CFD_DISABLE_ELEMENTS
 
 extern "C" {
 
