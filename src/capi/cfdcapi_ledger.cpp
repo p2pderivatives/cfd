@@ -19,18 +19,21 @@
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 
-using cfd::ConfidentialTransactionContext;
 using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
-using cfd::core::ConfidentialTransaction;
-using cfd::core::ConfidentialTxInReference;
-using cfd::core::ConfidentialTxOutReference;
 using cfd::core::NetType;
 using cfd::core::StringUtil;
 
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
+
+#ifndef CFD_DISABLE_ELEMENTS
+using cfd::ConfidentialTransactionContext;
+using cfd::core::ConfidentialTransaction;
+using cfd::core::ConfidentialTxInReference;
+using cfd::core::ConfidentialTxOutReference;
+#endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
 // internal c-api
