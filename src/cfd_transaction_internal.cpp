@@ -212,10 +212,11 @@ void TransactionContextUtil::AddScriptHashSign(
   for (const auto& signature : signatures) {
     sign_params.push_back(signature);
   }
+  bool clear_stack = (sign_params.empty()) ? false : true;
   sign_params.push_back(SignParameter(redeem_script));
 
   if (has_witness) {
-    AddSign(transaction, outpoint, sign_params, true, true);
+    AddSign(transaction, outpoint, sign_params, true, clear_stack);
   }
   if (has_scriptsig) {
     if (!locking_script.IsEmpty()) {  // p2sh-p2wpkh
@@ -223,7 +224,7 @@ void TransactionContextUtil::AddScriptHashSign(
       scriptsig.push_back(SignParameter(locking_script));
       AddSign(transaction, outpoint, scriptsig, false, true);
     } else {
-      AddSign(transaction, outpoint, sign_params, false, true);
+      AddSign(transaction, outpoint, sign_params, false, clear_stack);
     }
   }
 }

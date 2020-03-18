@@ -467,6 +467,29 @@ CFDC_API int CfdFinalizeElementsMultisigSign(
     const char* redeem_script, bool clear_stack, char** tx_string);
 
 /**
+ * @brief add keyhash sign with privkey.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_hex_string     transaction hex.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.(p2pkh, p2wpkh, p2sh-p2wpkh)
+ * @param[in] pubkey            pubkey hex.
+ * @param[in] privkey           privkey (WIF or hex).
+ * @param[in] value_satoshi     satoshi value. (Specify 0 if disabled)
+ * @param[in] value_commitment  value commitment. (Specify null if disabled)
+ * @param[in] sighash_type            sighash type.
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[in] has_grind_r     ec-signature Grind-R flag.
+ * @param[out] tx_string      signed transaction hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddConfidentialTxSignWithPrivkeySimple(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    int hash_type, const char* pubkey, const char* privkey,
+    int64_t value_satoshi, const char* value_commitment, int sighash_type,
+    bool sighash_anyone_can_pay, bool has_grind_r, char** tx_string);
+
+/**
  * @brief create confidential transaction sighash.
  * @param[in] handle            cfd handle.
  * @param[in] tx_hex_string     tx hex.
@@ -596,6 +619,20 @@ CFDC_API int CfdVerifyConfidentialTxSign(
     void* handle, const char* tx_hex, const char* txid, uint32_t vout,
     const char* address, int address_type, const char* direct_locking_script,
     int64_t value_satoshi, const char* value_commitment);
+
+/**
+ * @brief get elements value hex.
+ * @param[in] handle                cfd handle.
+ * @param[in] value_satoshi         value of satoshi.
+ * @param[in] ignore_version_info   ignore version header. (delete top 1byte)
+ * @param[out] value_hex            value hex. (8-9 byte (16-18 char))
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialValueHex(
+    void* handle, int64_t value_satoshi, bool ignore_version_info,
+    char** value_hex);
 
 /* 後回し
 CFDC_API int CfdAddElementsWitnessStack(

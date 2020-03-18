@@ -17,6 +17,7 @@
 #include "cfd/cfd_transaction_common.h"
 #include "cfd/cfdapi_coin.h"
 #include "cfd/cfdapi_elements_transaction.h"
+#include "cfd/cfdapi_key.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_elements_transaction.h"
 #include "cfdcore/cfdcore_address.h"
@@ -39,6 +40,7 @@ using cfd::UtxoData;
 using cfd::api::ElementsTransactionApi;
 using cfd::api::ElementsUtxoAndOption;
 using cfd::api::IssuanceOutput;
+using cfd::api::KeyApi;
 using cfd::api::TxInBlindParameters;
 using cfd::api::TxInReissuanceParameters;
 using cfd::api::TxOutBlindKeys;
@@ -108,6 +110,7 @@ using cfd::capi::CfdCapiBlindTxData;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertHashToAddressType;
+using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
@@ -1468,6 +1471,83 @@ int CfdFinalizeElementsMultisigSign(
   }
 }
 
+int CfdAddConfidentialTxSignWithPrivkeySimple(
+    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
+    int hash_type, const char* pubkey, const char* privkey,
+    int64_t value_satoshi, const char* value_commitment, int sighash_type,
+    bool sighash_anyone_can_pay, bool has_grind_r, char** tx_string) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+    if (IsEmptyString(privkey)) {
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey is null or empty.");
+    }
+    if (tx_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "tx output is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx output is null.");
+    }
+
+    AddressType addr_type = ConvertHashToAddressType(hash_type);
+    ConfidentialValue value;
+    if (IsEmptyString(value_commitment)) {
+      value = ConfidentialValue(Amount::CreateBySatoshiAmount(value_satoshi));
+    } else {
+      value = ConfidentialValue(value_commitment);
+    }
+
+    Privkey privkey_obj;
+    std::string privkey_str(privkey);
+    if (privkey_str.length() == 64) {
+      privkey_obj = Privkey(privkey_str);
+    } else {
+      KeyApi keyapi;
+      privkey_obj = keyapi.GetPrivkeyFromWif(privkey_str);
+    }
+
+    OutPoint outpoint(Txid(txid), vout);
+    ConfidentialTransactionContext tx(tx_hex_string);
+    SigHashType sighashtype(
+        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    tx.SignWithPrivkeySimple(
+        outpoint, Pubkey(pubkey), privkey_obj, sighashtype, value, addr_type,
+        has_grind_r);
+
+    *tx_string = CreateString(tx.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
 int CfdCreateConfidentialSighash(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     int hash_type, const char* pubkey, const char* redeem_script,
@@ -1858,6 +1938,40 @@ CFDC_API int CfdVerifyConfidentialTxSign(
 
     result = CfdErrorCode::kCfdSignVerificationError;
     ctxc.Verify(outpoint);
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (result != CfdErrorCode::kCfdSignVerificationError) {
+      result = SetLastError(handle, except);
+    }
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdGetConfidentialValueHex(
+    void* handle, int64_t value_satoshi, bool ignore_version_info,
+    char** value_hex) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (value_hex == nullptr) {
+      warn(CFD_LOG_SOURCE, "value_hex is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. value_hex is null.");
+    }
+    Amount amount(value_satoshi);
+    ConfidentialValue value(amount);
+    std::string hex_str = value.GetHex();
+
+    if (ignore_version_info) {  // erase first 1byte (2 char)
+      hex_str = hex_str.substr(2);
+    }
+    *value_hex = CreateString(hex_str);
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
