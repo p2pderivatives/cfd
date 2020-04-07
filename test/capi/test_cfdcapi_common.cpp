@@ -175,6 +175,50 @@ TEST(cfdcapi_common, CfdGetLastErrorMessage) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_common, CfdRequestExecuteJson_decodetx) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+  char* respons_json = nullptr;
+
+  // DecodeRawTransaction multiple input and output. (TxIn:2/TxOut:3)
+  const char* request_json1 = "{\"hex\":\"02000000034cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff81ddd34c6c0c32544e3b89f5e24c6cd7afca62f2b5069281ac9fced6251191d20000000000ffffffff81ddd34c6c0c32544e3b89f5e24c6cd7afca62f2b5069281ac9fced6251191d20100000000ffffffff030200000000000000220020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef406f400100000000220020ea5a7208cddfbc20dd93e12bf29deb00b68c056382a502446c9c5b55490954d215cd5b0700000000220020f39f6272ba6b57918eb047c5dc44fb475356b0f24c12fca39b19284e80008a4200000000\"}";
+  const char* exp_json1 = "{\"txid\":\"1fdeb34ff44d832a0064b57a4ec1d5ff4b6a64e2f65acafde071dff0dbd501ca\",\"hash\":\"1fdeb34ff44d832a0064b57a4ec1d5ff4b6a64e2f65acafde071dff0dbd501ca\",\"version\":2,\"size\":262,\"vsize\":262,\"weight\":1048,\"locktime\":0,\"vin\":[{\"txid\":\"ea9d5a9e974af1d167305aa6ee598706d63274e8a40f4f33af97db37a7adde4c\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"d2911125d6ce9fac819206b5f262caafd76c4ce2f5893b4e54320c6c4cd3dd81\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"d2911125d6ce9fac819206b5f262caafd76c4ce2f5893b4e54320c6c4cd3dd81\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":2,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef\",\"hex\":\"0020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef\",\"reqSigs\":1,\"type\":\"witness_v0_scripthash\",\"addresses\":[\"bc1qckhylutuasz4a9jt2umqzv5087relfzpu5l03zkdl4xcar0598hs4hsymp\"]}},{\"value\":21000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"0 ea5a7208cddfbc20dd93e12bf29deb00b68c056382a502446c9c5b55490954d2\",\"hex\":\"0020ea5a7208cddfbc20dd93e12bf29deb00b68c056382a502446c9c5b55490954d2\",\"reqSigs\":1,\"type\":\"witness_v0_scripthash\",\"addresses\":[\"bc1qafd8yzxdm77zphvnuy4l980tqzmgcptrs2jsy3rvn3d42jgf2nfqc4zt4j\"]}},{\"value\":123456789,\"n\":2,\"scriptPubKey\":{\"asm\":\"0 f39f6272ba6b57918eb047c5dc44fb475356b0f24c12fca39b19284e80008a42\",\"hex\":\"0020f39f6272ba6b57918eb047c5dc44fb475356b0f24c12fca39b19284e80008a42\",\"reqSigs\":1,\"type\":\"witness_v0_scripthash\",\"addresses\":[\"bc1q7w0kyu46ddterr4sglzac38mgaf4dv8jfsf0egumry5yaqqq3fpqj93pax\"]}}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodeRawTransaction", request_json1, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json1, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodeRawTransaction network (testnet)
+  const char* request_json2 = "{\"hex\":\"02000000014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff0101000000000000002200201863143c14c5166804bd19203356da136c985678cd4d27a1b8c632960490326200000000\",\"network\":\"testnet\"}";
+  const char* exp_json2 = "{\"txid\":\"6655abb87632ba0730ff5c4e3280a063cc7984be43d89c8e19d766996ff3d307\",\"hash\":\"6655abb87632ba0730ff5c4e3280a063cc7984be43d89c8e19d766996ff3d307\",\"version\":2,\"size\":94,\"vsize\":94,\"weight\":376,\"locktime\":0,\"vin\":[{\"txid\":\"ea9d5a9e974af1d167305aa6ee598706d63274e8a40f4f33af97db37a7adde4c\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":1,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 1863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262\",\"hex\":\"00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262\",\"reqSigs\":1,\"type\":\"witness_v0_scripthash\",\"addresses\":[\"tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7\"]}}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodeRawTransaction", request_json2, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json2, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodeRawTransaction network (regtest)
+  const char* request_json3 = "{\"hex\":\"02000000014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff0101000000000000002200201863143c14c5166804bd19203356da136c985678cd4d27a1b8c632960490326200000000\",\"network\":\"regtest\"}";
+  const char* exp_json3 = "{\"txid\":\"6655abb87632ba0730ff5c4e3280a063cc7984be43d89c8e19d766996ff3d307\",\"hash\":\"6655abb87632ba0730ff5c4e3280a063cc7984be43d89c8e19d766996ff3d307\",\"version\":2,\"size\":94,\"vsize\":94,\"weight\":376,\"locktime\":0,\"vin\":[{\"txid\":\"ea9d5a9e974af1d167305aa6ee598706d63274e8a40f4f33af97db37a7adde4c\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":1,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 1863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262\",\"hex\":\"00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262\",\"reqSigs\":1,\"type\":\"witness_v0_scripthash\",\"addresses\":[\"bcrt1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qzf4jry\"]}}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodeRawTransaction", request_json3, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json3, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 #ifndef CFD_DISABLE_ELEMENTS
 TEST(cfdcapi_common, CfdRequestExecuteJson_elementsdecodetx) {
   void* handle = NULL;

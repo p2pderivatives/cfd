@@ -49,6 +49,7 @@ using cfd::core::ConfidentialValue;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
 using cfd::core::IssuanceParameter;
+using cfd::core::kDefaultBlindMinimumBits;
 using cfd::core::NetType;
 using cfd::core::OutPoint;
 using cfd::core::Privkey;
@@ -167,6 +168,14 @@ class CFD_EXPORT ConfidentialTransactionContext
    * @retval false 未存在
    */
   bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
+  /**
+   * @brief Get txout address by index.
+   * @param[in] index     txout index.
+   * @param[in] net_type  network type.
+   * @return address
+   */
+  Address GetTxOutAddress(
+      uint32_t index, NetType net_type = NetType::kLiquidV1) const;
 
   /**
    * @brief ConfidentialTransaction's AddTxIn.
@@ -392,7 +401,7 @@ class CFD_EXPORT ConfidentialTransactionContext
       const std::vector<ElementsConfidentialAddress>&
           confidential_address_list,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = 36);
+      int minimum_bits = kDefaultBlindMinimumBits);
 
   /**
    * @brief Unblind issuance data.
@@ -443,7 +452,7 @@ class CFD_EXPORT ConfidentialTransactionContext
       const std::vector<ElementsConfidentialAddress>* confidential_addresses =
           nullptr,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = 36);
+      int minimum_bits = kDefaultBlindMinimumBits);
   /**
    * @brief Execute blinding issuance & txout using utxo data.
    * @param[in] issuance_key_map           issue blinding key map.
@@ -461,7 +470,7 @@ class CFD_EXPORT ConfidentialTransactionContext
       const std::vector<ElementsConfidentialAddress>* confidential_addresses =
           nullptr,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = 36);
+      int minimum_bits = kDefaultBlindMinimumBits);
 
   /**
    * @brief sign with privkey.

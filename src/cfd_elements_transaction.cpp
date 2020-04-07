@@ -216,6 +216,17 @@ bool ConfidentialTransactionContext::IsFindTxOut(
   }
 }
 
+Address ConfidentialTransactionContext::GetTxOutAddress(
+    uint32_t index, NetType net_type) const {
+  if (vout_.size() <= index) {
+    throw CfdException(
+        CfdError::kCfdOutOfRangeError, "vout out_of_range error.");
+  }
+  ElementsAddressFactory address_factory(net_type);
+  return address_factory.GetAddressByLockingScript(
+      vout_[index].GetLockingScript());
+}
+
 uint32_t ConfidentialTransactionContext::AddTxOut(
     const Address& address, const Amount& value,
     const ConfidentialAssetId& asset) {
@@ -521,25 +532,19 @@ void ConfidentialTransactionContext::BlindTransaction(
   uint32_t index = 0;
   std::vector<BlindParameter> txin_info_list;
   if (!utxo_info_map.empty()) {
-    uint32_t max_size = static_cast<uint32_t>(utxo_info_map.size());
-    txin_info_list.resize(utxo_info_map.size());
+    txin_info_list.resize(vin_.size());
     for (const auto& utxo_info : utxo_info_map) {
       index = GetTxInIndex(utxo_info.first);
-      if (index < max_size) {
-        txin_info_list[index] = utxo_info.second;
-      }
+      txin_info_list[index] = utxo_info.second;
     }
   }
 
   std::vector<IssuanceBlindingKeyPair> issuance_blinding_keys;
   if (!issuance_key_map.empty()) {
-    uint32_t max_size = static_cast<uint32_t>(issuance_key_map.size());
-    issuance_blinding_keys.resize(issuance_key_map.size());
+    issuance_blinding_keys.resize(vin_.size());
     for (const auto& key_info : issuance_key_map) {
       index = GetTxInIndex(key_info.first);
-      if (index < max_size) {
-        issuance_blinding_keys[index] = key_info.second;
-      }
+      issuance_blinding_keys[index] = key_info.second;
     }
   }
 

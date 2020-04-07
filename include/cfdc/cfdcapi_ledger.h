@@ -59,6 +59,25 @@ CFDC_API int CfdFinalizeTxSerializeForLedger(
     char** serialize_hex);
 
 /**
+ * @brief output transaction serialize for ledger.
+ * @param[in] handle            cfd handle.
+ * @param[in] serialize_handle  serialize handle.
+ * @param[in] net_type          network type.
+ * @param[in] tx_hex_string     tx hex.
+ * @param[in] skip_witness      skip witness output.
+ * @param[in] is_authorization  authorization flag.
+ * @param[in] is_sha256         sha256 hashed flag.
+ * @param[out] serialize_hex    serialized tx hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFinalizeTxSerializeHashForLedger(
+    void* handle, void* serialize_handle, int net_type,
+    const char* tx_hex_string, bool skip_witness, bool is_authorization,
+    bool is_sha256, char** serialize_hex);
+
+/**
  * @brief free serialize handle.
  * @param[in] handle            handle pointer.
  * @param[in] serialize_handle  serialize handle.

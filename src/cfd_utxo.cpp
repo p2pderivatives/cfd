@@ -364,10 +364,10 @@ std::vector<Utxo> CoinSelection::SelectCoins(
                                   &tx_fee_out, &work_selected_values,
                                   &work_utxo_fee, &work_searched_bnb](
                                      const Amount& target_value,
-                                     const std::vector<Utxo*> utxos,
+                                     const std::vector<Utxo*>& utxos,
                                      const Amount& tx_fee,
-                                     const std::string asset_id,
-                                     const bool consider_fee) {
+                                     const std::string& asset_id,
+                                     bool consider_fee) {
     Amount select_value_out = Amount();
     Amount utxo_fee_out = Amount();
     bool use_bnb_out = false;

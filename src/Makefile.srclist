@@ -20,6 +20,7 @@ CFD_SOURCES = \
   cfdapi_hdwallet.cpp \
   cfdapi_coin.cpp \
   cfdapi_key.cpp \
+  cfdapi_ledger.cpp \
   ${CFD_ELEMENTS_SOURCES}
 
 CFD_CAPI_SOURCES = \

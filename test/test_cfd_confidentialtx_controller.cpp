@@ -41,46 +41,48 @@ using cfd::ConfidentialTransactionController;
 
 TEST(ConfidentialTransactionController, CalculateSimpleFeeTest)
 {
-    ConfidentialTransactionController tx(
-        "02000000000109c4149d4e59119f2b11b3e160b02694bc4ecbf56f6de4ab587128f86bf4e7d30000000000ffffffff0201f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000005ee3fe00374eb131b54a7b528e5449b3827bcaa5069c259346810f20cf9079bd17b32fe481976a914d753351535a2a55f33ab39bbd6c70a55d46904e788ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000");
-    Amount amt;
-    EXPECT_NO_THROW((amt = tx.CalculateSimpleFee()));
-    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
+  ConfidentialTransactionController tx(
+      "02000000000109c4149d4e59119f2b11b3e160b02694bc4ecbf56f6de4ab587128f86bf4e7d30000000000ffffffff0201f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000005ee3fe00374eb131b54a7b528e5449b3827bcaa5069c259346810f20cf9079bd17b32fe481976a914d753351535a2a55f33ab39bbd6c70a55d46904e788ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000");
+  Amount amt;
+  EXPECT_NO_THROW((amt = tx.CalculateSimpleFee()));
+  EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
 
-    EXPECT_NO_THROW((amt = tx.CalculateSimpleFee(false)));
-    EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
+  EXPECT_NO_THROW((amt = tx.CalculateSimpleFee(false)));
+  EXPECT_EQ(amt.GetSatoshiValue(), static_cast<int64_t>(1000));
 }
 
 TEST(ConfidentialTransactionController, SetAssetIssuanceTest1)
 {
-    ConfidentialTransactionController tx_base(
-        "0200000001017f3da365db9401a4d3facf68d2ccb6372bb714491987e5d035d2b474721078c601000000171600149a417c11cb67e1dc522997f07e1ff89e960d5ff1fdffffff020135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c84010000000002f9c1ec0017a914c9cbab5b0f3430e824b1961bf8e876be43d3fee0870135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000000e07400000000000000000247304402207ab059e55e3e4337e88e1a6db00b7549110065eb5770880b1081dcdcdcf1c9a402207a3a0bc7d0d40661f54eff63c67838260a489984138d24eeee04b689f393bf2e012103753cff6c6123d25d99a3d02dc050a2c6b3ea40bcc04029c4330a4d30cb5390770000000000");
-    ConfidentialTransactionController expect_tx(
-        "0200000001017f3da365db9401a4d3facf68d2ccb6372bb714491987e5d035d2b474721078c601000080171600149a417c11cb67e1dc522997f07e1ff89e960d5ff1fdffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000002540be40001000000003b9aca00040135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c84010000000002f9c1ec0017a914c9cbab5b0f3430e824b1961bf8e876be43d3fee0870135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000000e07400000107ec1ec7027d89071814d5ccd1f5ea4cee45e598287fc8f59acbb1d9129081dc0100000002540be400001976a914144f003aa8dd6408ba0e8ee91757cf1f1976315c88ac01aaf1579c847497d406605b4ef875a2b37164f4c5b9e5d2a23b2b2a16e132ec0501000000003b9aca00001976a914ae8cab151547d6f6e25b62b41200368dfdabe62b88ac0000000000000247304402207ab059e55e3e4337e88e1a6db00b7549110065eb5770880b1081dcdcdcf1c9a402207a3a0bc7d0d40661f54eff63c67838260a489984138d24eeee04b689f393bf2e012103753cff6c6123d25d99a3d02dc050a2c6b3ea40bcc04029c4330a4d30cb539077000000000000000000");
+  ConfidentialTransactionController tx_base(
+      "0200000001017f3da365db9401a4d3facf68d2ccb6372bb714491987e5d035d2b474721078c601000000171600149a417c11cb67e1dc522997f07e1ff89e960d5ff1fdffffff020135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c84010000000002f9c1ec0017a914c9cbab5b0f3430e824b1961bf8e876be43d3fee0870135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000000e07400000000000000000247304402207ab059e55e3e4337e88e1a6db00b7549110065eb5770880b1081dcdcdcf1c9a402207a3a0bc7d0d40661f54eff63c67838260a489984138d24eeee04b689f393bf2e012103753cff6c6123d25d99a3d02dc050a2c6b3ea40bcc04029c4330a4d30cb5390770000000000");
+  ConfidentialTransactionController expect_tx(
+      "0200000001017f3da365db9401a4d3facf68d2ccb6372bb714491987e5d035d2b474721078c601000080171600149a417c11cb67e1dc522997f07e1ff89e960d5ff1fdffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000002540be40001000000003b9aca00040135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c84010000000002f9c1ec0017a914c9cbab5b0f3430e824b1961bf8e876be43d3fee0870135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000000e07400000107ec1ec7027d89071814d5ccd1f5ea4cee45e598287fc8f59acbb1d9129081dc0100000002540be400001976a914144f003aa8dd6408ba0e8ee91757cf1f1976315c88ac01aaf1579c847497d406605b4ef875a2b37164f4c5b9e5d2a23b2b2a16e132ec0501000000003b9aca00001976a914ae8cab151547d6f6e25b62b41200368dfdabe62b88ac0000000000000247304402207ab059e55e3e4337e88e1a6db00b7549110065eb5770880b1081dcdcdcf1c9a402207a3a0bc7d0d40661f54eff63c67838260a489984138d24eeee04b689f393bf2e012103753cff6c6123d25d99a3d02dc050a2c6b3ea40bcc04029c4330a4d30cb539077000000000000000000");
 
-    // not blind
-    ConfidentialTransactionController tx(tx_base);
-    Txid txid("c678107274b4d235d0e587194914b72b37b6ccd268cffad3a40194db65a33d7f");
-    Amount asset_amount = Amount::CreateByCoinAmount(100.0);
-    Amount token_amount = Amount::CreateByCoinAmount(10.0);
-    Address asset_address("2dbH8YS7rqRDM1F7EXrGBXvZywXxuEQtZ2z", cfd::core::GetElementsAddressFormatList());
-    Address token_address("2dqLgUheB1R4gw7G2DKuxBeMr1jdgxECAoG", cfd::core::GetElementsAddressFormatList());
-    ByteData256 contract_hash;
-    bool is_blind = false;
-    IssuanceParameter param;
-    EXPECT_NO_THROW(
-        (param = tx.SetAssetIssuance(txid, 1, asset_amount,
-                                     asset_address.GetLockingScript(),
-                                     ByteData(), token_amount,
-                                     token_address.GetLockingScript(),
-                                     ByteData(), is_blind,
-                                     contract_hash, false)));
-    EXPECT_STREQ(tx.GetHex().c_str(), expect_tx.GetHex().c_str());
-    EXPECT_STREQ(
-        param.entropy.GetHex().c_str(),
-        "0a002ed099bd2d52f4bb04d36ebc159c838f0557461d462127845b996e61cb70");
+  // not blind
+  ConfidentialTransactionController tx(tx_base);
+  Txid txid("c678107274b4d235d0e587194914b72b37b6ccd268cffad3a40194db65a33d7f");
+  Amount asset_amount = Amount::CreateByCoinAmount(100.0);
+  Amount token_amount = Amount::CreateByCoinAmount(10.0);
+  Address asset_address("2dbH8YS7rqRDM1F7EXrGBXvZywXxuEQtZ2z", cfd::core::GetElementsAddressFormatList());
+  Address token_address("2dqLgUheB1R4gw7G2DKuxBeMr1jdgxECAoG", cfd::core::GetElementsAddressFormatList());
+  ByteData256 contract_hash;
+  bool is_blind = false;
+  IssuanceParameter param;
+  EXPECT_NO_THROW(
+      (param = tx.SetAssetIssuance(txid, 1, asset_amount,
+                                   asset_address.GetLockingScript(),
+                                   ByteData(), token_amount,
+                                   token_address.GetLockingScript(),
+                                   ByteData(), is_blind,
+                                   contract_hash, false)));
+  EXPECT_STREQ(tx.GetHex().c_str(), expect_tx.GetHex().c_str());
+  EXPECT_STREQ(
+      param.entropy.GetHex().c_str(),
+      "0a002ed099bd2d52f4bb04d36ebc159c838f0557461d462127845b996e61cb70");
 
-    // txout randomize
+  // txout randomize
+  uint32_t retry_count = 0;
+  do {
     tx = tx_base;
     EXPECT_NO_THROW(
         (tx.SetAssetIssuance(txid, 1, asset_amount,
@@ -89,17 +91,9 @@ TEST(ConfidentialTransactionController, SetAssetIssuanceTest1)
                              token_address.GetLockingScript(),
                              ByteData(), is_blind,
                              contract_hash, true)));
-    if (tx.GetHex() == expect_tx.GetHex()) {
-      tx = tx_base;
-      EXPECT_NO_THROW(
-          (tx.SetAssetIssuance(txid, 1, asset_amount,
-                               asset_address.GetLockingScript(),
-                               ByteData(), token_amount,
-                               token_address.GetLockingScript(),
-                               ByteData(), is_blind,
-                               contract_hash, true)));
-    }
-    EXPECT_STRNE(tx.GetHex().c_str(), expect_tx.GetHex().c_str());
+    ++retry_count;
+  } while ((tx.GetHex() == expect_tx.GetHex()) && (retry_count < 10));
+  EXPECT_STRNE(tx.GetHex().c_str(), expect_tx.GetHex().c_str());
 }
 
 TEST(ConfidentialTransactionController, GetVsizeIgnoreTxIn) {

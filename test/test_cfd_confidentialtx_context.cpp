@@ -30,6 +30,7 @@ using cfd::core::ConfidentialAssetId;
 using cfd::core::ConfidentialTransaction;
 using cfd::core::ConfidentialTxOutReference;
 using cfd::core::ConfidentialValue;
+using cfd::core::CryptoUtil;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::IssuanceBlindingKeyPair;
 using cfd::core::IssuanceParameter;
@@ -93,6 +94,9 @@ TEST(ConfidentialTransactionContext, AddTxInOut)
 
   EXPECT_STREQ(txc.GetHex().c_str(), "020000000002a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0200000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000001c8400000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000befe33cc397c03f234757d0e00e6a7a7a3b4b2b31fb0328d7b9f755cd1093d9f61892fef3116871976a91435ef6d4b59f26089dfe2abca21408e15fee42a3388ac00000000");
   EXPECT_STREQ(addr.GetAddress().c_str(), "2deLw2MsbXTr44ZXKBS91midF2WzJPfQ8cz");
+
+  Address out1_addr = txc.GetTxOutAddress(1, NetType::kElementsRegtest);
+  EXPECT_STREQ(out1_addr.GetAddress().c_str(), "2deLw2MsbXTr44ZXKBS91midF2WzJPfQ8cz");
 
   uint32_t index = 0;
   EXPECT_TRUE(txc.IsFindTxIn(outpoint, &index));
@@ -494,7 +498,7 @@ TEST(ConfidentialTransactionContext, BlindTransaction)
   // confidential_key_list.push_back(token_address);
   EXPECT_NO_THROW(tx.BlindTransaction(
       utxo_info_map, issuance_key_map, confidential_key_list));
-  EXPECT_EQ(tx.GetHex().size(), 31188);
+  EXPECT_EQ(tx.GetHex().size(), 43998);
   std::vector<ConfidentialTxOutReference> txouts = tx.GetTxOutList();
   EXPECT_EQ(txouts.size(), 4);
   if (txouts.size() == 4) {
@@ -720,8 +724,10 @@ TEST(ConfidentialTransactionContext, SequenceApiTestWithKey)
           "cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP", NetType::kTestnet)));
   EXPECT_NO_THROW(txc.Verify(OutPoint(utxo2.txid, utxo2.vout)));
   EXPECT_NO_THROW(tx = txc.Finalize());
-  EXPECT_EQ(tx.GetDataSize(), 6624);
-  // EXPECT_STREQ(tx.GetHex().c_str(), "");
+
+  if ((tx.GetDataSize() != 9185) && (tx.GetDataSize() != 9186) && (tx.GetDataSize() != 9187)) {
+    EXPECT_EQ(0, tx.GetDataSize());
+  }
 }
 
 TEST(ConfidentialTransactionContext, SequenceApiTestWithScript)
@@ -835,6 +841,19 @@ TEST(ConfidentialTransactionContext, SequenceApiTestWithScript)
 
   EXPECT_NO_THROW(tx = txc.Finalize());
   EXPECT_STREQ(tx.GetHex().c_str(), "020000000103a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b69291553101000000232200204c74fe8b7289c82e22bea07e45a4d8c911e770905176c2ed8d1fe005c8b49b2bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b6929155310200000000ffffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000989680001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac0135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000002bf20001976a914144f003aa8dd6408ba0e8ee91757cf1f1976315c88ac0125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000002710000000000000000000000000040047304402207c0af1ed61b4d0f1969207c508587bdbbdc9132a7d9c9ca594f191a50ab9c70102201d1906422cdf8862eb8ff0c1952c151c27d53f090e5248245e7f3a3e77c27ac90147304402207aeb8b43254a3b95bdb82911d8d598896ef3926411ea4bd28a3a15f29a0bb789022073c62e7c336a2fabd80bdc896a9ecd5e139f5a13b71f7f4a58f8822741b5621b016952210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2721020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f22812103ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae53ae0000000000000000000000");
+}
+
+TEST(ConfidentialTransactionContext, ConvertSignatureFromDer)
+{
+  SigHashType sighashtype;
+  // 4f3ac1717f035b791005b12e41fba708d7d38cadfc4fd6ad1d53de2b4be5d41645f743f06ff21fded63a2c7088cfe435e561dbc1c28283f0b4b152808914affd
+  ByteData sig1 = CryptoUtil::ConvertSignatureFromDer(
+      ByteData("304402204f3ac1717f035b791005b12e41fba708d7d38cadfc4fd6ad1d53de2b4be5d416022045f743f06ff21fded63a2c7088cfe435e561dbc1c28283f0b4b152808914affd01"), &sighashtype);
+  // 20ea09b0108c4a4a5b2769c41dea7bd546d5fe32dcdcd4bcecc6645281fd684c00105dddaff39cb0a18c0f5f04c8275801cc18e9fc5931fb2d8c0226d2c1fc55
+  ByteData sigm = CryptoUtil::ConvertSignatureFromDer(
+      ByteData("3043022020ea09b0108c4a4a5b2769c41dea7bd546d5fe32dcdcd4bcecc6645281fd684c021f105dddaff39cb0a18c0f5f04c8275801cc18e9fc5931fb2d8c0226d2c1fc5501"), &sighashtype);
+  EXPECT_EQ(64, sig1.GetDataSize());
+  EXPECT_EQ(64, sigm.GetDataSize());
 }
 
 /*

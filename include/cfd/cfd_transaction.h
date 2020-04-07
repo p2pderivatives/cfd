@@ -132,6 +132,14 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @retval false 未存在
    */
   bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
+  /**
+   * @brief Get txout address by index.
+   * @param[in] index     txout index.
+   * @param[in] net_type  network type.
+   * @return address
+   */
+  Address GetTxOutAddress(
+      uint32_t index, NetType net_type = NetType::kMainnet) const;
 
   /**
    * @brief Transaction's AddTxIn.
