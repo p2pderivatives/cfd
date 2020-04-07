@@ -126,6 +126,26 @@ NetType ConvertNetType(int network_type, bool* is_bitcoin) {
   return net_type;
 }
 
+bool IsElementsNetType(int network_type) {
+  bool is_elements = false;
+#ifndef CFD_DISABLE_ELEMENTS
+  if (network_type == kCfdNetworkLiquidv1) {
+    is_elements = true;
+  } else if (network_type == kCfdNetworkElementsRegtest) {
+    is_elements = true;
+  } else if (network_type == kCfdNetworkCustomChain) {
+    is_elements = true;
+  } else {
+    // do nothing
+  }
+#else
+  warn(CFD_LOG_SOURCE, "Illegal network type.({})", network_type);
+  throw CfdException(
+      CfdError::kCfdIllegalArgumentError, "Illegal network type.");
+#endif  // CFD_DISABLE_ELEMENTS
+  return is_elements;
+}
+
 cfd::core::AddressType ConvertHashToAddressType(int hash_type) {
   AddressType addr_type;
   switch (hash_type) {

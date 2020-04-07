@@ -17,12 +17,23 @@
 #include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_bytedata.h"
+#include "cfdcore/cfdcore_coin.h"
+#include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 
+using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::NetType;
+using cfd::core::Txid;
+
+#ifndef CFD_DISABLE_ELEMENTS
+using cfd::core::ConfidentialAssetId;
+using cfd::core::ConfidentialNonce;
+using cfd::core::ConfidentialValue;
+#endif  // CFD_DISABLE_ELEMENTS
 
 /**
  * @brief cfd名前空間
@@ -71,6 +82,42 @@ struct CfdCapiMultisigSignData {
   uint32_t current_index;  //!< current index
 };
 
+//! prefix: CreateTx
+constexpr const char* const kPrefixCreateTxData = "CreateTx";
+
+/**
+ * @brief cfd-capi transaction input data
+ */
+struct CfdCapiTxInputData {
+  Txid txid;          //!< txid
+  uint32_t vout;      //!< vout
+  uint32_t sequence;  //!< sequence
+};
+
+/**
+ * @brief cfd-capi transaction output data
+ */
+struct CfdCapiTxOutputData {
+  int64_t amount;           //!< amount
+  ByteData locking_script;  //!< locking script (under 520)
+#ifndef CFD_DISABLE_ELEMENTS
+  ConfidentialValue value;    //!< value
+  ConfidentialAssetId asset;  //!< asset
+  ConfidentialNonce nonce;    //!< nonce
+#endif                        // CFD_DISABLE_ELEMENTS
+};
+
+/**
+ * @brief cfd-capi CreateTransaction構造体.
+ */
+struct CfdCapiCreateTransactionData {
+  char prefix[kPrefixLength];                    //!< buffer prefix
+  int net_type;                                  //!< network type
+  std::string base_tx_hex;                       //!< base tx hex
+  std::vector<CfdCapiTxInputData>* txin_list;    //!< txin list
+  std::vector<CfdCapiTxOutputData>* txout_list;  //!< txout list
+};
+
 /**
  * @brief allocate buffer.
  * @param[in] prefix  prefix string (max: 15 char)
@@ -102,6 +149,14 @@ CFDC_API void CheckBuffer(void* address, const std::string& prefix);
  * @return NetType
  */
 CFDC_API cfd::core::NetType ConvertNetType(int network_type, bool* is_bitcoin);
+
+/**
+ * @brief check elements net type.
+ * @param[in] network_type  network type.
+ * @retval true   elements NetType
+ * @retval false  other NetType
+ */
+CFDC_API bool IsElementsNetType(int network_type);
 
 /**
  * @brief convert to address type.

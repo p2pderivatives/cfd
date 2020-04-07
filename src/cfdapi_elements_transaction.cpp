@@ -338,7 +338,11 @@ ConfidentialTransactionController ElementsTransactionApi::BlindTransaction(
   // TxOutのBlind情報設定
   for (TxOutBlindKeys txout_key : txout_blind_keys) {
     if (txout_key.index < txout_count) {
-      txout_confidential_keys[txout_key.index] = txout_key.blinding_key;
+      if (txout_key.confidential_key.IsValid()) {
+        txout_confidential_keys[txout_key.index] = txout_key.confidential_key;
+      } else if (txout_key.blinding_key.IsValid()) {
+        txout_confidential_keys[txout_key.index] = txout_key.blinding_key;
+      }
     } else {
       warn(
           CFD_LOG_SOURCE,

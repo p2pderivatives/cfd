@@ -39,7 +39,7 @@ using cfd::core::ScriptUtil;
 using cfd::core::WitnessVersion;
 
 ElementsAddressFactory::ElementsAddressFactory()
-    : AddressFactory(NetType::kMainnet, GetElementsAddressFormatList()) {
+    : AddressFactory(NetType::kLiquidV1, GetElementsAddressFormatList()) {
   // do nothing
 }
 

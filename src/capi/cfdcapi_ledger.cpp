@@ -11,6 +11,7 @@
 #include "capi/cfdc_internal.h"
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_elements_transaction.h"
+#include "cfd/cfdapi_ledger.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_ledger.h"
 #include "cfdcore/cfdcore_common.h"
@@ -19,9 +20,13 @@
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 
+using cfd::api::LedgerApi;
+using cfd::api::LedgerMetaDataStackItem;
 using cfd::core::ByteData;
+using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::HashUtil;
 using cfd::core::NetType;
 using cfd::core::StringUtil;
 
@@ -45,130 +50,14 @@ namespace capi {
 constexpr const char* const kPrefixLedgerMetaData = "LedgerMetaData";
 
 /**
- * @brief cfd-capi Ledger MetaData Stack情報構造体.
- */
-struct CfdCapiLedgerMetaDataStackItem {
-  std::string metadata1;  //!< metadata
-  std::string metadata2;  //!< metadata
-  std::string metadata3;  //!< metadata
-};
-
-/**
  * @brief cfd-capi Ledger MetaDataハンドル情報構造体.
  * @details stack dataは数や内容が可変のため、配列にはしない
  */
 struct CfdCapiLedgerMetaData {
   char prefix[kPrefixLength];  //!< buffer prefix
   //! MetaData list
-  std::vector<CfdCapiLedgerMetaDataStackItem>* metadata_stack;
+  std::vector<LedgerMetaDataStackItem>* metadata_stack;
 };
-
-#ifndef CFD_DISABLE_ELEMENTS
-/**
- * @brief serialize ledger format (confidential transaction).
- * @param[in] tx                confidential transaction.
- * @param[in] metadata_stack    metadata stack.
- * @param[in] skip_witness      skip output witness area.
- * @param[in] is_authorization  authorization mode.
- * @return serialize data.
- */
-ByteData SerializeLedgerFormat(
-    const ConfidentialTransactionContext& tx,
-    const std::vector<CfdCapiLedgerMetaDataStackItem>& metadata_stack,
-    bool skip_witness, bool is_authorization) {
-  static auto serialize_input_function =
-      [](const ConfidentialTxInReference& txin,
-         bool is_authorization) -> ByteData {
-    ByteData txin_bytes;
-    uint32_t vout = txin.GetVout();
-    std::vector<uint8_t> byte_data(sizeof(vout));
-    memcpy(byte_data.data(), &vout, byte_data.size());
-    txin_bytes = txin.GetTxid().GetData();
-    txin_bytes.Push(ByteData(byte_data));
-    if (!is_authorization) {
-      txin_bytes.Push(txin.GetUnlockingScript().GetData().Serialize());
-    }
-    uint32_t sequence = txin.GetSequence();
-    memcpy(byte_data.data(), &sequence, byte_data.size());
-    txin_bytes.Push(ByteData(byte_data));
-    return txin_bytes;
-  };
-
-  static auto serialize_output_function =
-      [](const ConfidentialTxOutReference& txout, bool is_authorization,
-         const CfdCapiLedgerMetaDataStackItem& metadata) -> ByteData {
-    ByteData txout_bytes;
-    if (!is_authorization) {
-      txout_bytes = txout_bytes.Concat(
-          txout.GetAsset().GetData(), txout.GetConfidentialValue().GetData(),
-          txout.GetNonce().GetData(),
-          txout.GetLockingScript().GetData().Serialize());
-    } else {
-      txout_bytes = txout_bytes.Concat(
-          ByteData(metadata.metadata1), ByteData(metadata.metadata2),
-          txout.GetLockingScript().GetData().Serialize());
-    }
-    return txout_bytes;
-  };
-
-  bool has_witness = (tx.HasWitness() && !skip_witness && !is_authorization);
-  ByteData data;
-  ByteData temp_data;
-
-  // version
-  int32_t version = tx.GetVersion();
-  std::vector<uint8_t> byte_data(sizeof(version));
-  memcpy(byte_data.data(), &version, byte_data.size());
-  data.Push(ByteData(byte_data));
-
-  // marker & flag (equivalent to bitcoin format)
-  if (has_witness) {
-    data.Push(ByteData("0001"));
-  }
-
-  uint32_t txin_count = tx.GetTxInCount();
-  data.Push(ByteData::GetVariableInt(txin_count));
-  for (uint32_t index = 0; index < txin_count; ++index) {
-    temp_data = serialize_input_function(tx.GetTxIn(index), is_authorization);
-    data.Push(temp_data);
-  }
-
-  CfdCapiLedgerMetaDataStackItem empty_item;
-  uint32_t txout_count = tx.GetTxOutCount();
-  data.Push(ByteData::GetVariableInt(txout_count));
-  for (uint32_t index = 0; index < txout_count; ++index) {
-    if (metadata_stack.size() > index) {
-      temp_data = serialize_output_function(
-          tx.GetTxOut(index), is_authorization, metadata_stack.at(index));
-    } else if (is_authorization) {
-      warn(CFD_LOG_SOURCE, "metadata empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to metadata. not set metadata with authrization.");
-    } else {
-      temp_data = serialize_output_function(
-          tx.GetTxOut(index), is_authorization, empty_item);
-    }
-    data.Push(temp_data);
-  }
-
-  if (has_witness) {
-    // locktime
-    uint32_t locktime = tx.GetLockTime();
-    memcpy(byte_data.data(), &locktime, byte_data.size());
-    data.Push(ByteData(byte_data));
-
-    // issue rangeproof, token rangeproof, witness, pegin witness
-    // surjectionproof, rangeproof
-    // FIXME(k-matsuzawa): not implement
-    throw CfdException(
-        CfdError::kCfdIllegalStateError,
-        "Witness serialization is not implemented.");
-  }
-
-  return data;
-}
-#endif  // CFD_DISABLE_ELEMENTS
 
 }  // namespace capi
 }  // namespace cfd
@@ -179,7 +68,6 @@ ByteData SerializeLedgerFormat(
 // API
 using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiLedgerMetaData;
-using cfd::capi::CfdCapiLedgerMetaDataStackItem;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
@@ -189,10 +77,6 @@ using cfd::capi::IsEmptyString;
 using cfd::capi::kPrefixLedgerMetaData;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
-
-#ifndef CFD_DISABLE_ELEMENTS
-using cfd::capi::SerializeLedgerFormat;
-#endif  // CFD_DISABLE_ELEMENTS
 
 extern "C" {
 
@@ -210,7 +94,7 @@ int CfdInitializeTxSerializeForLedger(void* handle, void** serialize_handle) {
 
     buffer = static_cast<CfdCapiLedgerMetaData*>(
         AllocBuffer(kPrefixLedgerMetaData, sizeof(CfdCapiLedgerMetaData)));
-    buffer->metadata_stack = new std::vector<CfdCapiLedgerMetaDataStackItem>();
+    buffer->metadata_stack = new std::vector<LedgerMetaDataStackItem>();
 
     *serialize_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
@@ -230,8 +114,8 @@ int CfdInitializeTxSerializeForLedger(void* handle, void** serialize_handle) {
 int CfdAddTxOutMetaDataForLedger(
     void* handle, void* serialize_handle, uint32_t index,
     const char* metadata1, const char* metadata2, const char* metadata3) {
-  static constexpr uint32_t kAssetHexSize = 32 * 2;
-  static constexpr uint32_t kUnblindValueHexSize = 8 * 2;
+  static constexpr uint32_t kAssetHexSize = 33 * 2;
+  static constexpr uint32_t kValueHexSize = 33 * 2;
   int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
@@ -246,7 +130,7 @@ int CfdAddTxOutMetaDataForLedger(
           "Failed to parameter. buffer state is illegal.");
     }
 
-    CfdCapiLedgerMetaDataStackItem item;
+    LedgerMetaDataStackItem item;
 
     static auto check_metadata_function =
         [](const char* metadata, uint32_t max_length,
@@ -271,8 +155,8 @@ int CfdAddTxOutMetaDataForLedger(
 
     item.metadata1 =
         check_metadata_function(metadata1, kAssetHexSize, "asset metadata");
-    item.metadata2 = check_metadata_function(
-        metadata2, kUnblindValueHexSize, "value metadata");
+    item.metadata2 =
+        check_metadata_function(metadata2, kValueHexSize, "value metadata");
     if (!IsEmptyString(metadata3)) {
       // unused value
       // item.metadata3 = check_metadata_function(metadata3, 0);
@@ -282,10 +166,9 @@ int CfdAddTxOutMetaDataForLedger(
       buffer->metadata_stack->push_back(item);
     } else {
       if (index >= buffer->metadata_stack->size()) {
-        buffer->metadata_stack->resize(index);
+        buffer->metadata_stack->resize(index + 1);
       }
-      CfdCapiLedgerMetaDataStackItem& buf_item =
-          buffer->metadata_stack->at(index);
+      LedgerMetaDataStackItem& buf_item = buffer->metadata_stack->at(index);
       buf_item = item;
     }
     return CfdErrorCode::kCfdSuccess;
@@ -303,6 +186,15 @@ int CfdFinalizeTxSerializeForLedger(
     void* handle, void* serialize_handle, int net_type,
     const char* tx_hex_string, bool skip_witness, bool is_authorization,
     char** serialize_hex) {
+  return CfdFinalizeTxSerializeHashForLedger(
+      handle, serialize_handle, net_type, tx_hex_string, skip_witness,
+      is_authorization, true, serialize_hex);
+}
+
+int CfdFinalizeTxSerializeHashForLedger(
+    void* handle, void* serialize_handle, int net_type,
+    const char* tx_hex_string, bool skip_witness, bool is_authorization,
+    bool is_sha256, char** serialize_hex) {
   int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
@@ -340,12 +232,17 @@ int CfdFinalizeTxSerializeForLedger(
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
       ConfidentialTransactionContext tx(tx_hex_string);
-      serialize_data = SerializeLedgerFormat(
+      LedgerApi api;
+      serialize_data = api.Serialize(
           tx, *(buffer->metadata_stack), skip_witness, is_authorization);
 #else
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
 #endif  // CFD_DISABLE_ELEMENTS
+    }
+    if (is_sha256) {
+      ByteData256 hashed_data = HashUtil::Sha256(serialize_data);
+      serialize_data = hashed_data.GetData();
     }
     *serialize_hex = CreateString(serialize_data.GetHex());
 

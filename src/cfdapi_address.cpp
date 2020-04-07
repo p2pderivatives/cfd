@@ -79,36 +79,21 @@ Address AddressApi::CreateAddress(
   switch (address_type) {
     case AddressType::kP2pkhAddress:
       addr = Address(net_type, *pubkey, addr_prefixes);
-      if (locking_script != nullptr) {
-        *locking_script = ScriptUtil::CreateP2pkhLockingScript(*pubkey);
-      }
       break;
     case AddressType::kP2shAddress:
       addr = Address(net_type, *script, addr_prefixes);
-      if (locking_script != nullptr) {
-        *locking_script = ScriptUtil::CreateP2shLockingScript(*script);
-      }
       break;
     case AddressType::kP2wpkhAddress:
       addr =
           Address(net_type, WitnessVersion::kVersion0, *pubkey, addr_prefixes);
-      if (locking_script != nullptr) {
-        *locking_script = ScriptUtil::CreateP2wpkhLockingScript(*pubkey);
-      }
       break;
     case AddressType::kP2wshAddress:
       addr =
           Address(net_type, WitnessVersion::kVersion0, *script, addr_prefixes);
-      if (locking_script != nullptr) {
-        *locking_script = ScriptUtil::CreateP2wshLockingScript(*script);
-      }
       break;
     case AddressType::kP2shP2wpkhAddress:
       temp_script = ScriptUtil::CreateP2wpkhLockingScript(*pubkey);
       addr = Address(net_type, temp_script, addr_prefixes);
-      if (locking_script != nullptr) {
-        *locking_script = ScriptUtil::CreateP2shLockingScript(temp_script);
-      }
       if (redeem_script != nullptr) {
         *redeem_script = temp_script;
       }
@@ -116,9 +101,6 @@ Address AddressApi::CreateAddress(
     case AddressType::kP2shP2wshAddress:
       temp_script = ScriptUtil::CreateP2wshLockingScript(*script);
       addr = Address(net_type, temp_script, addr_prefixes);
-      if (locking_script != nullptr) {
-        *locking_script = ScriptUtil::CreateP2shLockingScript(temp_script);
-      }
       if (redeem_script != nullptr) {
         *redeem_script = temp_script;
       }
@@ -134,6 +116,9 @@ Address AddressApi::CreateAddress(
           "\"p2sh\" or \"p2wpkh\" or \"p2wsh\" or \"p2sh-p2wpkh\" or "
           "\"p2sh-p2wsh\".");  // NOLINT
       break;
+  }
+  if (locking_script != nullptr) {
+    *locking_script = addr.GetLockingScript();
   }
 
   return addr;

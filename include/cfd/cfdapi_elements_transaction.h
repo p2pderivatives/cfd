@@ -70,8 +70,14 @@ struct TxInBlindParameters {
  * @brief TxOut Blinding keys
  */
 struct TxOutBlindKeys {
-  uint32_t index = 0;   //!< txout index
-  Pubkey blinding_key;  //!< blinding key
+  uint32_t index = 0;       //!< txout index
+  Pubkey confidential_key;  //!< confidential key.
+  /**
+   * @brief confidential key.
+   * @deprecated
+   */
+  Pubkey blinding_key;
+  std::string confidential_address;  //!< confidential address
 };
 
 /**

@@ -138,14 +138,6 @@ static void ValidateAddMultisigSign(  // linefeed
       break;
     }
     case AddressType::kP2shP2wshAddress: {
-      if (redeem_script.IsEmpty()) {
-        warn(
-            CFD_LOG_SOURCE,
-            "Failed to AddSegwitMultisigSign. redeem script empty.");
-        throw CfdException(
-            CfdError::kCfdIllegalArgumentError,
-            "Invalid hex string. empty redeemScript.");
-      }
       if (witness_script.IsEmpty()) {
         warn(
             CFD_LOG_SOURCE,
@@ -319,7 +311,7 @@ std::string TransactionApiBase::AddMultisigSign(
     if (address_type == AddressType::kP2shP2wshAddress) {
       // set p2sh redeem script to unlockking script
       ScriptBuilder sb;
-      sb.AppendData(redeem_script);
+      sb.AppendData(ScriptUtil::CreateP2wshLockingScript(script));
       txc.SetUnlockingScript(txid, vout, sb.Build());
     }
   }

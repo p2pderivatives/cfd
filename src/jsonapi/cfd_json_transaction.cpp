@@ -135,10 +135,8 @@ void TransactionJsonApi::DecodeRawTransaction(
     DecodeLockingScript script_pub_key_res;
     std::vector<std::string> addresses;
     Script locking_script = txout_ref.GetLockingScript();
-    std::vector<ScriptElement> script_element =
-        locking_script.GetElementList();
-    res_txout.GetScriptPubKey().SetHex(locking_script.GetHex());
-    res_txout.GetScriptPubKey().SetAsm(locking_script.ToString());
+    script_pub_key_res.SetHex(locking_script.GetHex());
+    script_pub_key_res.SetAsm(locking_script.ToString());
 
     ExtractScriptData extract_data =
         TransactionJsonApi::ExtractLockingScript(locking_script);

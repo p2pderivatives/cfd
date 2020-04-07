@@ -22,6 +22,15 @@ extern "C" {
 #include "cfdc/cfdcapi_transaction.h"
 
 /**
+ * @brief binding option.
+ */
+enum CfdBlindOption {
+  kCfdBlindOptionMinimumRangeValue = 1,  //!< blind option: minRangeValue
+  kCfdBlindOptionExponent = 2,           //!< blind option: exponent
+  kCfdBlindOptionMinimumBits = 3,        //!< blind option: minBits
+};
+
+/**
  * @brief create initialized elements transaction.
  * @param[in] handle        cfd handle.
  * @param[in] version       transaction version.
@@ -292,7 +301,7 @@ CFDC_API int CfdGetConfidentialTxInIndex(
     uint32_t* index);
 
 /**
- * @brief get tx-input index.
+ * @brief get tx-output index.
  * @param[in] handle                 cfd handle.
  * @param[in] tx_hex_string          tx hex.
  * @param[in] address                txout address.
@@ -356,6 +365,17 @@ CFDC_API int CfdGetIssuanceBlindingKey(
 CFDC_API int CfdInitializeBlindTx(void* handle, void** blind_handle);
 
 /**
+ * @brief set blinding option parameter.
+ * @param[in] handle        cfd handle.
+ * @param[in] blind_handle  blinding handle.
+ * @param[in] key           option key. (see: CfdBlindOption)
+ * @param[in] value         option value.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdSetBlindTxOption(
+    void* handle, void* blind_handle, int key, int64_t value);
+
+/**
  * @brief add blinding data of txin.
  * @param[in] handle              cfd handle.
  * @param[in] blind_handle        blinding handle.
@@ -388,6 +408,16 @@ CFDC_API int CfdAddBlindTxInData(
 CFDC_API int CfdAddBlindTxOutData(
     void* handle, void* blind_handle, uint32_t index,
     const char* confidential_key);
+
+/**
+ * @brief add blinding data of txout.
+ * @param[in] handle                cfd handle.
+ * @param[in] blind_handle          blinding handle.
+ * @param[in] confidential_address  confidential address.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddBlindTxOutByAddress(
+    void* handle, void* blind_handle, const char* confidential_address);
 
 /**
  * @brief blinding transaction.
@@ -635,27 +665,23 @@ CFDC_API int CfdGetConfidentialValueHex(
     char** value_hex);
 
 /* 後回し
-CFDC_API int CfdAddElementsWitnessStack(
-    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    const char* hex_data, char** tx_string);
-CFDC_API int CfdUpdateConfidentialTxIn(
-    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    const char* script_sig, uint32_t sequence, char** tx_string);
+CFDC_API int CfdAddConfidentialTxPeginInput(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    uint32_t sequence);
+CFDC_API int CfdAddConfidentialTxPegoutOutput(
+    void* handle, void* create_handle, const char* asset_string,
+    int64_t value_satoshi, const char* value_commitment, const char* address,
+    const char* direct_locking_script);
+
 CFDC_API int CfdAddPeginWitnessStack(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     const char* hex_data, char** tx_string);
 
+  * SetRawIssueAsset
+    - SetIssueAsset
+      - Asset, Token, EntropyをOUTで。
+      - TxOutIndexも。
 */
-
-#if 0
-/*
-        * SetRawIssueAsset
-          - SetIssueAsset
-            - Asset, Token, EntropyをOUTで。
-            - TxOutIndexも。
-        * get系
-*/
-#endif
 
 #ifdef __cplusplus
 #if 0

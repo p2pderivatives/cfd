@@ -7,6 +7,7 @@
 #ifndef CFD_DISABLE_CAPI
 #ifndef CFD_DISABLE_ELEMENTS
 #include <exception>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,7 @@ using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::BlindFactor;
+using cfd::core::BlindParameter;
 using cfd::core::BlockHash;
 using cfd::core::ByteData;
 using cfd::core::ByteData256;
@@ -63,6 +65,7 @@ using cfd::core::ConfidentialTxOutReference;
 using cfd::core::ConfidentialValue;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::HashType;
+using cfd::core::IssuanceBlindingKeyPair;
 using cfd::core::NetType;
 using cfd::core::OutPoint;
 using cfd::core::Privkey;
@@ -97,6 +100,9 @@ struct CfdCapiBlindTxData {
   std::vector<TxInBlindParameters>* txin_blind_keys;
   //! txout list
   std::vector<TxOutBlindKeys>* txout_blind_keys;
+  int64_t minimum_range_value;  //!< min range value. (default:1)
+  int exponent;                 //!< exponent. (default:0)
+  int minimum_bits;             //!< min bits. (default:36(old),52(new))
 };
 
 }  // namespace capi
@@ -114,6 +120,7 @@ using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
+using cfd::capi::IsElementsNetType;
 using cfd::capi::IsEmptyString;
 using cfd::capi::kEmpty32Bytes;
 using cfd::capi::kMultisigMaxKeyNum;
@@ -1052,6 +1059,9 @@ int CfdInitializeBlindTx(void* handle, void** blind_handle) {
         AllocBuffer(kPrefixBlindTxData, sizeof(CfdCapiBlindTxData)));
     buffer->txin_blind_keys = new std::vector<TxInBlindParameters>();
     buffer->txout_blind_keys = new std::vector<TxOutBlindKeys>();
+    buffer->minimum_range_value = 1;  // = 1,
+    buffer->exponent = 0;             // = 0
+    buffer->minimum_bits = 36;        // = 36(old)
 
     *blind_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
@@ -1116,6 +1126,7 @@ int CfdAddBlindTxInData(
       params.blind_param.vbf = BlindFactor(value_blind_vactor);
     }
 
+    params.is_issuance = false;
     if (!IsEmptyString(asset_key)) {
       params.is_issuance = true;
       params.issuance_key.asset_key = Privkey(asset_key);
@@ -1162,9 +1173,81 @@ int CfdAddBlindTxOutData(
 
     TxOutBlindKeys params;
     params.index = index;
-    params.blinding_key = Pubkey(confidential_key);
+    params.confidential_key = Pubkey(confidential_key);
 
     buffer->txout_blind_keys->push_back(params);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddBlindTxOutByAddress(
+    void* handle, void* blind_handle, const char* confidential_address) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(blind_handle, kPrefixBlindTxData);
+
+    CfdCapiBlindTxData* buffer =
+        static_cast<CfdCapiBlindTxData*>(blind_handle);
+    if (buffer->txout_blind_keys == nullptr) {
+      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. buffer state is illegal.");
+    }
+    if (confidential_address == nullptr) {
+      warn(CFD_LOG_SOURCE, "confidential address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. confidential address is null.");
+    }
+
+    TxOutBlindKeys params;
+    params.confidential_address = std::string(confidential_address);
+    buffer->txout_blind_keys->push_back(params);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdSetBlindTxOption(
+    void* handle, void* blind_handle, int key, int64_t value) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(blind_handle, kPrefixBlindTxData);
+
+    CfdCapiBlindTxData* buffer =
+        static_cast<CfdCapiBlindTxData*>(blind_handle);
+    switch (key) {
+      case CfdBlindOption::kCfdBlindOptionMinimumRangeValue:
+        buffer->minimum_range_value = value;
+        break;
+      case CfdBlindOption::kCfdBlindOptionExponent:
+        buffer->exponent = static_cast<int>(value);
+        break;
+      case CfdBlindOption::kCfdBlindOptionMinimumBits:
+        buffer->minimum_bits = static_cast<int>(value);
+        break;
+      default:
+        warn(CFD_LOG_SOURCE, "illegal option key. [{}]", key);
+        throw CfdException(
+            CfdError::kCfdOutOfRangeError, "Failed to blind option key.");
+    }
+
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
@@ -1218,18 +1301,34 @@ int CfdFinalizeBlindTx(
           "Failed to parameter. txout blind data is empty.");
     }
 
-    bool is_issuance_blinding = false;
-    for (const auto& txin_blind_data : *buffer->txin_blind_keys) {
-      if (txin_blind_data.is_issuance) {
-        is_issuance_blinding = true;
-        break;
+    std::map<OutPoint, BlindParameter> utxo_info_map;
+    std::map<OutPoint, IssuanceBlindingKeyPair> issuance_key_map;
+    std::vector<ElementsConfidentialAddress> confidential_key_list;
+
+    ConfidentialTransactionContext ctxc(tx_hex_string);
+
+    for (const auto& txin_data : *buffer->txin_blind_keys) {
+      OutPoint outpoint(txin_data.txid, txin_data.vout);
+      utxo_info_map.emplace(outpoint, txin_data.blind_param);
+      if (txin_data.is_issuance) {
+        issuance_key_map.emplace(outpoint, txin_data.issuance_key);
       }
     }
 
-    ElementsTransactionApi api;
-    ConfidentialTransactionController ctxc = api.BlindTransaction(
-        tx_hex_string, *buffer->txin_blind_keys, *buffer->txout_blind_keys,
-        is_issuance_blinding);
+    ElementsAddressFactory address_factory;
+    for (const auto& data : *buffer->txout_blind_keys) {
+      if (data.confidential_key.IsValid()) {
+        Address addr = ctxc.GetTxOutAddress(data.index);
+        confidential_key_list.emplace_back(addr, data.confidential_key);
+      } else if (!data.confidential_address.empty()) {
+        confidential_key_list.push_back(
+            address_factory.GetConfidentialAddress(data.confidential_address));
+      }
+    }
+
+    ctxc.BlindTransaction(
+        utxo_info_map, issuance_key_map, confidential_key_list,
+        buffer->minimum_range_value, buffer->exponent, buffer->minimum_bits);
     *tx_string = CreateString(ctxc.GetHex());
 
     return CfdErrorCode::kCfdSuccess;

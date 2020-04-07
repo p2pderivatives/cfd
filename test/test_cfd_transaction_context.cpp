@@ -81,6 +81,9 @@ TEST(TransactionContext, AddTxInOut)
   EXPECT_STREQ(txc.GetHex().c_str(), "0200000002a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0200000000ffffffff0200407a10f35a000017a91419970f64fb36fe3b7b21eca335ff70dde51eb8c8877cf951230b6400001976a914925d4028880bd0c9d68fbc7fc7dfee976698629c88ac00000000");
   EXPECT_STREQ(addr.GetAddress().c_str(), "1ELuNB5fLNUcrLzb93oJDPmjxjnsVwhNHn");
 
+  Address out1_addr = txc.GetTxOutAddress(1, NetType::kMainnet);
+  EXPECT_STREQ(out1_addr.GetAddress().c_str(), "1ELuNB5fLNUcrLzb93oJDPmjxjnsVwhNHn");
+
   uint32_t index = 0;
   EXPECT_TRUE(txc.IsFindTxIn(outpoint, &index));
   EXPECT_EQ(index, 1);
