@@ -2087,6 +2087,49 @@ class ElementsDecodeRawTransactionRequest
   }
 
   /**
+   * @brief Get of fullDump
+   * @return fullDump
+   */
+  bool GetFullDump() const {
+    return full_dump_;
+  }
+  /**
+   * @brief Set to fullDump
+   * @param[in] full_dump    setting value.
+   */
+  void SetFullDump(  // line separate
+    const bool& full_dump) {  // NOLINT
+    this->full_dump_ = full_dump;
+  }
+  /**
+   * @brief Get data type of fullDump
+   * @return Data type of fullDump
+   */
+  static std::string GetFullDumpFieldType() {
+    return "bool";
+  }
+  /**
+   * @brief Get json string of fullDump field.
+   * @param[in,out] obj     class object.
+   * @return JSON string
+   */
+  static std::string GetFullDumpString(  // line separate
+      const ElementsDecodeRawTransactionRequest& obj) {  // NOLINT
+    return cfd::core::ConvertToString(obj.full_dump_);
+  }
+  /**
+   * @brief Set json object to fullDump field.
+   * @param[in,out] obj     class object.
+   * @param[in] json_value  JSON object.
+   */
+  static void SetFullDumpString(  // line separate
+      ElementsDecodeRawTransactionRequest& obj,  // NOLINT
+      const UniValue& json_value) {
+    cfd::core::ConvertFromUniValue(  // line separate
+      obj.full_dump_, json_value);
+  }
+
+  /**
    * @brief Set ignore item.
    * @param[in] key   ignore target key name.
    */
@@ -2171,6 +2214,10 @@ class ElementsDecodeRawTransactionRequest
    * @brief JsonAPI(iswitness) value
    */
   bool iswitness_ = true;
+  /**
+   * @brief JsonAPI(fullDump) value
+   */
+  bool full_dump_ = false;
 };
 
 // ------------------------------------------------------------------------
@@ -2465,6 +2512,49 @@ class ElementsDecodeIssuance
   }
 
   /**
+   * @brief Get of contractHash
+   * @return contractHash
+   */
+  std::string GetContractHash() const {
+    return contract_hash_;
+  }
+  /**
+   * @brief Set to contractHash
+   * @param[in] contract_hash    setting value.
+   */
+  void SetContractHash(  // line separate
+    const std::string& contract_hash) {  // NOLINT
+    this->contract_hash_ = contract_hash;
+  }
+  /**
+   * @brief Get data type of contractHash
+   * @return Data type of contractHash
+   */
+  static std::string GetContractHashFieldType() {
+    return "std::string";
+  }
+  /**
+   * @brief Get json string of contractHash field.
+   * @param[in,out] obj     class object.
+   * @return JSON string
+   */
+  static std::string GetContractHashString(  // line separate
+      const ElementsDecodeIssuance& obj) {  // NOLINT
+    return cfd::core::ConvertToString(obj.contract_hash_);
+  }
+  /**
+   * @brief Set json object to contractHash field.
+   * @param[in,out] obj     class object.
+   * @param[in] json_value  JSON object.
+   */
+  static void SetContractHashString(  // line separate
+      ElementsDecodeIssuance& obj,  // NOLINT
+      const UniValue& json_value) {
+    cfd::core::ConvertFromUniValue(  // line separate
+      obj.contract_hash_, json_value);
+  }
+
+  /**
    * @brief Get of isreissuance
    * @return isreissuance
    */
@@ -2597,7 +2687,7 @@ class ElementsDecodeIssuance
    * @brief Get of assetamount
    * @return assetamount
    */
-  double GetAssetamount() const {
+  int64_t GetAssetamount() const {
     return assetamount_;
   }
   /**
@@ -2605,7 +2695,7 @@ class ElementsDecodeIssuance
    * @param[in] assetamount    setting value.
    */
   void SetAssetamount(  // line separate
-    const double& assetamount) {  // NOLINT
+    const int64_t& assetamount) {  // NOLINT
     this->assetamount_ = assetamount;
   }
   /**
@@ -2613,7 +2703,7 @@ class ElementsDecodeIssuance
    * @return Data type of assetamount
    */
   static std::string GetAssetamountFieldType() {
-    return "double";
+    return "int64_t";
   }
   /**
    * @brief Get json string of assetamount field.
@@ -2683,7 +2773,7 @@ class ElementsDecodeIssuance
    * @brief Get of tokenamount
    * @return tokenamount
    */
-  double GetTokenamount() const {
+  int64_t GetTokenamount() const {
     return tokenamount_;
   }
   /**
@@ -2691,7 +2781,7 @@ class ElementsDecodeIssuance
    * @param[in] tokenamount    setting value.
    */
   void SetTokenamount(  // line separate
-    const double& tokenamount) {  // NOLINT
+    const int64_t& tokenamount) {  // NOLINT
     this->tokenamount_ = tokenamount;
   }
   /**
@@ -2699,7 +2789,7 @@ class ElementsDecodeIssuance
    * @return Data type of tokenamount
    */
   static std::string GetTokenamountFieldType() {
-    return "double";
+    return "int64_t";
   }
   /**
    * @brief Get json string of tokenamount field.
@@ -2763,6 +2853,92 @@ class ElementsDecodeIssuance
       const UniValue& json_value) {
     cfd::core::ConvertFromUniValue(  // line separate
       obj.tokenamountcommitment_, json_value);
+  }
+
+  /**
+   * @brief Get of assetRangeproof
+   * @return assetRangeproof
+   */
+  std::string GetAssetRangeproof() const {
+    return asset_rangeproof_;
+  }
+  /**
+   * @brief Set to assetRangeproof
+   * @param[in] asset_rangeproof    setting value.
+   */
+  void SetAssetRangeproof(  // line separate
+    const std::string& asset_rangeproof) {  // NOLINT
+    this->asset_rangeproof_ = asset_rangeproof;
+  }
+  /**
+   * @brief Get data type of assetRangeproof
+   * @return Data type of assetRangeproof
+   */
+  static std::string GetAssetRangeproofFieldType() {
+    return "std::string";
+  }
+  /**
+   * @brief Get json string of assetRangeproof field.
+   * @param[in,out] obj     class object.
+   * @return JSON string
+   */
+  static std::string GetAssetRangeproofString(  // line separate
+      const ElementsDecodeIssuance& obj) {  // NOLINT
+    return cfd::core::ConvertToString(obj.asset_rangeproof_);
+  }
+  /**
+   * @brief Set json object to assetRangeproof field.
+   * @param[in,out] obj     class object.
+   * @param[in] json_value  JSON object.
+   */
+  static void SetAssetRangeproofString(  // line separate
+      ElementsDecodeIssuance& obj,  // NOLINT
+      const UniValue& json_value) {
+    cfd::core::ConvertFromUniValue(  // line separate
+      obj.asset_rangeproof_, json_value);
+  }
+
+  /**
+   * @brief Get of tokenRangeproof
+   * @return tokenRangeproof
+   */
+  std::string GetTokenRangeproof() const {
+    return token_rangeproof_;
+  }
+  /**
+   * @brief Set to tokenRangeproof
+   * @param[in] token_rangeproof    setting value.
+   */
+  void SetTokenRangeproof(  // line separate
+    const std::string& token_rangeproof) {  // NOLINT
+    this->token_rangeproof_ = token_rangeproof;
+  }
+  /**
+   * @brief Get data type of tokenRangeproof
+   * @return Data type of tokenRangeproof
+   */
+  static std::string GetTokenRangeproofFieldType() {
+    return "std::string";
+  }
+  /**
+   * @brief Get json string of tokenRangeproof field.
+   * @param[in,out] obj     class object.
+   * @return JSON string
+   */
+  static std::string GetTokenRangeproofString(  // line separate
+      const ElementsDecodeIssuance& obj) {  // NOLINT
+    return cfd::core::ConvertToString(obj.token_rangeproof_);
+  }
+  /**
+   * @brief Set json object to tokenRangeproof field.
+   * @param[in,out] obj     class object.
+   * @param[in] json_value  JSON object.
+   */
+  static void SetTokenRangeproofString(  // line separate
+      ElementsDecodeIssuance& obj,  // NOLINT
+      const UniValue& json_value) {
+    cfd::core::ConvertFromUniValue(  // line separate
+      obj.token_rangeproof_, json_value);
   }
 
   /**
@@ -2843,6 +3019,10 @@ class ElementsDecodeIssuance
    */
   std::string asset_entropy_ = "";
   /**
+   * @brief JsonAPI(contractHash) value
+   */
+  std::string contract_hash_ = "";
+  /**
    * @brief JsonAPI(isreissuance) value
    */
   bool isreissuance_ = false;
@@ -2857,7 +3037,7 @@ class ElementsDecodeIssuance
   /**
    * @brief JsonAPI(assetamount) value
    */
-  double assetamount_ = 0;
+  int64_t assetamount_ = 0;
   /**
    * @brief JsonAPI(assetamountcommitment) value
    */
@@ -2865,11 +3045,19 @@ class ElementsDecodeIssuance
   /**
    * @brief JsonAPI(tokenamount) value
    */
-  double tokenamount_ = 0;
+  int64_t tokenamount_ = 0;
   /**
    * @brief JsonAPI(tokenamountcommitment) value
    */
   std::string tokenamountcommitment_ = "";
+  /**
+   * @brief JsonAPI(assetRangeproof) value
+   */
+  std::string asset_rangeproof_ = "";
+  /**
+   * @brief JsonAPI(tokenRangeproof) value
+   */
+  std::string token_rangeproof_ = "";
 };
 
 // ------------------------------------------------------------------------
@@ -4024,7 +4212,7 @@ class ElementsDecodeRawTransactionTxOut
    * @brief Get of value
    * @return value
    */
-  double GetValue() const {
+  int64_t GetValue() const {
     return value_;
   }
   /**
@@ -4032,7 +4220,7 @@ class ElementsDecodeRawTransactionTxOut
    * @param[in] value    setting value.
    */
   void SetValue(  // line separate
-    const double& value) {  // NOLINT
+    const int64_t& value) {  // NOLINT
     this->value_ = value;
   }
   /**
@@ -4040,7 +4228,7 @@ class ElementsDecodeRawTransactionTxOut
    * @return Data type of value
    */
   static std::string GetValueFieldType() {
-    return "double";
+    return "int64_t";
   }
   /**
    * @brief Get json string of value field.
@@ -4067,7 +4255,7 @@ class ElementsDecodeRawTransactionTxOut
    * @brief Get of value-minimum
    * @return value-minimum
    */
-  double GetValue_minimum() const {
+  int64_t GetValue_minimum() const {
     return value_minimum_;
   }
   /**
@@ -4075,7 +4263,7 @@ class ElementsDecodeRawTransactionTxOut
    * @param[in] value_minimum    setting value.
    */
   void SetValue_minimum(  // line separate
-    const double& value_minimum) {  // NOLINT
+    const int64_t& value_minimum) {  // NOLINT
     this->value_minimum_ = value_minimum;
   }
   /**
@@ -4083,7 +4271,7 @@ class ElementsDecodeRawTransactionTxOut
    * @return Data type of value-minimum
    */
   static std::string GetValue_minimumFieldType() {
-    return "double";
+    return "int64_t";
   }
   /**
    * @brief Get json string of value-minimum field.
@@ -4110,7 +4298,7 @@ class ElementsDecodeRawTransactionTxOut
    * @brief Get of value-maximum
    * @return value-maximum
    */
-  double GetValue_maximum() const {
+  int64_t GetValue_maximum() const {
     return value_maximum_;
   }
   /**
@@ -4118,7 +4306,7 @@ class ElementsDecodeRawTransactionTxOut
    * @param[in] value_maximum    setting value.
    */
   void SetValue_maximum(  // line separate
-    const double& value_maximum) {  // NOLINT
+    const int64_t& value_maximum) {  // NOLINT
     this->value_maximum_ = value_maximum;
   }
   /**
@@ -4126,7 +4314,7 @@ class ElementsDecodeRawTransactionTxOut
    * @return Data type of value-maximum
    */
   static std::string GetValue_maximumFieldType() {
-    return "double";
+    return "int64_t";
   }
   /**
    * @brief Get json string of value-maximum field.
@@ -4581,6 +4769,49 @@ class ElementsDecodeRawTransactionTxOut
   }
 
   /**
+   * @brief Get of rangeproof
+   * @return rangeproof
+   */
+  std::string GetRangeproof() const {
+    return rangeproof_;
+  }
+  /**
+   * @brief Set to rangeproof
+   * @param[in] rangeproof    setting value.
+   */
+  void SetRangeproof(  // line separate
+    const std::string& rangeproof) {  // NOLINT
+    this->rangeproof_ = rangeproof;
+  }
+  /**
+   * @brief Get data type of rangeproof
+   * @return Data type of rangeproof
+   */
+  static std::string GetRangeproofFieldType() {
+    return "std::string";
+  }
+  /**
+   * @brief Get json string of rangeproof field.
+   * @param[in,out] obj     class object.
+   * @return JSON string
+   */
+  static std::string GetRangeproofString(  // line separate
+      const ElementsDecodeRawTransactionTxOut& obj) {  // NOLINT
+    return cfd::core::ConvertToString(obj.rangeproof_);
+  }
+  /**
+   * @brief Set json object to rangeproof field.
+   * @param[in,out] obj     class object.
+   * @param[in] json_value  JSON object.
+   */
+  static void SetRangeproofString(  // line separate
+      ElementsDecodeRawTransactionTxOut& obj,  // NOLINT
+      const UniValue& json_value) {
+    cfd::core::ConvertFromUniValue(  // line separate
+      obj.rangeproof_, json_value);
+  }
+
+  /**
    * @brief Set ignore item.
    * @param[in] key   ignore target key name.
    */
@@ -4652,15 +4883,15 @@ class ElementsDecodeRawTransactionTxOut
   /**
    * @brief JsonAPI(value) value
    */
-  double value_ = 0;
+  int64_t value_ = 0;
   /**
    * @brief JsonAPI(value-minimum) value
    */
-  double value_minimum_ = 0;
+  int64_t value_minimum_ = 0;
   /**
    * @brief JsonAPI(value-maximum) value
    */
-  double value_maximum_ = 0;
+  int64_t value_maximum_ = 0;
   /**
    * @brief JsonAPI(ct-exponent) value
    */
@@ -4701,6 +4932,10 @@ class ElementsDecodeRawTransactionTxOut
    * @brief JsonAPI(scriptPubKey) value
    */
   ElementsDecodeLockingScript script_pub_key_;  // NOLINT
+  /**
+   * @brief JsonAPI(rangeproof) value
+   */
+  std::string rangeproof_ = "";
 };
 
 // ------------------------------------------------------------------------

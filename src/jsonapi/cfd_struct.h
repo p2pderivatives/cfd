@@ -116,6 +116,7 @@ struct ElementsDecodeRawTransactionRequestStruct {
   std::string network = "liquidv1";    //!< network  // NOLINT
   std::string mainchain_network = "";  //!< mainchain_network  // NOLINT
   bool iswitness = true;               //!< iswitness  // NOLINT
+  bool full_dump = false;              //!< full_dump  // NOLINT
   std::set<std::string> ignore_items;   //!< using on JSON mapping convert.
 };
 
@@ -140,13 +141,16 @@ struct ElementsDecodeUnlockingScriptStruct {
 struct ElementsDecodeIssuanceStruct {
   std::string asset_blinding_nonce = "";   //!< asset_blinding_nonce  // NOLINT
   std::string asset_entropy = "";          //!< asset_entropy  // NOLINT
+  std::string contract_hash = "";          //!< contract_hash  // NOLINT
   bool isreissuance = false;               //!< isreissuance  // NOLINT
   std::string token = "";                  //!< token  // NOLINT
   std::string asset = "";                  //!< asset  // NOLINT
-  double assetamount = 0;                  //!< assetamount  // NOLINT
+  int64_t assetamount = 0;                 //!< assetamount  // NOLINT
   std::string assetamountcommitment = "";  //!< assetamountcommitment  // NOLINT
-  double tokenamount = 0;                  //!< tokenamount  // NOLINT
+  int64_t tokenamount = 0;                 //!< tokenamount  // NOLINT
   std::string tokenamountcommitment = "";  //!< tokenamountcommitment  // NOLINT
+  std::string asset_rangeproof = "";       //!< asset_rangeproof  // NOLINT
+  std::string token_rangeproof = "";       //!< token_rangeproof  // NOLINT
   std::set<std::string> ignore_items;   //!< using on JSON mapping convert.
 };
 
@@ -197,9 +201,9 @@ struct ElementsDecodeLockingScriptStruct {
  * @brief ElementsDecodeRawTransactionTxOutStruct struct
  */
 struct ElementsDecodeRawTransactionTxOutStruct {
-  double value = 0;                                  //!< value  // NOLINT
-  double value_minimum = 0;                          //!< value_minimum  // NOLINT
-  double value_maximum = 0;                          //!< value_maximum  // NOLINT
+  int64_t value = 0;                                 //!< value  // NOLINT
+  int64_t value_minimum = 0;                         //!< value_minimum  // NOLINT
+  int64_t value_maximum = 0;                         //!< value_maximum  // NOLINT
   int ct_exponent = 0;                               //!< ct_exponent  // NOLINT
   int ct_bits = 0;                                   //!< ct_bits  // NOLINT
   std::string surjectionproof = "";                  //!< surjectionproof  // NOLINT
@@ -210,6 +214,7 @@ struct ElementsDecodeRawTransactionTxOutStruct {
   bool commitmentnonce_fully_valid = false;          //!< commitmentnonce_fully_valid  // NOLINT
   uint32_t n = 0;                                    //!< n  // NOLINT
   ElementsDecodeLockingScriptStruct script_pub_key;  //!< script_pub_key  // NOLINT
+  std::string rangeproof = "";                       //!< rangeproof  // NOLINT
   std::set<std::string> ignore_items;   //!< using on JSON mapping convert.
 };
 

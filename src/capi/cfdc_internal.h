@@ -62,6 +62,9 @@ struct CfdCapiPrefixTemplate {
   char prefix[kPrefixLength];  //!< buffer prefix
 };
 
+//! asset max size
+constexpr uint32_t kAssetSize = 33;
+
 //! prefix: MultisigSign
 constexpr const char* const kPrefixMultisigSignData = "MultisigSign";
 //! multisig max key num
@@ -164,6 +167,20 @@ CFDC_API bool IsElementsNetType(int network_type);
  * @return AddressType
  */
 CFDC_API cfd::core::AddressType ConvertHashToAddressType(int hash_type);
+
+/**
+ * @brief convert to address type.
+ * @param[in] address_type  address type.
+ * @return AddressType
+ */
+CFDC_API cfd::core::AddressType ConvertAddressType(int address_type);
+
+/**
+ * @brief get witness version.
+ * @param[in] hash_type  hash type.
+ * @return WitnessVersion
+ */
+CFDC_API cfd::core::WitnessVersion GetWitnessVersion(int hash_type);
 
 /**
  * @brief is empty string.

@@ -7,7 +7,12 @@
     "network:hint": "liquidv1, regtest",
     "mainchainNetwork": "",
     "mainchainNetwork:hint": "mainnet, testnet, regtest or blank. Must be set for pegout transactions.",
-    "iswitness": true
+    "mainchainNetwork:require": "optional",
+    "iswitness": true,
+    "iswitness:require": "optional",
+    "fullDump": false,
+    "fullDump:require": "optional",
+    "fullDump:comment": "tx data all dump option."
   },
   "response": {
     ":class": "ElementsDecodeRawTransactionResponse",
@@ -47,15 +52,21 @@
           ":class": "ElementsDecodeIssuance",
           "assetBlindingNonce": "",
           "assetEntropy": "",
+          "contractHash": "",
+          "contractHash:comment": "issue original entropy data.",
           "isreissuance": false,
           "token": "",
           "asset": "",
           "assetamount": 0,
-          "assetamount:type": "double",
+          "assetamount:type": "int64_t",
           "assetamountcommitment": "",
           "tokenamount": 0,
-          "tokenamount:type": "double",
-          "tokenamountcommitment": ""
+          "tokenamount:type": "int64_t",
+          "tokenamountcommitment": "",
+          "assetRangeproof": "",
+          "assetRangeproof:hint": "Displayed only when the full dump option is used.",
+          "tokenRangeproof": "",
+          "tokenRangeproof:hint": "Displayed only when the full dump option is used."
         }
       }
     ],
@@ -63,11 +74,11 @@
       {
         ":class": "ElementsDecodeRawTransactionTxOut",
         "value": 0,
-        "value:type": "double",
+        "value:type": "int64_t",
         "value-minimum": 0,
-        "value-minimum:type": "double",
+        "value-minimum:type": "int64_t",
         "value-maximum": 0,
-        "value-maximum:type": "double",
+        "value-maximum:type": "int64_t",
         "ct-exponent": 0,
         "ct-exponent:type": "int",
         "ct-bits": 0,
@@ -99,7 +110,9 @@
           "pegout_addresses": [
             ""
           ]
-        }
+        },
+        "rangeproof": "",
+        "rangeproof:hint": "Displayed only when the full dump option is used."
       }
     ]
   }

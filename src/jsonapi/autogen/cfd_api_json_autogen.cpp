@@ -470,6 +470,13 @@ void ElementsDecodeRawTransactionRequest::CollectFieldName() {
   };
   json_mapper.emplace("iswitness", func_table);
   item_list.push_back("iswitness");
+  func_table = {
+    ElementsDecodeRawTransactionRequest::GetFullDumpString,
+    ElementsDecodeRawTransactionRequest::SetFullDumpString,
+    ElementsDecodeRawTransactionRequest::GetFullDumpFieldType,
+  };
+  json_mapper.emplace("fullDump", func_table);
+  item_list.push_back("fullDump");
 }
 
 void ElementsDecodeRawTransactionRequest::ConvertFromStruct(
@@ -478,6 +485,7 @@ void ElementsDecodeRawTransactionRequest::ConvertFromStruct(
   network_ = data.network;
   mainchain_network_ = data.mainchain_network;
   iswitness_ = data.iswitness;
+  full_dump_ = data.full_dump;
   ignore_items = data.ignore_items;
 }
 
@@ -487,6 +495,7 @@ ElementsDecodeRawTransactionRequestStruct ElementsDecodeRawTransactionRequest::C
   result.network = network_;
   result.mainchain_network = mainchain_network_;
   result.iswitness = iswitness_;
+  result.full_dump = full_dump_;
   result.ignore_items = ignore_items;
   return result;
 }
@@ -563,6 +572,13 @@ void ElementsDecodeIssuance::CollectFieldName() {
   json_mapper.emplace("assetEntropy", func_table);
   item_list.push_back("assetEntropy");
   func_table = {
+    ElementsDecodeIssuance::GetContractHashString,
+    ElementsDecodeIssuance::SetContractHashString,
+    ElementsDecodeIssuance::GetContractHashFieldType,
+  };
+  json_mapper.emplace("contractHash", func_table);
+  item_list.push_back("contractHash");
+  func_table = {
     ElementsDecodeIssuance::GetIsreissuanceString,
     ElementsDecodeIssuance::SetIsreissuanceString,
     ElementsDecodeIssuance::GetIsreissuanceFieldType,
@@ -611,12 +627,27 @@ void ElementsDecodeIssuance::CollectFieldName() {
   };
   json_mapper.emplace("tokenamountcommitment", func_table);
   item_list.push_back("tokenamountcommitment");
+  func_table = {
+    ElementsDecodeIssuance::GetAssetRangeproofString,
+    ElementsDecodeIssuance::SetAssetRangeproofString,
+    ElementsDecodeIssuance::GetAssetRangeproofFieldType,
+  };
+  json_mapper.emplace("assetRangeproof", func_table);
+  item_list.push_back("assetRangeproof");
+  func_table = {
+    ElementsDecodeIssuance::GetTokenRangeproofString,
+    ElementsDecodeIssuance::SetTokenRangeproofString,
+    ElementsDecodeIssuance::GetTokenRangeproofFieldType,
+  };
+  json_mapper.emplace("tokenRangeproof", func_table);
+  item_list.push_back("tokenRangeproof");
 }
 
 void ElementsDecodeIssuance::ConvertFromStruct(
     const ElementsDecodeIssuanceStruct& data) {
   asset_blinding_nonce_ = data.asset_blinding_nonce;
   asset_entropy_ = data.asset_entropy;
+  contract_hash_ = data.contract_hash;
   isreissuance_ = data.isreissuance;
   token_ = data.token;
   asset_ = data.asset;
@@ -624,6 +655,8 @@ void ElementsDecodeIssuance::ConvertFromStruct(
   assetamountcommitment_ = data.assetamountcommitment;
   tokenamount_ = data.tokenamount;
   tokenamountcommitment_ = data.tokenamountcommitment;
+  asset_rangeproof_ = data.asset_rangeproof;
+  token_rangeproof_ = data.token_rangeproof;
   ignore_items = data.ignore_items;
 }
 
@@ -631,6 +664,7 @@ ElementsDecodeIssuanceStruct ElementsDecodeIssuance::ConvertToStruct() const {  
   ElementsDecodeIssuanceStruct result;
   result.asset_blinding_nonce = asset_blinding_nonce_;
   result.asset_entropy = asset_entropy_;
+  result.contract_hash = contract_hash_;
   result.isreissuance = isreissuance_;
   result.token = token_;
   result.asset = asset_;
@@ -638,6 +672,8 @@ ElementsDecodeIssuanceStruct ElementsDecodeIssuance::ConvertToStruct() const {  
   result.assetamountcommitment = assetamountcommitment_;
   result.tokenamount = tokenamount_;
   result.tokenamountcommitment = tokenamountcommitment_;
+  result.asset_rangeproof = asset_rangeproof_;
+  result.token_rangeproof = token_rangeproof_;
   result.ignore_items = ignore_items;
   return result;
 }
@@ -978,6 +1014,13 @@ void ElementsDecodeRawTransactionTxOut::CollectFieldName() {
   };
   json_mapper.emplace("scriptPubKey", func_table);
   item_list.push_back("scriptPubKey");
+  func_table = {
+    ElementsDecodeRawTransactionTxOut::GetRangeproofString,
+    ElementsDecodeRawTransactionTxOut::SetRangeproofString,
+    ElementsDecodeRawTransactionTxOut::GetRangeproofFieldType,
+  };
+  json_mapper.emplace("rangeproof", func_table);
+  item_list.push_back("rangeproof");
 }
 
 void ElementsDecodeRawTransactionTxOut::ConvertFromStruct(
@@ -995,6 +1038,7 @@ void ElementsDecodeRawTransactionTxOut::ConvertFromStruct(
   commitmentnonce_fully_valid_ = data.commitmentnonce_fully_valid;
   n_ = data.n;
   script_pub_key_.ConvertFromStruct(data.script_pub_key);
+  rangeproof_ = data.rangeproof;
   ignore_items = data.ignore_items;
 }
 
@@ -1013,6 +1057,7 @@ ElementsDecodeRawTransactionTxOutStruct ElementsDecodeRawTransactionTxOut::Conve
   result.commitmentnonce_fully_valid = commitmentnonce_fully_valid_;
   result.n = n_;
   result.script_pub_key = script_pub_key_.ConvertToStruct();
+  result.rangeproof = rangeproof_;
   result.ignore_items = ignore_items;
   return result;
 }

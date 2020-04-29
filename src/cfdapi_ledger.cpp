@@ -19,6 +19,7 @@
 using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::HashUtil;
 
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
@@ -43,10 +44,13 @@ ByteData LedgerApi::Serialize(
     const std::vector<LedgerMetaDataStackItem>& metadata_stack,
     bool skip_witness, bool is_authorization) const {
   static auto serialize_input_function =
-      [](const ConfidentialTxInReference& txin,
-         bool is_authorization) -> ByteData {
+      [](const ConfidentialTxInReference& txin, bool is_authorization,
+         ByteData* issuance) -> ByteData {
     ByteData txin_bytes;
     uint32_t vout = txin.GetVout();
+    if (is_authorization) {
+      vout &= 0x3fffffff;  // ignore flag
+    }
     std::vector<uint8_t> byte_data(sizeof(vout));
     memcpy(byte_data.data(), &vout, byte_data.size());
     txin_bytes = txin.GetTxid().GetData();
@@ -57,6 +61,23 @@ ByteData LedgerApi::Serialize(
     uint32_t sequence = txin.GetSequence();
     memcpy(byte_data.data(), &sequence, byte_data.size());
     txin_bytes.Push(ByteData(byte_data));
+
+    if (!issuance || !is_authorization) {
+      // do nothing
+    } else if (
+        txin.GetIssuanceAmount().IsEmpty() &&
+        txin.GetInflationKeys().IsEmpty()) {
+      issuance->Push(ByteData("00"));
+    } else {
+      ByteData asset = txin.GetIssuanceAmount().GetData();
+      if (asset.IsEmpty()) asset = ByteData("00");
+      ByteData token = txin.GetInflationKeys().GetData();
+      if (token.IsEmpty()) token = ByteData("00");
+      ByteData issuance_bytes;
+      issuance_bytes = issuance_bytes.Concat(
+          txin.GetBlindingNonce(), txin.GetAssetEntropy(), asset, token);
+      issuance->Push(issuance_bytes);
+    }
     return txin_bytes;
   };
 
@@ -90,6 +111,7 @@ ByteData LedgerApi::Serialize(
   bool has_witness = (tx.HasWitness() && !skip_witness && !is_authorization);
   ByteData data;
   ByteData temp_data;
+  ByteData issuance;
 
   // version
   int32_t version = tx.GetVersion();
@@ -105,7 +127,8 @@ ByteData LedgerApi::Serialize(
   uint32_t txin_count = tx.GetTxInCount();
   data.Push(ByteData::GetVariableInt(txin_count));
   for (uint32_t index = 0; index < txin_count; ++index) {
-    temp_data = serialize_input_function(tx.GetTxIn(index), is_authorization);
+    temp_data = serialize_input_function(
+        tx.GetTxIn(index), is_authorization, &issuance);
     data.Push(temp_data);
   }
 
@@ -133,6 +156,12 @@ ByteData LedgerApi::Serialize(
     throw CfdException(
         CfdError::kCfdIllegalStateError,
         "Witness serialization is not implemented.");
+  }
+
+  if (is_authorization) {
+    ByteData256 tx_hash = HashUtil::Sha256(data);
+    ByteData256 issuance_hash = HashUtil::Sha256(issuance);
+    data = tx_hash.Concat(issuance_hash);
   }
 
   return data;

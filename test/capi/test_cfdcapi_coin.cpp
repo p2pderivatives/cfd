@@ -153,14 +153,13 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
-// SelectCoins(Single Asset) =====================================================
-
 #ifndef CFD_DISABLE_ELEMENTS
 static ConfidentialAssetId exp_dummy_asset_ca("aa00000000000000000000000000000000000000000000000000000000000000");
 static ConfidentialAssetId exp_dummy_asset_cb("bb00000000000000000000000000000000000000000000000000000000000000");
 static ConfidentialAssetId exp_dummy_asset_cc("cc00000000000000000000000000000000000000000000000000000000000000");
+#endif  // CFD_DISABLE_ELEMENTS
 
-static std::vector<Utxo> GetElementsUtxoListByC() {
+std::vector<Utxo> CfdGetElementsUtxoListByC(bool use_asset) {
   std::vector<Utxo> utxos;
   {
     Txid txid("7ca81dd22c934747f4f5ab7844178445fe931fb248e0704c062b8f4fbd3d500a");
@@ -169,7 +168,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 312500000;
-    memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -179,7 +181,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 78125000;
-    memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -189,7 +194,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 1250000000;
-    memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -199,7 +207,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 39062500;
-    memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -209,7 +220,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 156250000;
-    memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -219,7 +233,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 2500000000;
-    memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_ca.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -229,7 +246,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 26918400;
-    memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -239,7 +259,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 750000;
-    memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -249,7 +272,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 346430050;
-    memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -259,7 +285,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 18476350;
-    memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_cb.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -269,7 +298,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 37654200;
-    memcpy(utxo.asset, exp_dummy_asset_cc.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_cc.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
   {
@@ -279,7 +311,10 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 127030000;
-    memcpy(utxo.asset, exp_dummy_asset_cc.GetData().GetBytes().data(), sizeof(utxo.asset));
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      memcpy(utxo.asset, exp_dummy_asset_cc.GetData().GetBytes().data(), sizeof(utxo.asset));
+#endif  // CFD_DISABLE_ELEMENTS
     utxos.push_back(utxo);
   }
 /*
@@ -299,7 +334,9 @@ static std::vector<Utxo> GetElementsUtxoListByC() {
   return utxos;
 }
 
-TEST(cfdcapi_coin, CfCoinSelection_1) {
+// SelectCoins(BTC) =====================================================
+
+TEST(cfdcapi_coin, CfCoinSelection_BTC1) {
   constexpr const char* kDescriptor = "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x";
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
@@ -313,7 +350,104 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
   };
 
   void* coin_select_handle = nullptr;
-  std::vector<Utxo> utxos = GetElementsUtxoListByC();
+  std::vector<Utxo> utxos = CfdGetElementsUtxoListByC(false);
+  int64_t tx_fee_amount = 2000;
+  double effective_fee_rate = 20;
+  double long_term_fee_rate = 20;
+  double dust_fee_rate = -1;
+  int64_t knapsack_min_change = -1;
+
+  ret = CfdInitializeCoinSelection(
+    handle, static_cast<uint32_t>(utxos.size()), 3,
+    "", tx_fee_amount,
+    effective_fee_rate, long_term_fee_rate, dust_fee_rate,
+    knapsack_min_change, &coin_select_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_NE(nullptr, coin_select_handle);
+
+  if (ret == kCfdSuccess) {
+    for (int32_t index = 0; index < static_cast<int32_t>(utxos.size()); ++index) {
+      const Utxo& utxo = utxos[index];
+      ByteData txid = convert_to_byte(utxo.txid, sizeof(utxo.txid));
+      ret = CfdAddCoinSelectionUtxo(
+          handle, coin_select_handle, index,
+          Txid(ByteData256(txid.GetBytes())).GetHex().c_str(), utxo.vout,
+          utxo.amount,
+          "",
+          kDescriptor);
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+
+    ret = CfdAddCoinSelectionAmount(handle, coin_select_handle, 0, 180000000, "");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    int64_t utxo_fee_amount = 0;
+    ret = CfdFinalizeCoinSelection(handle, coin_select_handle, &utxo_fee_amount);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(7200, utxo_fee_amount);
+
+    int32_t utxo_index = 0;
+    std::vector<int32_t> indexes;
+    for (uint32_t index = 0; index < utxos.size(); ++index) {
+      ret = CfdGetSelectedCoinIndex(
+          handle, coin_select_handle, index, &utxo_index);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (utxo_index == -1) {
+        break;
+      }
+      indexes.push_back(utxo_index);
+    }
+    EXPECT_EQ(4, indexes.size());
+
+    if (indexes.size() == 4) {
+      EXPECT_EQ(1, indexes[0]);
+      EXPECT_EQ(3, indexes[1]);
+      EXPECT_EQ(10, indexes[2]);
+      EXPECT_EQ(6, indexes[3]);
+      /*
+      req:
+            A,  115800000
+            B,  347180050
+            C,   37654200
+      res:
+        8:  B,  346430050
+        7:  B,     750000
+        10: C,   37654200
+        1:  A,   78125000
+        3:  A,   39062500
+      */
+    }
+
+    int64_t amount = 0;
+    ret = CfdGetSelectedCoinAssetAmount(handle, coin_select_handle, 0, &amount);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(181760100, amount);
+  }
+  ret = CfdFreeCoinSelectionHandle(handle, coin_select_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+// SelectCoins(multi Asset) =====================================================
+
+#ifndef CFD_DISABLE_ELEMENTS
+TEST(cfdcapi_coin, CfCoinSelection_Asset1) {
+  constexpr const char* kDescriptor = "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x";
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  auto convert_to_byte = [](const uint8_t* byte_array, size_t size) -> ByteData {
+    std::vector<uint8_t> bytes(size);
+    memcpy(bytes.data(), byte_array, bytes.size());
+    return ByteData(bytes);
+  };
+
+  void* coin_select_handle = nullptr;
+  std::vector<Utxo> utxos = CfdGetElementsUtxoListByC(true);
   int64_t tx_fee_amount = 2000;
   double effective_fee_rate = -1;
   double long_term_fee_rate = -1;
@@ -332,7 +466,6 @@ TEST(cfdcapi_coin, CfCoinSelection_1) {
     for (int32_t index = 0; index < static_cast<int32_t>(utxos.size()); ++index) {
       const Utxo& utxo = utxos[index];
       ByteData txid = convert_to_byte(utxo.txid, sizeof(utxo.txid));
-      std::string asset;
       ret = CfdAddCoinSelectionUtxo(
           handle, coin_select_handle, index,
           Txid(ByteData256(txid.GetBytes())).GetHex().c_str(), utxo.vout,

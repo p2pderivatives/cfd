@@ -45,6 +45,73 @@ CFDC_API int CfdCalculateEcSignature(
     int network_type, bool has_grind_r, char** signature);
 
 /**
+ * @brief Verify if a signature with respect to a public key and a message.
+ * @param[in] handle          cfd handle.
+ * @param[in] sighash         The signature hash.
+ * @param[in] pubkey          The public key to verify the signature against.
+ * @param[in] signature       The 64byte signature to verify.
+ * @return true if the signature is valid, false if not.
+ */
+CFDC_API int CfdVerifyEcSignature(
+    void* handle, const char* sighash, const char* pubkey,
+    const char* signature);
+
+/**
+ * @brief calcurate schnorr signature.
+ * @param[in] handle          cfd handle.
+ * @param[in] oracle_privkey  oracle privkey hex.
+ * @param[in] k_value         k-value(privkey).
+ * @param[in] message         32byte message data.
+ * @param[out] signature      signature.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCalculateSchnorrSignature(
+    void* handle, const char* oracle_privkey, const char* k_value,
+    const char* message, char** signature);
+
+/**
+ * @brief calcurate schnorr signature with nonce.
+ * @param[in] handle          cfd handle.
+ * @param[in] oracle_privkey  oracle privkey hex.
+ * @param[in] k_value         k-value(privkey).
+ * @param[in] message         32byte message data.
+ * @param[out] signature      signature.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCalculateSchnorrSignatureWithNonce(
+    void* handle, const char* oracle_privkey, const char* k_value,
+    const char* message, char** signature);
+
+/**
+ * @brief Verify if a signature with respect to a public key and a message.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          The public key to verify the signature against.
+ * @param[in] signature       The 64byte signature to verify.
+ * @param[in] message         The 32byte message to sign.
+ * @return true if the signature is valid, false if not.
+ */
+CFDC_API int CfdVerifySchnorrSignature(
+    void* handle, const char* pubkey, const char* signature,
+    const char* message);
+
+/**
+ * @brief Verify if a signature with respect to a public key and a message.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          The public key to verify the signature against.
+ * @param[in] nonce           The nonce.
+ * @param[in] signature       The 32byte signature to verify.
+ * @param[in] message         The 32byte message to sign.
+ * @return true if the signature is valid, false if not.
+ */
+CFDC_API int CfdVerifySchnorrSignatureWithNonce(
+    void* handle, const char* pubkey, const char* nonce, const char* signature,
+    const char* message);
+
+/**
  * @brief encode ec signature by der encoding.
  * @param[in] handle                  cfd handle.
  * @param[in] signature               compact signature string.
@@ -164,6 +231,171 @@ CFDC_API int CfdGetPubkeyFromPrivkey(
     char** pubkey);
 
 /**
+ * @brief Compress pubkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          pubkey hex.
+ * @param[out] output         pubkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCompressPubkey(
+    void* handle, const char* pubkey, char** output);
+
+/**
+ * @brief Uncompress pubkey. (prefix is 0x04 only.)
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          pubkey hex.
+ * @param[out] output         pubkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdUncompressPubkey(
+    void* handle, const char* pubkey, char** output);
+
+/**
+ * @brief Initialize combine pubkey handle.
+ * @param[in] handle            cfd handle.
+ * @param[out] combine_handle   combine handle.
+ *   Call 'CfdFreeCombinePubkeyHandle' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdInitializeCombinePubkey(void* handle, void** combine_handle);
+
+/**
+ * @brief Add combine target pubkey.
+ * @param[in] handle            cfd handle.
+ * @param[out] combine_handle   combine handle.
+ * @param[in] pubkey            pubkey hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddCombinePubkey(
+    void* handle, void* combine_handle, const char* pubkey);
+
+/**
+ * @brief Combine pubkey.
+ * @param[in] handle            cfd handle.
+ * @param[out] combine_handle   combine handle.
+ * @param[out] output           pubkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFinalizeCombinePubkey(
+    void* handle, void* combine_handle, char** output);
+
+/**
+ * @brief Free combine pubkey handle.
+ * @param[in] handle            cfd handle.
+ * @param[out] combine_handle   combine handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFreeCombinePubkeyHandle(void* handle, void* combine_handle);
+
+/**
+ * @brief Add tweak to pubkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          pubkey hex.
+ * @param[in] tweak           tweak data hex. (32-byte (64-charactors))
+ * @param[out] output         pubkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdPubkeyTweakAdd(
+    void* handle, const char* pubkey, const char* tweak, char** output);
+
+/**
+ * @brief Multiplication tweak to pubkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          pubkey hex.
+ * @param[in] tweak           tweak data hex. (32-byte (64-charactors))
+ * @param[out] output         pubkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdPubkeyTweakMul(
+    void* handle, const char* pubkey, const char* tweak, char** output);
+
+/**
+ * @brief Negate pubkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          pubkey hex.
+ * @param[out] output         pubkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdNegatePubkey(void* handle, const char* pubkey, char** output);
+
+/**
+ * @brief Add tweak to privkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] privkey         privkey hex.
+ * @param[in] tweak           tweak data hex. (32-byte (64-charactors))
+ * @param[out] output         privkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdPrivkeyTweakAdd(
+    void* handle, const char* privkey, const char* tweak, char** output);
+
+/**
+ * @brief Multiplication tweak to privkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] privkey         privkey hex.
+ * @param[in] tweak           tweak data hex. (32-byte (64-charactors))
+ * @param[out] output         privkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdPrivkeyTweakMul(
+    void* handle, const char* privkey, const char* tweak, char** output);
+
+/**
+ * @brief Negate privkey.
+ * @param[in] handle          cfd handle.
+ * @param[in] privkey         privkey hex.
+ * @param[out] output         privkey output hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdNegatePrivkey(
+    void* handle, const char* privkey, char** output);
+
+/**
+ * @brief function for schnorr public key.
+ * @param[in] handle          cfd handle.
+ * @param[in] oracle_pubkey   the public key of the oracle.
+ * @param[in] oracle_r_point  the R point for the event.
+ * @param[in] message         the message for the outcome.
+ * @param[out] output         schnorr public key hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetSchnorrPubkey(
+    void* handle, const char* oracle_pubkey, const char* oracle_r_point,
+    const char* message, char** output);
+
+/**
+ * @brief get schnorr public nonce.
+ * @param[in] handle          cfd handle.
+ * @param[in] privkey         privkey hex.
+ * @param[out] nonce          public nonce hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetSchnorrPublicNonce(
+    void* handle, const char* privkey, char** nonce);
+
+/**
  * @brief create extkey from seed.
  * @param[in] handle          cfd handle.
  * @param[in] seed_hex        seed data(hex).
@@ -179,7 +411,45 @@ CFDC_API int CfdCreateExtkeyFromSeed(
     char** extkey);
 
 /**
- * @brief create extkey from parent path.
+ * @brief create extkey from direct info.
+ * @param[in] handle          cfd handle.
+ * @param[in] network_type    network type.
+ * @param[in] key_type        extkey type.
+ * @param[in] parent_key      parent key. (If there is no fingerprint)
+ * @param[in] fingerprint     fingerprint.
+ * @param[in] key             public or private key.
+ * @param[in] chain_code      chain code.
+ * @param[in] depth           depth.
+ * @param[in] child_number    child key number.
+ * @param[out] extkey         extkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateExtkey(
+    void* handle, int network_type, int key_type, const char* parent_key,
+    const char* fingerprint, const char* key, const char* chain_code,
+    unsigned char depth, uint32_t child_number, char** extkey);
+
+/**
+ * @brief derive extkey from number.
+ * @param[in] handle          cfd handle.
+ * @param[in] extkey          parent extkey.
+ * @param[in] child_number    child key number.
+ * @param[in] hardened        hardened flag.
+ * @param[in] network_type    network type.
+ * @param[in] key_type        extkey type.
+ * @param[out] child_extkey   child extkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateExtkeyFromParent(
+    void* handle, const char* extkey, uint32_t child_number, bool hardened,
+    int network_type, int key_type, char** child_extkey);
+
+/**
+ * @brief derive extkey from path.
  * @param[in] handle          cfd handle.
  * @param[in] extkey          parent extkey.
  * @param[in] path            create key path.(ex: 0/0h/0'/0)
@@ -275,27 +545,73 @@ CFDC_API int CfdGetExtkeyInformation(
     void* handle, const char* extkey, char** version, char** fingerprint,
     char** chain_code, uint32_t* depth, uint32_t* child_number);
 
-#if 0
-/*
-class CFD_EXPORT HDWalletApi {
- public:
-  std::vector<std::string> GetMnemonicWordlist(
-      const std::string& language) const;
+/**
+ * @brief initialize getting mnemonic word list.
+ * @param[in] handle            cfd handle.
+ * @param[in] language          language. (default: en)
+ * @param[out] mnemonic_handle  get mnemonic word handle.
+ *   Call 'CfdFreeMnemonicWordList' after you are finished using it.
+ * @param[out] max_index        mnemonic word list num.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdInitializeMnemonicWordList(
+    void* handle, const char* language, void** mnemonic_handle,
+    uint32_t* max_index);
 
-  ByteData ConvertMnemonicToSeed(
-      const std::vector<std::string>& mnemonic, const std::string& passphrase,
-      bool strict_check = true, const std::string& language = "en",
-      bool use_ideographic_space = false, ByteData* entropy = nullptr) const;
+/**
+ * @brief get mnemonic word.
+ * @param[in] handle            cfd handle.
+ * @param[in] mnemonic_handle   get mnemonic word handle.
+ * @param[in] index             index.
+ * @param[out] mnemonic_word    mnemonic word.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetMnemonicWord(
+    void* handle, void* mnemonic_handle, uint32_t index, char** mnemonic_word);
 
-  std::vector<std::string> ConvertEntropyToMnemonic(
-      const ByteData& entropy, const std::string& language) const;
+/**
+ * @brief free getting mnemonic word list.
+ * @param[in] handle            cfd handle.
+ * @param[in] mnemonic_handle   get mnemonic word handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFreeMnemonicWordList(void* handle, void* mnemonic_handle);
 
-  std::string CreateExtkeyFromParent(
-      const std::string& extkey, NetType net_type, ExtKeyType output_key_type,
-      uint32_t child_number, bool hardened) const;
-};
-*/
-#endif
+/**
+ * @brief convert mnemonic to seed.
+ * @param[in] handle                 cfd handle.
+ * @param[in] mnemonic               mnemonic.
+ * @param[in] passphrase             passphrase.
+ * @param[in] strict_check           strict check flag.
+ * @param[in] language               language. (default: en)
+ * @param[in] use_ideographic_space  use ideographic space.
+ * @param[out] seed                  seed.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] entropy               mnemonic word entropy.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdConvertMnemonicToSeed(
+    void* handle, const char* mnemonic, const char* passphrase,
+    bool strict_check, const char* language, bool use_ideographic_space,
+    char** seed, char** entropy);
+
+/**
+ * @brief convert entropy to mnemonic.
+ * @param[in] handle          cfd handle.
+ * @param[in] entropy         mnemonic word entropy.
+ * @param[in] language        language. (default: en)
+ * @param[out] mnemonic       mnemonic.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdConvertEntropyToMnemonic(
+    void* handle, const char* entropy, const char* language, char** mnemonic);
 
 #ifdef __cplusplus
 #if 0
