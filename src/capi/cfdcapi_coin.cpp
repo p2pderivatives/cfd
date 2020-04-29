@@ -64,8 +64,6 @@ namespace capi {
 
 //! prefix: CoinSelection
 constexpr const char* const kPrefixCoinSelection = "CoinSelection";
-//! asset max size
-constexpr uint32_t kAssetSize = 33;
 
 /**
  * @brief cfd-capi TargetAsset構造体.
@@ -90,6 +88,8 @@ struct CfdCapiCoinSelection {
   double long_term_fee_rate;      //!< longterm feeRate
   double dust_fee_rate;           //!< dust feeRate
   int64_t knapsack_min_change;    //!< knapsack minChange
+  //! handle for elements
+  bool is_elements;
   //! utxo list
   std::vector<Utxo>* utxos;  //!< utxo list
   //! target list
@@ -107,9 +107,9 @@ constexpr const char* const kPrefixEstimateFeeData = "EstimateFeeData";
  */
 struct CfdCapiEstimateFeeData {
   char prefix[kPrefixLength];  //!< buffer prefix
-#ifndef CFD_DISABLE_ELEMENTS
   //! handle for elements
-  bool is_elements = false;
+  bool is_elements;
+#ifndef CFD_DISABLE_ELEMENTS
   //! input utxo list for elements
   std::vector<ElementsUtxoAndOption>* input_elements_utxos;
 #endif  // CFD_DISABLE_ELEMENTS
@@ -157,9 +157,15 @@ int CfdInitializeCoinSelection(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. coinselect handle is null.");
     }
+    if (target_asset_count == 0) {
+      warn(CFD_LOG_SOURCE, "target_asset_count is zero.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. target_asset_count is null.");
+    }
     CfdCapiCoinSelection obj;
     memset(&obj, 0, sizeof(obj));
-    if (fee_asset != nullptr) {
+    if (!IsEmptyString(fee_asset)) {
 #ifndef CFD_DISABLE_ELEMENTS
       std::string asset_hex(fee_asset);
       if (!asset_hex.empty()) {
@@ -167,6 +173,11 @@ int CfdInitializeCoinSelection(
         memcpy(
             obj.fee_asset, asset_data.GetData().GetBytes().data(),
             sizeof(obj.fee_asset));
+        uint8_t empty_asset[kAssetSize];
+        memset(empty_asset, 0, sizeof(empty_asset));
+        if (memcmp(obj.fee_asset, empty_asset, sizeof(empty_asset)) != 0) {
+          obj.is_elements = true;
+        }
       }
 #else
       info(CFD_LOG_SOURCE, "unuse asset[{}]", fee_asset);
@@ -206,12 +217,6 @@ int CfdAddCoinSelectionUtxo(
   try {
     cfd::Initialize();
     CheckBuffer(coin_select_handle, kPrefixCoinSelection);
-    if (coin_select_handle == nullptr) {
-      warn(CFD_LOG_SOURCE, "coinselect handle is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. coinselect handle is null.");
-    }
     if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
@@ -237,10 +242,14 @@ int CfdAddCoinSelectionUtxo(
 
     std::string temp_asset;
     std::string temp_descriptor;
-    if (asset != nullptr) {
+    if (!IsEmptyString(asset)) {
+#ifndef CFD_DISABLE_ELEMENTS
       temp_asset = std::string(asset);
+#else
+      info(CFD_LOG_SOURCE, "unuse asset[{}]", std::string(asset));
+#endif  // CFD_DISABLE_ELEMENTS
     }
-    if (descriptor != nullptr) {
+    if (!IsEmptyString(descriptor)) {
       temp_descriptor = std::string(descriptor);
     }
     CoinSelection::ConvertToUtxo(
@@ -266,12 +275,6 @@ int CfdAddCoinSelectionAmount(
   try {
     cfd::Initialize();
     CheckBuffer(coin_select_handle, kPrefixCoinSelection);
-    if (coin_select_handle == nullptr) {
-      warn(CFD_LOG_SOURCE, "coinselect handle is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. coinselect handle is null.");
-    }
 
     CfdCapiCoinSelection* buffer =
         static_cast<CfdCapiCoinSelection*>(coin_select_handle);
@@ -286,7 +289,7 @@ int CfdAddCoinSelectionAmount(
     CfdCapiTargetAsset object;
     memset(&object, 0, sizeof(object));
     object.amount = amount;
-    if (asset != nullptr) {
+    if (!IsEmptyString(asset)) {
 #ifndef CFD_DISABLE_ELEMENTS
       std::string asset_hex(asset);
       if (!asset_hex.empty()) {
@@ -326,12 +329,6 @@ int CfdFinalizeCoinSelection(
   try {
     cfd::Initialize();
     CheckBuffer(coin_select_handle, kPrefixCoinSelection);
-    if (coin_select_handle == nullptr) {
-      warn(CFD_LOG_SOURCE, "coinselect handle is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. coinselect handle is null.");
-    }
 
     CfdCapiCoinSelection* buffer =
         static_cast<CfdCapiCoinSelection*>(coin_select_handle);
@@ -347,46 +344,56 @@ int CfdFinalizeCoinSelection(
           CfdError::kCfdIllegalStateError,
           "Failed to parameter. target amounts is null.");
     }
-    uint8_t empty_asset[kAssetSize];
-    memset(empty_asset, 0, sizeof(empty_asset));
-
-#ifndef CFD_DISABLE_ELEMENTS
-    AmountMap map_target_value;
-    for (const auto& target : *(buffer->targets)) {
-      map_target_value.emplace(
-          convert_to_asset(target.asset).GetHex(),
-          Amount::CreateBySatoshiAmount(target.amount));
-    }
-
     CoinSelectionOption option_params;
-    if (memcmp(buffer->fee_asset, empty_asset, sizeof(empty_asset)) == 0) {
-      // bitcoin
-      option_params.InitializeTxSizeInfo();
-    } else {
-      // elements
-      option_params.InitializeConfidentialTxSizeInfo();
-      option_params.SetFeeAsset(convert_to_asset(buffer->fee_asset));
-    }
     option_params.SetEffectiveFeeBaserate(buffer->effective_fee_rate);
     option_params.SetLongTermFeeBaserate(buffer->long_term_fee_rate);
     option_params.SetDustFeeRate(buffer->dust_fee_rate);
     option_params.SetKnapsackMinimumChange(buffer->knapsack_min_change);
 
     Amount utxo_fee_value;
-    AmountMap map_select_value;
+    CoinSelection select_object;
     UtxoFilter filter;
     Amount tx_fee_value;
-    CoinSelection select_object;
-    std::vector<Utxo> utxo_list = select_object.SelectCoins(
-        map_target_value, *(buffer->utxos), filter, option_params,
-        tx_fee_value, &map_select_value, &utxo_fee_value);
+    std::vector<Utxo> utxo_list;
+    if (buffer->is_elements) {
+#ifndef CFD_DISABLE_ELEMENTS
+      // elements
+      option_params.InitializeConfidentialTxSizeInfo();
+      option_params.SetFeeAsset(convert_to_asset(buffer->fee_asset));
 
-    // save return value from AmountMap
-    for (auto& target : *(buffer->targets)) {
-      std::string asset = convert_to_asset(target.asset).GetHex();
-      if (map_select_value.find(asset) != map_select_value.end()) {
-        target.selected_amount = map_select_value[asset].GetSatoshiValue();
+      AmountMap map_target_value;
+      for (const auto& target : *(buffer->targets)) {
+        map_target_value.emplace(
+            convert_to_asset(target.asset).GetHex(),
+            Amount::CreateBySatoshiAmount(target.amount));
       }
+
+      AmountMap map_select_value;
+      utxo_list = select_object.SelectCoins(
+          map_target_value, *(buffer->utxos), filter, option_params,
+          tx_fee_value, &map_select_value, &utxo_fee_value);
+
+      // save return value from AmountMap
+      for (auto& target : *(buffer->targets)) {
+        std::string asset = convert_to_asset(target.asset).GetHex();
+        if (map_select_value.find(asset) != map_select_value.end()) {
+          target.selected_amount = map_select_value[asset].GetSatoshiValue();
+        }
+      }
+
+#endif  // CFD_DISABLE_ELEMENTS
+    } else {
+      // bitcoin
+      option_params.InitializeTxSizeInfo();
+      auto& target = buffer->targets->at(0);
+      Amount target_value(target.amount);
+
+      Amount select_value;
+      utxo_list = select_object.SelectCoins(
+          target_value, *(buffer->utxos), filter, option_params, tx_fee_value,
+          &select_value, &utxo_fee_value);
+
+      target.selected_amount = select_value.GetSatoshiValue();
     }
 
     // save return value from utxo_list
@@ -401,7 +408,6 @@ int CfdFinalizeCoinSelection(
       *utxo_fee_amount = utxo_fee_value.GetSatoshiValue();
     }
     result = CfdErrorCode::kCfdSuccess;
-#endif  // CFD_DISABLE_ELEMENTS
     return result;
   } catch (const CfdException& except) {
     result = SetLastError(handle, except);
@@ -564,6 +570,12 @@ int CfdAddTxInForEstimateFee(
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
     if (IsEmptyString(descriptor)) {
       warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
       throw CfdException(
@@ -577,8 +589,8 @@ int CfdAddTxInForEstimateFee(
     utxo.txid = Txid(txid);
     utxo.vout = vout;
     utxo.descriptor = std::string(descriptor);
-#ifndef CFD_DISABLE_ELEMENTS
     if (buffer->is_elements) {
+#ifndef CFD_DISABLE_ELEMENTS
       if (IsEmptyString(asset)) {
         warn(CFD_LOG_SOURCE, "utxo asset is null or empty.");
         throw CfdException(
@@ -597,15 +609,15 @@ int CfdAddTxInForEstimateFee(
         param.fedpeg_script = Script(fedpeg_script);
       }
       buffer->input_elements_utxos->push_back(param);
-    }
 #else
-    info(
-        CFD_LOG_SOURCE,
-        "unuse parameters: [is_issuance={}, is_blind_issuance={}, "
-        "is_pegin={}, pegin_btc_tx_size={}, fedpeg_script={}]",
-        is_issuance, is_blind_issuance, is_pegin, pegin_btc_tx_size,
-        fedpeg_script);
+      info(
+          CFD_LOG_SOURCE,
+          "unuse parameters: [is_issuance={}, is_blind_issuance={}, "
+          "is_pegin={}, pegin_btc_tx_size={}, fedpeg_script={}]",
+          is_issuance, is_blind_issuance, is_pegin, pegin_btc_tx_size,
+          fedpeg_script);
 #endif  // CFD_DISABLE_ELEMENTS
+    }
     buffer->input_utxos->push_back(utxo);
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -652,26 +664,20 @@ int CfdFinalizeEstimateFee(
 #endif  // CFD_DISABLE_ELEMENTS
 
     Amount tx_fee_amt, utxo_fee_amt;
-#ifndef CFD_DISABLE_ELEMENTS
     if (buffer->is_elements) {
+#ifndef CFD_DISABLE_ELEMENTS
       ElementsTransactionApi api;
       api.EstimateFee(
           std::string(tx_hex), *(buffer->input_elements_utxos),
           ConfidentialAssetId(fee_asset), &tx_fee_amt, &utxo_fee_amt, is_blind,
           effective_fee_rate);
+#endif  // CFD_DISABLE_ELEMENTS
     } else {
       TransactionApi api;
       api.EstimateFee(
           std::string(tx_hex), *(buffer->input_utxos), &tx_fee_amt,
           &utxo_fee_amt, effective_fee_rate);
     }
-#else
-    info(CFD_LOG_SOURCE, "unuse fee asset[{}]", fee_asset);
-    TransactionApi api;
-    api.EstimateFee(
-        std::string(tx_hex), *(buffer->input_utxos), &tx_fee_amt,
-        &utxo_fee_amt, effective_fee_rate);
-#endif  // CFD_DISABLE_ELEMENTS
     *tx_fee = tx_fee_amt.GetSatoshiValue();
     *utxo_fee = utxo_fee_amt.GetSatoshiValue();
 

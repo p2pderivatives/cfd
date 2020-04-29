@@ -115,6 +115,7 @@ using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiBlindTxData;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CheckBuffer;
+using cfd::capi::ConvertAddressType;
 using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
@@ -1996,11 +1997,12 @@ CFDC_API int CfdVerifyConfidentialTxSign(
       warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null or empty.");
+          "Failed to parameter. txid is null or empty.");
     }
     ConfidentialTransactionContext ctxc(tx_hex);
     OutPoint outpoint(Txid(txid), vout);
     ctxc.GetTxInIndex(outpoint);
+    AddressType addr_type = ConvertAddressType(address_type);
 
     UtxoData utxo;
     utxo.block_height = 0;
@@ -2020,12 +2022,11 @@ CFDC_API int CfdVerifyConfidentialTxSign(
         utxo.address = address_factory.GetAddress(addr);
       }
       utxo.locking_script = utxo.address.GetLockingScript();
-      utxo.address_type = static_cast<AddressType>(address_type);
+      utxo.address_type = addr_type;
     } else if (!IsEmptyString(direct_locking_script)) {
       utxo.locking_script = Script(direct_locking_script);
     }
 
-    ConfidentialValue value;
     if (!IsEmptyString(value_commitment)) {
       utxo.value_commitment = ConfidentialValue(value_commitment);
     } else {

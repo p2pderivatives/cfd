@@ -509,7 +509,6 @@ int CfdGetDescriptorData(
       work_locking_script = CreateString(desc_data.locking_script.GetHex());
     }
     if ((address != nullptr) &&
-        (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw) &&
         (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw)) {
       std::string addr = desc_data.address.GetAddress();
       if (!addr.empty()) work_address = CreateString(addr);

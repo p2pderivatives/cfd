@@ -27,6 +27,18 @@ enum CfdSequenceLockTime {
   kCfdSequenceLockTimeEnableMax = 0xfffffffeU,
 };
 
+//! fundrawtransaction option
+enum CfdFundTxOption {
+  /// use blind fee (bool)
+  kCfdFundTxIsBlind = 1,
+  /// dust fee rate (double)
+  kCfdFundTxDustFeeRate = 2,
+  /// longterm fee rate (double)
+  kCfdFundTxLongTermFeeRate = 3,
+  /// knapsack min change (int64)
+  kCfdFundTxKnapsackMinChange = 4,
+};
+
 /**
  * @brief create initialized elements transaction.
  * @param[in] handle          cfd handle.
@@ -241,6 +253,56 @@ CFDC_API int CfdFinalizeMultisigSign(
 CFDC_API int CfdFreeMultisigSignHandle(void* handle, void* multisign_handle);
 
 /**
+ * @brief verify signature data.
+ * @param[in] handle                  cfd handle.
+ * @param[in] net_type                network type.
+ * @param[in] tx_hex                  transaction hex.
+ * @param[in] signature               signature hex.
+ * @param[in] hash_type               hash type.
+ * @param[in] pubkey                  pubkey hex.
+ * @param[in] script                  script hex. (Specify NULL if disabled)
+ * @param[in] txid                    txid.
+ * @param[in] vout                    vout.
+ * @param[in] sighash_type            sighash type. (ref: CfdSighashType)
+ * @param[in] sighash_anyone_can_pay  sighash anyone can pay flag.
+ * @param[in] value_satoshi           value satoshi. (Specify 0 if disabled)
+ * @param[in] value_bytedata          value commitment.
+ *     (Specify null if disabled)
+ * @return CfdErrorCode
+ *     (if failed to verify signature, it returns kCfdSignVerificationError)
+ */
+CFDC_API int CfdVerifySignature(
+    void* handle, int net_type, const char* tx_hex, const char* signature,
+    int hash_type, const char* pubkey, const char* script, const char* txid,
+    uint32_t vout, int sighash_type, bool sighash_anyone_can_pay,
+    int64_t value_satoshi, const char* value_bytedata);
+
+/**
+ * @brief verify transaction's scriptsig or witness stack.
+ * @details support type is p2pkh, p2wpkh, p2sh-p2wpkh,
+ *     multisig(for p2sh, p2wsh, p2sh-p2wsh)
+ * @param[in] handle                  cfd handle.
+ * @param[in] net_type                network type.
+ * @param[in] tx_hex                  transaction hex.
+ * @param[in] txid                    txid.
+ * @param[in] vout                    vout.
+ * @param[in] address                 utxo address.
+ * @param[in] address_type            address type. (ref: CfdAddressType)
+ * @param[in] direct_locking_script   utxo locking script.
+ *     (set when address is empty.)
+ * @param[in] value_satoshi           value satoshi. (Specify 0 if disabled)
+ * @param[in] value_bytedata          value commitment.
+ *     (Specify null if disabled)
+ * @return CfdErrorCode
+ *     (if failed to verify signature, it returns kCfdSignVerificationError)
+ */
+CFDC_API int CfdVerifyTxSign(
+    void* handle, int net_type, const char* tx_hex, const char* txid,
+    uint32_t vout, const char* address, int address_type,
+    const char* direct_locking_script, int64_t value_satoshi,
+    const char* value_bytedata);
+
+/**
  * @brief create transaction sighash.
  * @param[in] handle            cfd handle.
  * @param[in] net_type          network type.
@@ -402,6 +464,124 @@ CFDC_API int CfdGetTxInIndex(
 CFDC_API int CfdGetTxOutIndex(
     void* handle, int net_type, const char* tx_hex_string, const char* address,
     const char* direct_locking_script, uint32_t* index);
+
+/**
+ * @brief Initialize handle for fundrawtransaction.
+ * @param[in] handle              cfd handle.
+ * @param[in] network_type        network type.
+ * @param[in] target_asset_count  target asset count.
+ * @param[in] fee_asset           fee asset. (elements only)
+ * @param[out] fund_handle        handle for fundrawtransaction.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdInitializeFundRawTx(
+    void* handle, int network_type, uint32_t target_asset_count,
+    const char* fee_asset, void** fund_handle);
+
+/**
+ * @brief Add transaction input's utxo for fundrawtransaction.
+ * @param[in] handle             cfd handle.
+ * @param[in] fund_handle        handle for fundrawtransaction.
+ * @param[in] txid               input utxo's transaction id.
+ * @param[in] vout               input utxo's vout.
+ * @param[in] amount             input utxo's amount.
+ * @param[in] descriptor         the descriptor for creating locking_script.
+ * @param[in] asset              utxo's unblind asset id.
+ * @param[in] is_issuance        is utxo issuance input.
+ * @param[in] is_blind_issuance  is utxo blind issuance input.
+ * @param[in] is_pegin           is utxo pegin input.
+ * @param[in] pegin_btc_tx_size  size of pegin transaction.
+ * @param[in] fedpeg_script      utxo's unblind asset id.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddTxInForFundRawTx(
+    void* handle, void* fund_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* descriptor, const char* asset,
+    bool is_issuance, bool is_blind_issuance, bool is_pegin,
+    uint32_t pegin_btc_tx_size, const char* fedpeg_script);
+
+/**
+ * @brief Add utxo for fundrawtransaction.
+ * @param[in] handle            cfd handle.
+ * @param[in] fund_handle       handle for fundrawtransaction.
+ * @param[in] txid              input utxo's transaction id.
+ * @param[in] vout              input utxo's vout.
+ * @param[in] amount            input utxo's amount.
+ * @param[in] descriptor        the descriptor for creating locking_script.
+ * @param[in] asset             utxo's unblind asset id.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddUtxoForFundRawTx(
+    void* handle, void* fund_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* descriptor, const char* asset);
+
+/**
+ * @brief add fundrawtransaction's target amount.
+ * @param[in] handle              cfd handle.
+ * @param[in] fund_handle         handle for fundrawtransaction.
+ * @param[in] asset_index         target asset index.
+ * @param[in] amount              target amount.
+ * @param[in] asset               target asset.
+ * @param[in] reserved_address    reserved address for append txout.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddTargetAmountForFundRawTx(
+    void* handle, void* fund_handle, uint32_t asset_index, int64_t amount,
+    const char* asset, const char* reserved_address);
+
+/**
+ * @brief set fundrawtransaction's option.
+ * @param[in] handle              cfd handle.
+ * @param[in] fund_handle         handle for fundrawtransaction.
+ * @param[in] key                 option key. (CfdFundTxOption)
+ * @param[in] int64_value         int64 value.
+ * @param[in] double_value        double value.
+ * @param[in] bool_value          bool value.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdSetOptionFundRawTx(
+    void* handle, void* fund_handle, int key, int64_t int64_value,
+    double double_value, bool bool_value);
+
+/**
+ * @brief Finalize fundrawtransaction api call.
+ * @param[in] handle                cfd handle.
+ * @param[in] fund_handle           handle for fundrawtransaction.
+ * @param[in] tx_hex                transaction hex.
+ * @param[in] effective_fee_rate    effective fee rate.
+ * @param[out] tx_fee               transaction fee ignore append txin.
+ *     (not contain utxo_fee.)
+ * @param[out] append_txout_count   append txout count.
+ * @param[out] output_tx_hex        output fundrawtransaction.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFinalizeFundRawTx(
+    void* handle, void* fund_handle, const char* tx_hex,
+    double effective_fee_rate, int64_t* tx_fee, uint32_t* append_txout_count,
+    char** output_tx_hex);
+
+/**
+ * @brief Get using txout address for fundrawtransaction.
+ * @param[in] handle           cfd handle.
+ * @param[in] fund_handle      handle for fundrawtransaction.
+ * @param[in] index            append txout count index.
+ * @param[out] append_address  append address.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetAppendTxOutFundRawTx(
+    void* handle, void* fund_handle, uint32_t index, char** append_address);
+
+/**
+ * @brief Free handle for  hex.
+ * @param[in] handle        cfd handle.
+ * @param[in] fund_handle   handle for fundrawtransaction.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFreeFundRawTxHandle(void* handle, void* fund_handle);
 
 #ifdef __cplusplus
 #if 0

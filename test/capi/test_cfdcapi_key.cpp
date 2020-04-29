@@ -8,6 +8,12 @@
 #include "cfdc/cfdcapi_address.h"
 #include "capi/cfdc_internal.h"
 #include "cfdcore/cfdcore_exception.h"
+#include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_util.h"
+
+using cfd::core::HashUtil;
+using cfd::core::StringUtil;
+using cfd::core::Privkey;
 
 /**
  * @brief testing class.
@@ -256,6 +262,258 @@ TEST(cfdcapi_key, PrivkeyAndPubkeyTest) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_key, CompressUncompressTest) {
+  const char* key_uncompressed = "076468efc14b8512007bb720d6e7d4217a6686095a79b57e50dd48355110422955400e1a8f159b5dcea116049d09eb756b80d52aeaabb195b343cf713f62f01a73";
+  const char* ext_key_uncompressed = "046468efc14b8512007bb720d6e7d4217a6686095a79b57e50dd48355110422955400e1a8f159b5dcea116049d09eb756b80d52aeaabb195b343cf713f62f01a73";
+  const char* ext_key_compressed = "036468efc14b8512007bb720d6e7d4217a6686095a79b57e50dd48355110422955";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+
+  ret = CfdCompressPubkey(handle, key_uncompressed, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(ext_key_compressed, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdUncompressPubkey(handle, ext_key_compressed, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(ext_key_uncompressed, output);
+    CfdFreeStringBuffer(output);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, CombinePubkeysTest1) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  void* combine_handle = nullptr;
+  ret = CfdInitializeCombinePubkey(handle, &combine_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    ret = CfdAddCombinePubkey(handle, combine_handle,
+        "03662a01c232918c9deb3b330272483c3e4ec0c6b5da86df59252835afeb4ab5f9");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddCombinePubkey(handle, combine_handle,
+        "0261e37f277f02a977b4f11eb5055abab4990bbf8dee701119d88df382fcc1fafe");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdFinalizeCombinePubkey(handle, combine_handle, &output);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("022a66efd1ea9b1ad3acfcc62a5ce8c756fa6fc3917fce3d4952a8701244ed1049", output);
+      CfdFreeStringBuffer(output);
+    }
+
+    ret = CfdFreeCombinePubkeyHandle(handle, combine_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, CombinePubkeysTest2) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  void* combine_handle = nullptr;
+  ret = CfdInitializeCombinePubkey(handle, &combine_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    ret = CfdAddCombinePubkey(handle, combine_handle,
+        "03662a01c232918c9deb3b330272483c3e4ec0c6b5da86df59252835afeb4ab5f9");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddCombinePubkey(handle, combine_handle,
+        "0261e37f277f02a977b4f11eb5055abab4990bbf8dee701119d88df382fcc1fafe");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddCombinePubkey(handle, combine_handle,
+        "022a66efd1ea9b1ad3acfcc62a5ce8c756fa6fc3917fce3d4952a8701244ed1049");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddCombinePubkey(handle, combine_handle,
+        "026356a05be3fcf52a57e133b7fb1cdb52a1bf14ef43f7d053e79b2ac98d5c2dd3");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdFinalizeCombinePubkey(handle, combine_handle, &output);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("03a5ba2faabc8966bb1b1525f5ecbd0205b357a70d8a26446224c92fffeb1ac8ca", output);
+      CfdFreeStringBuffer(output);
+    }
+
+    ret = CfdFreeCombinePubkeyHandle(handle, combine_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, PubkeyTweakConversionTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  const char* pubkey = "03662a01c232918c9deb3b330272483c3e4ec0c6b5da86df59252835afeb4ab5f9";
+  const char* tweak = "98430d10471cf697e2661e31ceb8720750b59a85374290e175799ba5dd06508e";
+
+  // test for adding tweak
+  {
+    char* tweak_added = nullptr;
+    ret = CfdPubkeyTweakAdd(handle, pubkey, tweak, &tweak_added);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(tweak_added, "02b05cf99a2f556177a38f5108445472316e87eb4f5b243d79d7e5829d3d53babc");
+      CfdFreeStringBuffer(tweak_added);
+    }
+  }
+
+  // test for multiplying tweak
+  {
+    char* tweak_mul = nullptr;
+
+    ret = CfdPubkeyTweakMul(handle, pubkey, tweak, &tweak_mul);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(tweak_mul, "0305d10e760a529d0523e98892d2deff59b91593a0d670bd82271cfa627c9e7e18");
+      CfdFreeStringBuffer(tweak_mul);
+    }
+  }
+
+  {
+    char* negate = nullptr;
+
+    ret = CfdNegatePubkey(handle, pubkey, &negate);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(negate, "02662a01c232918c9deb3b330272483c3e4ec0c6b5da86df59252835afeb4ab5f9");
+      CfdFreeStringBuffer(negate);
+    }
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, PrivkeyTweakConversionTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  const char* privkey = "036b13c5a0dd9935fe175b2b9ff86585c231e734b2148149d788a941f1f4f566";
+  const char* tweak = "98430d10471cf697e2661e31ceb8720750b59a85374290e175799ba5dd06508e";
+
+  // test for adding tweak
+  {
+    char* priv_tweak_added = nullptr;
+    ret = CfdPrivkeyTweakAdd(handle, privkey, tweak, &priv_tweak_added);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(priv_tweak_added, "9bae20d5e7fa8fcde07d795d6eb0d78d12e781b9e957122b4d0244e7cefb45f4");
+      CfdFreeStringBuffer(priv_tweak_added);
+    }
+  }
+
+  // test for multiplying tweak
+  {
+    char* priv_tweak_mul = nullptr;
+
+    ret = CfdPrivkeyTweakMul(handle, privkey, tweak, &priv_tweak_mul);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(priv_tweak_mul, "aa71b12accba23b49761a7521e661f07a7e5742ac48cf708b8f9497b3a72a957");
+      CfdFreeStringBuffer(priv_tweak_mul);
+    }
+  }
+
+  {
+    char* negate = nullptr;
+
+    ret = CfdNegatePrivkey(handle, privkey, &negate);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(negate, "fc94ec3a5f2266ca01e8a4d460079a78f87cf5b1fd341ef1e849b54ade414bdb");
+      CfdFreeStringBuffer(negate);
+    }
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+
 TEST(cfdcapi_key, ExtkeyTest) {
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
@@ -280,7 +538,7 @@ TEST(cfdcapi_key, ExtkeyTest) {
   if (ret == kCfdSuccess) {
     EXPECT_STREQ("xprv9s21ZrQH143K38XAstQ4D3hCGbgydJgNff6CcwmkrWTBxksb2G4CsqAywJCKbTdywfCpmpJyxqf77iKK1ju1J982iP2PriifaNZLMbyPQCx", extprivkey1);
 
-    ret = CfdCreateExtkeyFromParentPath(handle, extprivkey1, "m/44'",
+    ret = CfdCreateExtkeyFromParent(handle, extprivkey1, 44, true,
         kNetwork, kCfdExtPrivkey, &extprivkey2);
     EXPECT_EQ(kCfdSuccess, ret);
   }
@@ -329,15 +587,37 @@ TEST(cfdcapi_key, ExtkeyTest) {
     char* chain_code = nullptr;
     uint32_t depth = 0;
     uint32_t child_number = 0;
-    ret = CfdGetExtkeyInformation(handle, extprivkey2, &version,
+    ret = CfdGetExtkeyInformation(handle, extprivkey3, &version,
         &fingerprint, &chain_code, &depth, &child_number);
     EXPECT_EQ(kCfdSuccess, ret);
     if (ret == kCfdSuccess) {
       EXPECT_STREQ("0488ade4", version);
-      EXPECT_STREQ("03af54a0", fingerprint);
-      EXPECT_STREQ("16ddac07d3c3110f0292136af4bc476323e87b6da49ac0b8eef5bcde17e8a672", chain_code);
-      EXPECT_EQ(1, depth);
-      EXPECT_EQ(2147483692, child_number);
+      EXPECT_STREQ("8806118d", fingerprint);
+      EXPECT_STREQ("a3d58c40ac9c588529edb6cf9576241a6c2c919843bd97c3c26b35538d91a292", chain_code);
+      EXPECT_EQ(4, depth);
+      EXPECT_EQ(2, child_number);
+
+      char* get_extkey = nullptr;
+      ret = CfdCreateExtkey(handle, kNetwork, kCfdExtPrivkey, nullptr,
+          fingerprint, privkey, chain_code,
+          static_cast<unsigned char>(depth), child_number, &get_extkey);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        EXPECT_STREQ(extprivkey3, get_extkey);
+        CfdFreeStringBuffer(get_extkey);
+        get_extkey = nullptr;
+      }
+
+      ret = CfdCreateExtkey(handle, kNetwork, kCfdExtPubkey, nullptr,
+          fingerprint, pubkey, chain_code,
+          static_cast<unsigned char>(depth), child_number, &get_extkey);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        EXPECT_STREQ("xpub6EXtjFtcPwmae296sZGckBgbfCHnodfjWujbGK7hhzRybmWJhmgeusFbiiZyG1iSeiBcQ7diPeUC9vtP9wLS44bWpqH4kuQQD5N4gA3LaFE", get_extkey);
+        CfdFreeStringBuffer(get_extkey);
+        get_extkey = nullptr;
+      }
+
       CfdFreeStringBuffer(version);
       CfdFreeStringBuffer(fingerprint);
       CfdFreeStringBuffer(chain_code);
@@ -347,6 +627,8 @@ TEST(cfdcapi_key, ExtkeyTest) {
   CfdFreeStringBuffer(extprivkey1);
   CfdFreeStringBuffer(extprivkey2);
   CfdFreeStringBuffer(extprivkey3);
+  CfdFreeStringBuffer(extprivkey4);
+  CfdFreeStringBuffer(key_path_data);
   CfdFreeStringBuffer(extpubkey1);
   CfdFreeStringBuffer(privkey);
   CfdFreeStringBuffer(wif);
@@ -361,6 +643,257 @@ TEST(cfdcapi_key, ExtkeyTest) {
     CfdFreeStringBuffer(str_buffer);
     str_buffer = NULL;
   }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+
+TEST(cfdcapi_key, MnemonicTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* mnemonic_word = nullptr;
+  char* mnemonic = nullptr;
+  void* mnemonic_handle = nullptr;
+  uint32_t max_index = 0;
+  ret = CfdInitializeMnemonicWordList(handle, "en", &mnemonic_handle, &max_index);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_EQ(2048, max_index);
+  if (ret == kCfdSuccess) {
+    ret = CfdGetMnemonicWord(handle, mnemonic_handle, 3, &mnemonic_word);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("about", mnemonic_word);
+      CfdFreeStringBuffer(mnemonic_word);
+      mnemonic_word = nullptr;
+    }
+
+    ret = CfdFreeMnemonicWordList(handle, mnemonic_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  char* seed = nullptr;
+  char* entropy = nullptr;
+  const char* test_mnemonic = "horn tenant knee talent sponsor spell gate clip pulse soap slush warm silver nephew swap uncle crack brave";
+  const char* exp_entropy = "6d9be1ee6ebd27a258115aad99b7317b9c8d28b6d76431c3";
+  ret = CfdConvertMnemonicToSeed(handle, test_mnemonic, "TREZOR", true, "en", false, &seed, &entropy);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("fd579828af3da1d32544ce4db5c73d53fc8acc4ddb1e3b251a31179cdb71e853c56d2fcb11aed39898ce6c34b10b5382772db8796e52837b54468aeb312cfc3d", seed);
+    EXPECT_STREQ(exp_entropy, entropy);
+    CfdFreeStringBuffer(seed);
+    CfdFreeStringBuffer(entropy);
+  }
+
+  ret = CfdConvertMnemonicToSeed(handle, test_mnemonic, "abcde", true, "en", false, &seed, &entropy);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("fd3bb1e11eb0e3e59e8ba4d6eefca06446c504123f73096142766ad4803e19e777091973655b5cd3e951d72fda51be48f9ae231bab59d3a37f547ffc73dc00b5", seed);
+    EXPECT_STREQ(exp_entropy, entropy);
+    CfdFreeStringBuffer(seed);
+    CfdFreeStringBuffer(entropy);
+  }
+
+  ret = CfdConvertEntropyToMnemonic(handle, exp_entropy, "en", &mnemonic);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(test_mnemonic, mnemonic);
+    CfdFreeStringBuffer(mnemonic);
+    mnemonic = nullptr;
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, CombineMultipleMessages) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  constexpr uint32_t kOracleNum = 3;
+  // Arrange
+  Privkey oracle_privkey_obj(
+      "0000000000000000000000000000000000000000000000000000000000000001");
+  std::string oracle_privkey_str = oracle_privkey_obj.GetHex();
+  const char* oracle_privkey = oracle_privkey_str.c_str();
+  std::string oracle_pubkey_str = oracle_privkey_obj.GeneratePubkey().GetHex();
+  const char* oracle_pubkey = oracle_pubkey_str.c_str();
+  const char* oracle_k_values[] = {
+      "0000000000000000000000000000000000000000000000000000000000000002",
+      "0000000000000000000000000000000000000000000000000000000000000003",
+      "0000000000000000000000000000000000000000000000000000000000000004"};
+  char* oracle_r_points[kOracleNum];
+  std::vector<std::string> messages = {"W", "I", "N"};
+  Privkey local_fund_privkey_obj(
+      "0000000000000000000000000000000000000000000000000000000000000006");
+  std::string local_fund_privkey_str = local_fund_privkey_obj.GetHex();
+  const char* local_fund_privkey = local_fund_privkey_str.c_str();
+  std::string local_fund_pubkey_str = local_fund_privkey_obj.GeneratePubkey().GetHex();
+  const char* local_fund_pubkey = local_fund_pubkey_str.c_str();
+
+  Privkey local_sweep_privkey_obj(
+      "0000000000000000000000000000000000000000000000000000000000000006");
+  // std::string local_sweep_privkey_str = local_sweep_privkey_obj.GetHex();
+  // const char* local_sweep_privkey = local_sweep_privkey_str.c_str();
+  std::string local_sweep_pubkey_str = local_sweep_privkey_obj.GeneratePubkey().GetHex();
+  // const char* local_sweep_pubkey = local_sweep_pubkey_str.c_str();
+
+  auto combine_func = [](void* handle, const char* src, const char* dst, char** output) -> int {
+    void* combine_handle = nullptr;
+    int ret = CfdInitializeCombinePubkey(handle, &combine_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret != kCfdSuccess) return ret;
+
+    ret = CfdAddCombinePubkey(handle, combine_handle, src);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      ret = CfdAddCombinePubkey(handle, combine_handle, dst);
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+    if (ret == kCfdSuccess) {
+      ret = CfdFinalizeCombinePubkey(handle, combine_handle, output);
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+    CfdFreeCombinePubkeyHandle(handle, combine_handle);
+    return ret;
+  };
+
+  memset(oracle_r_points, 0, sizeof(oracle_r_points));
+  for (uint32_t i = 0; i < kOracleNum; ++i) {
+    ret = CfdGetSchnorrPublicNonce(handle, oracle_k_values[i], &oracle_r_points[i]);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret != kCfdSuccess) break;
+  }
+
+  // Act
+  char* signatures[kOracleNum];
+  memset(signatures, 0, sizeof(signatures));
+  if (ret == kCfdSuccess) {
+    for (uint32_t i = 0; i < kOracleNum; ++i) {
+      auto hash = HashUtil::Sha256(messages[i]).GetHex();
+      ret = CfdCalculateSchnorrSignatureWithNonce(
+          handle, oracle_privkey, oracle_k_values[i], hash.c_str(), &signatures[i]);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret != kCfdSuccess) break;
+    }
+  }
+
+  char* pubkeys[kOracleNum];
+  memset(pubkeys, 0, sizeof(pubkeys));
+  if (ret == kCfdSuccess) {
+    for (uint32_t i = 0; i < kOracleNum; ++i) {
+      auto hash = HashUtil::Sha256(messages[i]).GetHex();
+      ret = CfdGetSchnorrPubkey(handle, oracle_pubkey,
+          oracle_r_points[i], hash.c_str(), &pubkeys[i]);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret != kCfdSuccess) break;
+    }
+  }
+
+  char* committed_key = nullptr;
+  char* combine_pubkey = nullptr;
+  char* combined_pubkey = nullptr;
+  if (ret == kCfdSuccess) {
+    void* combine_handle = nullptr;
+    ret = CfdInitializeCombinePubkey(handle, &combine_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      for (uint32_t i = 0; i < kOracleNum; ++i) {
+        ret = CfdAddCombinePubkey(handle, combine_handle, pubkeys[i]);
+        EXPECT_EQ(kCfdSuccess, ret);
+        if (ret != kCfdSuccess) break;
+      }
+      if (ret == kCfdSuccess) {
+        ret = CfdFinalizeCombinePubkey(handle, combine_handle, &committed_key);
+        EXPECT_EQ(kCfdSuccess, ret);
+      }
+      CfdFreeCombinePubkeyHandle(handle, combine_handle);
+    }
+  }
+  if (ret == kCfdSuccess) {
+    // auto committed_key = pubkey;
+    ret = combine_func(handle, local_fund_pubkey, committed_key, &combine_pubkey);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+  char* hash_pubkey = nullptr;
+  if (ret == kCfdSuccess) {
+    //auto hashPub = Privkey(HashUtil::Sha256(local_sweep_pubkey.GetData()))
+    //  .GeneratePubkey();
+    std::string privkey_str = HashUtil::Sha256(StringUtil::StringToByte(local_sweep_pubkey_str)).GetHex();
+    ret = CfdGetPubkeyFromPrivkey(
+    handle, privkey_str.c_str(), nullptr, true, &hash_pubkey);
+  }
+  if (ret == kCfdSuccess) {
+    ret = combine_func(handle, combine_pubkey, hash_pubkey, &combined_pubkey);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+  CfdFreeStringBuffer(hash_pubkey);
+  CfdFreeStringBuffer(committed_key);
+  CfdFreeStringBuffer(combine_pubkey);
+
+  // auto tweak_priv = DlcUtil::GetTweakedPrivkey(signatures, local_fund_privkey,
+  //                                              local_sweep_pubkey);
+  char* tweaked_key = nullptr;
+  if (ret == kCfdSuccess) {
+    const char* target_tweaked_key = local_fund_privkey;
+    char* temp_tweaked_key = nullptr;
+    for (uint32_t i = 0; i < kOracleNum; ++i) {
+      ret = CfdPrivkeyTweakAdd(
+          handle, target_tweaked_key, signatures[i], &temp_tweaked_key);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret != kCfdSuccess) break;
+      if (tweaked_key != nullptr) {
+        CfdFreeStringBuffer(tweaked_key);
+        tweaked_key = nullptr;
+      }
+      tweaked_key = temp_tweaked_key;
+      target_tweaked_key = temp_tweaked_key;
+    }
+  }
+
+  char* tweak_priv = nullptr;
+  if (ret == kCfdSuccess) {
+    auto hashstr = HashUtil::Sha256(StringUtil::StringToByte(local_sweep_pubkey_str)).GetHex();
+    ret = CfdPrivkeyTweakAdd(handle, tweaked_key, hashstr.c_str(), &tweak_priv);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  char* tweak_pub = nullptr;
+  if (ret == kCfdSuccess) {
+    ret = CfdGetPubkeyFromPrivkey(
+        handle, tweak_priv, nullptr, true, &tweak_pub);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      // Assert
+      EXPECT_STREQ(tweak_pub, combined_pubkey);
+    }
+  }
+
+  for (uint32_t i = 0; i < kOracleNum; ++i) {
+    CfdFreeStringBuffer(oracle_r_points[i]);
+    CfdFreeStringBuffer(signatures[i]);
+    CfdFreeStringBuffer(pubkeys[i]);
+  }
+
+  CfdFreeStringBuffer(combined_pubkey);
+  CfdFreeStringBuffer(tweaked_key);
+  CfdFreeStringBuffer(tweak_priv);
+  CfdFreeStringBuffer(tweak_pub);
 
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);

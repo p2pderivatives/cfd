@@ -171,6 +171,18 @@ CFDC_API int CfdRequestExecuteJson(
     void* handle, const char* name, const char* json_string,
     char** response_json_string);
 
+/**
+ * @brief Serialize byte data. Append varint data.
+ * @param[in] handle    handle pointer.
+ * @param[in] buffer    byte array hex.
+ * @param[out] output   output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdSerializeByteData(
+    void* handle, const char* buffer, char** output);
+
 #ifdef __cplusplus
 #if 0
 {

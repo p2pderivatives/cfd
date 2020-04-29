@@ -175,6 +175,56 @@ cfd::core::AddressType ConvertHashToAddressType(int hash_type) {
   return addr_type;
 }
 
+cfd::core::AddressType ConvertAddressType(int address_type) {
+  AddressType addr_type;
+  switch (address_type) {
+    case kCfdP2shAddress:
+      addr_type = AddressType::kP2shAddress;
+      break;
+    case kCfdP2pkhAddress:
+      addr_type = AddressType::kP2pkhAddress;
+      break;
+    case kCfdP2wshAddress:
+      addr_type = AddressType::kP2wshAddress;
+      break;
+    case kCfdP2wpkhAddress:
+      addr_type = AddressType::kP2wpkhAddress;
+      break;
+    case kCfdP2shP2wshAddress:
+      addr_type = AddressType::kP2shP2wshAddress;
+      break;
+    case kCfdP2shP2wpkhAddress:
+      addr_type = AddressType::kP2shP2wpkhAddress;
+      break;
+    default:
+      warn(CFD_LOG_SOURCE, "Illegal address type.({})", address_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal address type.");
+  }
+  return addr_type;
+}
+
+cfd::core::WitnessVersion GetWitnessVersion(int hash_type) {
+  cfd::core::WitnessVersion version;
+  switch (hash_type) {
+    case kCfdP2sh:
+    case kCfdP2pkh:
+      version = cfd::core::WitnessVersion::kVersionNone;
+      break;
+    case kCfdP2wsh:
+    case kCfdP2wpkh:
+    case kCfdP2shP2wsh:
+    case kCfdP2shP2wpkh:
+      version = cfd::core::WitnessVersion::kVersion0;
+      break;
+    default:
+      warn(CFD_LOG_SOURCE, "Illegal hash type.({})", hash_type);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Illegal hash type.");
+  }
+  return version;
+}
+
 bool IsEmptyString(const char* message) {
   if ((message == nullptr) || (*message == '\0')) {
     return true;
@@ -579,6 +629,36 @@ extern "C" int CfdRequestExecuteJson(
 #else
   return kCfdIllegalStateError;
 #endif  // CFD_DISABLE_JSONAPI
+}
+
+int CfdSerializeByteData(void* handle, const char* buffer, char** output) {
+  try {
+    cfd::Initialize();
+    if (cfd::capi::IsEmptyString(buffer)) {
+      warn(CFD_LOG_SOURCE, "buffer is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. buffer is null or empty.");
+    }
+    if (output == nullptr) {
+      warn(CFD_LOG_SOURCE, "output is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. output is null.");
+    }
+
+    ByteData data(buffer);
+    *output = cfd::capi::CreateString(data.Serialize().GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return cfd::capi::SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    cfd::capi::SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    cfd::capi::SetLastFatalError(handle, "unknown error.");
+  }
+  return CfdErrorCode::kCfdUnknownError;
 }
 
 #endif  // CFD_DISABLE_CAPI

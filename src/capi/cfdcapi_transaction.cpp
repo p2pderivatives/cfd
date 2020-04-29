@@ -6,16 +6,21 @@
  */
 #ifndef CFD_DISABLE_CAPI
 #include <exception>
+#include <map>
 #include <string>
 #include <vector>
 
 #include "capi/cfdc_internal.h"
+#include "cfd/cfd_address.h"
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_elements_transaction.h"
 #include "cfd/cfd_transaction.h"
 #include "cfd/cfd_transaction_common.h"
+#include "cfd/cfdapi_coin.h"
+#include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_key.h"
+#include "cfd/cfdapi_transaction.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdc/cfdcapi_transaction.h"
 #include "cfdcore/cfdcore_address.h"
@@ -31,7 +36,10 @@
 
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::ConfidentialTransactionContext;
+using cfd::ConfidentialTransactionController;
 using cfd::ElementsAddressFactory;
+using cfd::api::ElementsTransactionApi;
+using cfd::api::ElementsUtxoAndOption;
 using cfd::core::ConfidentialAssetId;
 using cfd::core::ConfidentialNonce;
 using cfd::core::ConfidentialTxInReference;
@@ -39,9 +47,17 @@ using cfd::core::ConfidentialTxOutReference;
 using cfd::core::ElementsConfidentialAddress;
 #endif  // CFD_DISABLE_ELEMENTS
 
+using cfd::AddressFactory;
+using cfd::AmountMap;
+using cfd::CoinSelectionOption;
 using cfd::SignParameter;
 using cfd::TransactionContext;
+using cfd::TransactionController;
+using cfd::Utxo;
+using cfd::UtxoData;
+using cfd::UtxoFilter;
 using cfd::api::KeyApi;
+using cfd::api::TransactionApi;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
@@ -70,6 +86,53 @@ using cfd::core::logger::warn;
 // =============================================================================
 namespace cfd {
 namespace capi {
+
+//! prefix: data for fee estimation
+constexpr const char* const kPrefixFundRawTxData = "FundRawTxData";
+
+/**
+ * @brief cfd-capi FundTargetAmount構造体.
+ */
+struct CfdCapiFundTargetAmount {
+  // coinselection option
+  std::string asset;             //!< target asset
+  int64_t amount;                //!< target amount
+  std::string reserved_address;  //!< reserved address
+};
+
+/**
+ * @brief cfd-capi CfdCapiFundRawTxData構造体.
+ * @details 最大情報量が多すぎるため、flat structにはしない。
+ */
+struct CfdCapiFundRawTxData {
+  char prefix[kPrefixLength];  //!< buffer prefix
+  //! network type
+  NetType net_type;
+  //! fee asset
+  uint8_t fee_asset[kAssetSize];
+  //! elements flag
+  bool is_elements;
+  //! utxo list
+  std::vector<UtxoData>* utxos;
+  //! input utxo list
+  std::vector<UtxoData>* input_utxos;
+#ifndef CFD_DISABLE_ELEMENTS
+  //! input utxo list for elements
+  std::vector<ElementsUtxoAndOption>* input_elements_utxos;
+#endif  // CFD_DISABLE_ELEMENTS
+  //! txout's append address list.
+  std::vector<std::string>* append_txout_addresses;
+  //! target list
+  std::vector<CfdCapiFundTargetAmount>* targets;  //!< target list
+  /// use blind fee (bool)
+  bool is_blind;
+  /// dust fee rate (double)
+  double dust_fee_rate;
+  /// longterm fee rate (double)
+  double long_term_fee_rate;
+  /// knapsack min change (int64)
+  int64_t knapsack_min_change;
+};
 
 /**
  * @brief get transaction information.
@@ -161,20 +224,26 @@ void AddConfidentialTxData(
 using cfd::capi::AddTxData;
 using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiCreateTransactionData;
+using cfd::capi::CfdCapiFundRawTxData;
+using cfd::capi::CfdCapiFundTargetAmount;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CfdCapiTxInputData;
 using cfd::capi::CfdCapiTxOutputData;
 using cfd::capi::CheckBuffer;
+using cfd::capi::ConvertAddressType;
 using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
 using cfd::capi::GetTxInfo;
+using cfd::capi::GetWitnessVersion;
 using cfd::capi::IsElementsNetType;
 using cfd::capi::IsEmptyString;
+using cfd::capi::kAssetSize;
 using cfd::capi::kMultisigMaxKeyNum;
 using cfd::capi::kPrefixCreateTxData;
+using cfd::capi::kPrefixFundRawTxData;
 using cfd::capi::kPrefixMultisigSignData;
 using cfd::capi::kPubkeyHexSize;
 using cfd::capi::kSignatureHexSize;
@@ -1004,6 +1073,188 @@ int CfdFreeMultisigSignHandle(void* handle, void* multisign_handle) {
   }
 }
 
+int CfdVerifySignature(
+    void* handle, int net_type, const char* tx_hex, const char* signature,
+    int hash_type, const char* pubkey, const char* script, const char* txid,
+    uint32_t vout, int sighash_type, bool sighash_anyone_can_pay,
+    int64_t value_satoshi, const char* value_bytedata) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null or empty.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+
+    WitnessVersion version = GetWitnessVersion(hash_type);
+    Amount amount = Amount(value_satoshi);
+    OutPoint outpoint(Txid(txid), vout);
+    SigHashType sighashtype(
+        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    ByteData signature_obj(signature);
+
+    bool is_verify = false;
+    bool is_bitcoin = false;
+    ConvertNetType(net_type, &is_bitcoin);
+    if (is_bitcoin) {
+      TransactionContext tx(tx_hex);
+      if (!IsEmptyString(script)) {
+        is_verify = tx.VerifyInputSignature(
+            signature_obj, Pubkey(pubkey), outpoint, Script(script),
+            sighashtype, amount, version);
+      } else if (!IsEmptyString(pubkey)) {
+        is_verify = tx.VerifyInputSignature(
+            signature_obj, Pubkey(pubkey), outpoint, sighashtype, amount,
+            version);
+      }
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialValue value;
+      if (!IsEmptyString(value_bytedata)) {
+        value = ConfidentialValue(value_bytedata);
+      } else {
+        value = ConfidentialValue(amount);
+      }
+      ConfidentialTransactionContext tx(tx_hex);
+      if (!IsEmptyString(script)) {
+        is_verify = tx.VerifyInputSignature(
+            signature_obj, Pubkey(pubkey), outpoint, Script(script),
+            sighashtype, value, version);
+      } else if (!IsEmptyString(pubkey)) {
+        is_verify = tx.VerifyInputSignature(
+            signature_obj, Pubkey(pubkey), outpoint, sighashtype, value,
+            version);
+      }
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    if (!is_verify) {
+      return CfdErrorCode::kCfdSignVerificationError;
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdVerifyTxSign(
+    void* handle, int net_type, const char* tx_hex, const char* txid,
+    uint32_t vout, const char* address, int address_type,
+    const char* direct_locking_script, int64_t value_satoshi,
+    const char* value_bytedata) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    AddressType addr_type = ConvertAddressType(address_type);
+    Amount amount = Amount(value_satoshi);
+    OutPoint outpoint(Txid(txid), vout);
+
+    bool is_bitcoin = false;
+    ConvertNetType(net_type, &is_bitcoin);
+
+    UtxoData utxo;
+    utxo.block_height = 0;
+    utxo.binary_data = nullptr;
+    utxo.descriptor = "";
+    utxo.txid = outpoint.GetTxid();
+    utxo.vout = outpoint.GetVout();
+    utxo.address_type = AddressType::kP2shAddress;
+    utxo.amount = amount;
+    if (!IsEmptyString(address)) {
+      std::string addr(address);
+      if (is_bitcoin) {
+        AddressFactory address_factory;
+        utxo.address = address_factory.GetAddress(addr);
+      } else {
+#ifndef CFD_DISABLE_ELEMENTS
+        ElementsAddressFactory address_factory;
+        if (ElementsConfidentialAddress::IsConfidentialAddress(addr)) {
+          ElementsConfidentialAddress confidential_addr(addr);
+          utxo.address = confidential_addr.GetUnblindedAddress();
+        } else {
+          utxo.address = address_factory.GetAddress(addr);
+        }
+#else
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+      }
+      utxo.locking_script = utxo.address.GetLockingScript();
+      utxo.address_type = addr_type;
+    } else if (!IsEmptyString(direct_locking_script)) {
+      utxo.locking_script = Script(direct_locking_script);
+    }
+    std::vector<UtxoData> utxos = {utxo};
+
+    if (is_bitcoin) {
+      TransactionContext tx(tx_hex);
+      tx.GetTxInIndex(outpoint);
+      tx.CollectInputUtxo(utxos);
+      result = CfdErrorCode::kCfdSignVerificationError;
+      tx.Verify(outpoint);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext tx(tx_hex);
+      if (!IsEmptyString(value_bytedata)) {
+        utxo.value_commitment = ConfidentialValue(value_bytedata);
+      }
+      tx.GetTxInIndex(outpoint);
+      tx.CollectInputUtxo(utxos);
+      result = CfdErrorCode::kCfdSignVerificationError;
+      tx.Verify(outpoint);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (result != CfdErrorCode::kCfdSignVerificationError) {
+      result = SetLastError(handle, except);
+    }
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 int CfdCreateSighash(
     void* handle, int net_type, const char* tx_hex_string, const char* txid,
     uint32_t vout, int hash_type, const char* pubkey,
@@ -1571,6 +1822,476 @@ int CfdGetTxOutIndex(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdInitializeFundRawTx(
+    void* handle, int network_type, uint32_t target_asset_count,
+    const char* fee_asset, void** fund_handle) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  CfdCapiFundRawTxData* buffer = nullptr;
+  try {
+    cfd::Initialize();
+    if (fund_handle == nullptr) {
+      warn(CFD_LOG_SOURCE, "fund handle is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. fund handle is null.");
+    }
+    if (target_asset_count == 0) {
+      warn(CFD_LOG_SOURCE, "target_asset_count is zero.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. target_asset_count is null.");
+    }
+    CfdCapiFundRawTxData obj;
+    memset(&obj, 0, sizeof(obj));
+    bool is_bitcoin = false;
+    obj.net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!IsEmptyString(fee_asset)) {
+#ifndef CFD_DISABLE_ELEMENTS
+      std::string asset_hex(fee_asset);
+      if (!asset_hex.empty()) {
+        ConfidentialAssetId asset_data(asset_hex);
+        memcpy(
+            obj.fee_asset, asset_data.GetData().GetBytes().data(),
+            sizeof(obj.fee_asset));
+        uint8_t empty_asset[kAssetSize];
+        memset(empty_asset, 0, sizeof(empty_asset));
+        if (memcmp(obj.fee_asset, empty_asset, sizeof(empty_asset)) != 0) {
+          obj.is_elements = true;
+          if (is_bitcoin) {
+            warn(CFD_LOG_SOURCE, "network type is not elements.");
+            throw CfdException(
+                CfdError::kCfdIllegalArgumentError,
+                "Failed to parameter. network type is not elements.");
+          }
+        }
+      }
+#else
+      info(CFD_LOG_SOURCE, "unuse asset[{}]", fee_asset);
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    if (obj.is_elements == is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "network type not is bitcoin.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. network type is not bitcoin.");
+    }
+    obj.is_blind = false;
+    obj.long_term_fee_rate = (obj.is_elements) ? 0.115 : 20.0;
+    obj.dust_fee_rate = 3.0;
+    obj.knapsack_min_change = -1;
+
+    buffer = static_cast<CfdCapiFundRawTxData*>(
+        AllocBuffer(kPrefixFundRawTxData, sizeof(CfdCapiFundRawTxData)));
+    memcpy(obj.prefix, buffer->prefix, sizeof(obj.prefix));
+    *buffer = obj;
+    buffer->utxos = new std::vector<UtxoData>();
+    buffer->input_utxos = new std::vector<UtxoData>();
+#ifndef CFD_DISABLE_ELEMENTS
+    buffer->input_elements_utxos = new std::vector<ElementsUtxoAndOption>();
+#endif  // CFD_DISABLE_ELEMENTS
+    buffer->targets =
+        new std::vector<CfdCapiFundTargetAmount>(target_asset_count);
+    buffer->append_txout_addresses = new std::vector<std::string>();
+    *fund_handle = buffer;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  if (buffer != nullptr) CfdFreeFundRawTxHandle(handle, buffer);
+  return result;
+}
+
+int CfdAddTxInForFundRawTx(
+    void* handle, void* fund_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* descriptor, const char* asset,
+    bool is_issuance, bool is_blind_issuance, bool is_pegin,
+    uint32_t pegin_btc_tx_size, const char* fedpeg_script) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(fund_handle, kPrefixFundRawTxData);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. descriptor is null or empty.");
+    }
+    CfdCapiFundRawTxData* buffer =
+        static_cast<CfdCapiFundRawTxData*>(fund_handle);
+
+    UtxoData utxo;
+    utxo.txid = Txid(txid);
+    utxo.vout = vout;
+    utxo.amount = Amount(amount);
+    utxo.descriptor = std::string(descriptor);
+    if (buffer->is_elements) {
+#ifndef CFD_DISABLE_ELEMENTS
+      if (IsEmptyString(asset)) {
+        warn(CFD_LOG_SOURCE, "utxo asset is null or empty.");
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Failed to parameter. utxo asset is null or empty.");
+      }
+      utxo.asset = ConfidentialAssetId(asset);
+
+      ElementsUtxoAndOption param;
+      param.utxo = utxo;
+      param.is_issuance = is_issuance;
+      param.is_blind_issuance = is_blind_issuance;
+      param.is_pegin = is_pegin;
+      param.pegin_btc_tx_size = pegin_btc_tx_size;
+      if (!IsEmptyString(fedpeg_script)) {
+        param.fedpeg_script = Script(fedpeg_script);
+      }
+      buffer->input_elements_utxos->push_back(param);
+#else
+      info(
+          CFD_LOG_SOURCE,
+          "unuse parameters: [is_issuance={}, is_blind_issuance={}, "
+          "is_pegin={}, pegin_btc_tx_size={}, fedpeg_script={}]",
+          is_issuance, is_blind_issuance, is_pegin, pegin_btc_tx_size,
+          fedpeg_script);
+#endif  // CFD_DISABLE_ELEMENTS
+    } else {
+      buffer->input_utxos->push_back(utxo);
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddUtxoForFundRawTx(
+    void* handle, void* fund_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* descriptor, const char* asset) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(fund_handle, kPrefixFundRawTxData);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. descriptor is null or empty.");
+    }
+    CfdCapiFundRawTxData* buffer =
+        static_cast<CfdCapiFundRawTxData*>(fund_handle);
+
+    UtxoData utxo;
+    utxo.txid = Txid(txid);
+    utxo.vout = vout;
+    utxo.amount = Amount(amount);
+    utxo.descriptor = std::string(descriptor);
+    if (buffer->is_elements) {
+#ifndef CFD_DISABLE_ELEMENTS
+      if (IsEmptyString(asset)) {
+        warn(CFD_LOG_SOURCE, "utxo asset is null or empty.");
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Failed to parameter. utxo asset is null or empty.");
+      }
+      utxo.asset = ConfidentialAssetId(asset);
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    buffer->utxos->push_back(utxo);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddTargetAmountForFundRawTx(
+    void* handle, void* fund_handle, uint32_t asset_index, int64_t amount,
+    const char* asset, const char* reserved_address) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(fund_handle, kPrefixFundRawTxData);
+    if (IsEmptyString(reserved_address)) {
+      warn(CFD_LOG_SOURCE, "reserved_address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. reserved_address is null.");
+    }
+
+    CfdCapiFundRawTxData* buffer =
+        static_cast<CfdCapiFundRawTxData*>(fund_handle);
+    if ((buffer->targets == nullptr) ||
+        (asset_index >= buffer->targets->size())) {
+      warn(CFD_LOG_SOURCE, "target amounts is maximum over.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. target amounts is maximum over.");
+    }
+
+    CfdCapiFundTargetAmount object;
+    object.amount = amount;
+    object.reserved_address = reserved_address;
+    if (!IsEmptyString(asset)) {
+#ifndef CFD_DISABLE_ELEMENTS
+      object.asset = std::string(asset);
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    (*buffer->targets)[asset_index] = object;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdSetOptionFundRawTx(
+    void* handle, void* fund_handle, int key, int64_t int64_value,
+    double double_value, bool bool_value) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(fund_handle, kPrefixFundRawTxData);
+    CfdCapiFundRawTxData* buffer =
+        static_cast<CfdCapiFundRawTxData*>(fund_handle);
+
+    switch (key) {
+      case kCfdFundTxIsBlind:
+        buffer->is_blind = bool_value;
+        break;
+      case kCfdFundTxDustFeeRate:
+        buffer->dust_fee_rate = double_value;
+        break;
+      case kCfdFundTxLongTermFeeRate:
+        buffer->long_term_fee_rate = double_value;
+        break;
+      case kCfdFundTxKnapsackMinChange:
+        buffer->knapsack_min_change = int64_value;
+        break;
+      default:
+        warn(CFD_LOG_SOURCE, "illegal key {}.", key);
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Failed to parameter. key is illegal.");
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdFinalizeFundRawTx(
+    void* handle, void* fund_handle, const char* tx_hex,
+    double effective_fee_rate, int64_t* tx_fee, uint32_t* append_txout_count,
+    char** output_tx_hex) {
+  int result = CfdErrorCode::kCfdUnknownError;
+#ifndef CFD_DISABLE_ELEMENTS
+  auto convert_to_asset = [](const uint8_t* asset) -> ConfidentialAssetId {
+    std::vector<uint8_t> bytes(33);
+    memcpy(bytes.data(), asset, bytes.size());
+    return ConfidentialAssetId(ByteData(bytes));
+  };
+#endif  // CFD_DISABLE_ELEMENTS
+
+  try {
+    cfd::Initialize();
+    CheckBuffer(fund_handle, kPrefixFundRawTxData);
+    if (IsEmptyString(tx_hex)) {
+      warn(CFD_LOG_SOURCE, "tx_hex is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx_hex is null or empty.");
+    }
+    if (output_tx_hex == nullptr) {
+      warn(CFD_LOG_SOURCE, "output_tx_hex is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. output_tx_hex is null.");
+    }
+    CfdCapiFundRawTxData* buffer =
+        static_cast<CfdCapiFundRawTxData*>(fund_handle);
+
+    CoinSelectionOption option_params;
+    option_params.SetEffectiveFeeBaserate(effective_fee_rate);
+    option_params.SetLongTermFeeBaserate(buffer->long_term_fee_rate);
+    option_params.SetDustFeeRate(buffer->dust_fee_rate);
+    option_params.SetKnapsackMinimumChange(buffer->knapsack_min_change);
+
+    Amount utxo_fee_value;
+    UtxoFilter filter;
+    Amount tx_fee_value;
+    std::vector<Utxo> utxo_list;
+    if (buffer->is_elements) {
+#ifndef CFD_DISABLE_ELEMENTS
+      // elements
+      option_params.InitializeConfidentialTxSizeInfo();
+      ConfidentialAssetId fee_asset = convert_to_asset(buffer->fee_asset);
+      option_params.SetFeeAsset(fee_asset);
+
+      AmountMap map_target_value;
+      std::map<std::string, std::string> reserve_txout_address;
+      for (const auto& target : *(buffer->targets)) {
+        map_target_value.emplace(
+            target.asset, Amount::CreateBySatoshiAmount(target.amount));
+        reserve_txout_address.emplace(target.asset, target.reserved_address);
+      }
+
+      ElementsTransactionApi api;
+      ConfidentialTransactionController ctxc = api.FundRawTransaction(
+          tx_hex, *buffer->utxos, map_target_value,
+          *buffer->input_elements_utxos, reserve_txout_address, fee_asset,
+          buffer->is_blind, effective_fee_rate, &tx_fee_value, &filter,
+          &option_params, buffer->append_txout_addresses, buffer->net_type);
+      if (output_tx_hex != nullptr) {
+        *output_tx_hex = CreateString(ctxc.GetHex());
+      }
+#endif  // CFD_DISABLE_ELEMENTS
+    } else {
+      // bitcoin
+      option_params.InitializeTxSizeInfo();
+      auto& target = buffer->targets->at(0);
+      Amount target_value(target.amount);
+
+      TransactionApi api;
+      TransactionController txc = api.FundRawTransaction(
+          tx_hex, *buffer->utxos, target_value, *buffer->input_utxos,
+          target.reserved_address, effective_fee_rate, &tx_fee_value, &filter,
+          &option_params, buffer->append_txout_addresses, buffer->net_type);
+      if (output_tx_hex != nullptr) {
+        *output_tx_hex = CreateString(txc.GetHex());
+      }
+    }
+
+    if (tx_fee != nullptr) {
+      *tx_fee = tx_fee_value.GetSatoshiValue();
+    }
+    if (append_txout_count != nullptr) {
+      *append_txout_count =
+          static_cast<uint32_t>(buffer->append_txout_addresses->size());
+    }
+
+    result = CfdErrorCode::kCfdSuccess;
+    return result;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdGetAppendTxOutFundRawTx(
+    void* handle, void* fund_handle, uint32_t index, char** append_address) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(fund_handle, kPrefixFundRawTxData);
+    if (append_address == nullptr) {
+      warn(CFD_LOG_SOURCE, "append_address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. append_address is null.");
+    }
+
+    CfdCapiFundRawTxData* buffer =
+        static_cast<CfdCapiFundRawTxData*>(fund_handle);
+    if ((buffer->append_txout_addresses == nullptr) ||
+        (index >= buffer->append_txout_addresses->size())) {
+      warn(CFD_LOG_SOURCE, "target addresses is maximum over.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. target addresses is maximum over.");
+    }
+
+    *append_address = CreateString(buffer->append_txout_addresses->at(index));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdFreeFundRawTxHandle(void* handle, void* fund_handle) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (fund_handle != nullptr) {
+      CfdCapiFundRawTxData* fund_struct =
+          static_cast<CfdCapiFundRawTxData*>(fund_handle);
+      if (fund_struct->utxos != nullptr) {
+        delete fund_struct->utxos;
+        fund_struct->utxos = nullptr;
+      }
+      if (fund_struct->input_utxos != nullptr) {
+        delete fund_struct->input_utxos;
+        fund_struct->input_utxos = nullptr;
+      }
+#ifndef CFD_DISABLE_ELEMENTS
+      if (fund_struct->input_elements_utxos != nullptr) {
+        delete fund_struct->input_elements_utxos;
+        fund_struct->input_elements_utxos = nullptr;
+      }
+#endif  // CFD_DISABLE_ELEMENTS
+      if (fund_struct->append_txout_addresses != nullptr) {
+        delete fund_struct->append_txout_addresses;
+        fund_struct->append_txout_addresses = nullptr;
+      }
+      if (fund_struct->targets != nullptr) {
+        delete fund_struct->targets;
+        fund_struct->targets = nullptr;
+      }
+    }
+    FreeBuffer(
+        fund_handle, kPrefixFundRawTxData, sizeof(CfdCapiFundRawTxData));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
 }
 
 };  // extern "C"
