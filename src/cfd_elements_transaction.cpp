@@ -246,7 +246,7 @@ uint32_t ConfidentialTransactionContext::AddTxOut(
 
 uint32_t ConfidentialTransactionContext::GetSizeIgnoreTxIn(
     bool is_blinded, uint32_t* witness_area_size,
-    uint32_t* no_witness_area_size) const {
+    uint32_t* no_witness_area_size, int exponent, int minimum_bits) const {
   uint32_t size = ConfidentialTransaction::kElementsTransactionMinimumSize;
   std::vector<ConfidentialTxOutReference> txouts = GetTxOutList();
 
@@ -254,9 +254,11 @@ uint32_t ConfidentialTransactionContext::GetSizeIgnoreTxIn(
   uint32_t no_witness_size = 0;
   uint32_t temp_witness_size = 0;
   uint32_t temp_no_witness_size = 0;
+  uint32_t rangeproof_size_cache = 0;
   for (const auto& txout : txouts) {
     txout.GetSerializeSize(
-        is_blinded, &temp_witness_size, &temp_no_witness_size);
+        is_blinded, &temp_witness_size, &temp_no_witness_size, exponent,
+        minimum_bits, &rangeproof_size_cache);
     witness_size += temp_witness_size;
     no_witness_size += temp_no_witness_size;
   }
@@ -272,10 +274,11 @@ uint32_t ConfidentialTransactionContext::GetSizeIgnoreTxIn(
 }
 
 uint32_t ConfidentialTransactionContext::GetVsizeIgnoreTxIn(
-    bool is_blinded) const {
+    bool is_blinded, int exponent, int minimum_bits) const {
   uint32_t witness_size = 0;
   uint32_t no_witness_size = 0;
-  GetSizeIgnoreTxIn(is_blinded, &witness_size, &no_witness_size);
+  GetSizeIgnoreTxIn(
+      is_blinded, &witness_size, &no_witness_size, exponent, minimum_bits);
   return AbstractTransaction::GetVsizeFromSize(no_witness_size, witness_size);
 }
 
@@ -1211,7 +1214,7 @@ ConfidentialTransactionController::GetTransaction() const {
 
 uint32_t ConfidentialTransactionController::GetSizeIgnoreTxIn(
     bool is_blinded, uint32_t* witness_area_size,
-    uint32_t* no_witness_area_size) const {
+    uint32_t* no_witness_area_size, int exponent, int minimum_bits) const {
   uint32_t size = ConfidentialTransaction::kElementsTransactionMinimumSize;
   std::vector<ConfidentialTxOutReference> txouts = transaction_.GetTxOutList();
 
@@ -1219,9 +1222,11 @@ uint32_t ConfidentialTransactionController::GetSizeIgnoreTxIn(
   uint32_t no_witness_size = 0;
   uint32_t temp_witness_size = 0;
   uint32_t temp_no_witness_size = 0;
+  uint32_t rangeproof_size_cache = 0;
   for (const auto& txout : txouts) {
     txout.GetSerializeSize(
-        is_blinded, &temp_witness_size, &temp_no_witness_size);
+        is_blinded, &temp_witness_size, &temp_no_witness_size, exponent,
+        minimum_bits, &rangeproof_size_cache);
     witness_size += temp_witness_size;
     no_witness_size += temp_no_witness_size;
   }
@@ -1237,10 +1242,11 @@ uint32_t ConfidentialTransactionController::GetSizeIgnoreTxIn(
 }
 
 uint32_t ConfidentialTransactionController::GetVsizeIgnoreTxIn(
-    bool is_blinded) const {
+    bool is_blinded, int exponent, int minimum_bits) const {
   uint32_t witness_size = 0;
   uint32_t no_witness_size = 0;
-  GetSizeIgnoreTxIn(is_blinded, &witness_size, &no_witness_size);
+  GetSizeIgnoreTxIn(
+      is_blinded, &witness_size, &no_witness_size, exponent, minimum_bits);
   return AbstractTransaction::GetVsizeFromSize(no_witness_size, witness_size);
 }
 

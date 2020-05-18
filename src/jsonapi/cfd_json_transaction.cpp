@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "cfd/cfd_address.h"
-#include "cfd/cfdapi_coin.h"
 #include "cfd/cfdapi_transaction.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_exception.h"

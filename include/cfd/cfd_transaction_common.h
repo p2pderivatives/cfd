@@ -74,13 +74,14 @@ struct UtxoData {
   void* binary_data;         //!< binary data option
 #ifndef CFD_DISABLE_ELEMENTS
   ConfidentialAssetId asset;  //!< asset
-  // int32_t status;           //!< utxo status (reserved)
   // elements
   ElementsConfidentialAddress confidential_address;  //!< Confidential address
   BlindFactor asset_blind_factor;                    //!< asset blind factor
   BlindFactor amount_blind_factor;                   //!< blind vactor
   ConfidentialValue value_commitment;                //!< value commitment
 #endif                                               // CFD_DISABLE_ELEMENTS
+  Script scriptsig_template;                         //!< scriptsig template
+  // int32_t status;          //!< utxo status (reserved)
 };
 
 /**

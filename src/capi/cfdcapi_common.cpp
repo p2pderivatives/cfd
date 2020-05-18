@@ -634,11 +634,11 @@ extern "C" int CfdRequestExecuteJson(
 int CfdSerializeByteData(void* handle, const char* buffer, char** output) {
   try {
     cfd::Initialize();
-    if (cfd::capi::IsEmptyString(buffer)) {
-      warn(CFD_LOG_SOURCE, "buffer is null or empty.");
+    if (buffer == nullptr) {
+      warn(CFD_LOG_SOURCE, "buffer is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. buffer is null or empty.");
+          "Failed to parameter. buffer is null.");
     }
     if (output == nullptr) {
       warn(CFD_LOG_SOURCE, "output is null.");

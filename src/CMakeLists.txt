@@ -195,12 +195,24 @@ endif()   # USE_INSTALLED_LIBRARY
 # coverage
 ####################
 if(ENABLE_DEBUG AND ENABLE_COVERAGE)
+if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+message(STATUS "Using CMake less 3.17.0")
 add_custom_target(
   lcov_cfd00
   ${CMAKE_COMMAND} -E make_directory ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output
   COMMAND ${CMAKE_COMMAND} -E remove -f cfd1.info cfd12.info cfd_api.info cfd_cfd.info cfd_cfd1.info cfd.info capi/cfd2.info capi/cfd_capi.info jsonapi/cfd3.info jsonapi/cfd_jsonapi.info
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
 )
+else(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+message(STATUS "Using CMake ${CMAKE_VERSION}")
+add_custom_target(
+  lcov_cfd00
+  ${CMAKE_COMMAND} -E make_directory ${CFD_ROOT_BINARY_DIR}/lcov_cfd_output
+  COMMAND ${CMAKE_COMMAND} -E rm -f cfd1.info cfd12.info cfd_api.info cfd_cfd.info cfd_cfd1.info cfd.info capi/cfd2.info capi/cfd_capi.info jsonapi/cfd3.info jsonapi/cfd_jsonapi.info
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cfd.dir
+)
+endif(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+
 add_custom_target(
   lcov_cfd11
   lcov -c -d . -o cfd1.info

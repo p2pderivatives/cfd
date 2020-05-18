@@ -17,7 +17,6 @@
 #include "cfd/cfd_elements_transaction.h"
 #include "cfd/cfd_transaction.h"
 #include "cfd/cfd_transaction_common.h"
-#include "cfd/cfdapi_coin.h"
 #include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_key.h"
 #include "cfd/cfdapi_transaction.h"
@@ -132,6 +131,10 @@ struct CfdCapiFundRawTxData {
   double long_term_fee_rate;
   /// knapsack min change (int64)
   int64_t knapsack_min_change;
+  /// blind exponent (int64)
+  int exponent;
+  /// blind minimum bits (int64)
+  int minimum_bits;
 };
 
 /**
@@ -300,7 +303,7 @@ int CfdInitializeTransaction(
     buffer = static_cast<CfdCapiCreateTransactionData*>(AllocBuffer(
         kPrefixCreateTxData, sizeof(CfdCapiCreateTransactionData)));
     buffer->net_type = net_type;
-    buffer->base_tx_hex = base_tx;
+    buffer->base_tx_hex = CreateString(base_tx);
     buffer->txin_list = new std::vector<CfdCapiTxInputData>();
     buffer->txout_list = new std::vector<CfdCapiTxOutputData>();
     *create_handle = buffer;
@@ -446,12 +449,12 @@ int CfdFinalizeTransaction(
     bool is_bitcoin = false;
     ConvertNetType(buffer->net_type, &is_bitcoin);
     if (is_bitcoin) {
-      TransactionContext tx(buffer->base_tx_hex);
+      TransactionContext tx(std::string(buffer->base_tx_hex));
       AddTxData(&tx, *buffer->txin_list, *buffer->txout_list);
       *tx_hex_string = CreateString(tx.GetHex());
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
-      ConfidentialTransactionContext tx(buffer->base_tx_hex);
+      ConfidentialTransactionContext tx(std::string(buffer->base_tx_hex));
       AddConfidentialTxData(&tx, *buffer->txin_list, *buffer->txout_list);
       *tx_hex_string = CreateString(tx.GetHex());
 #else
@@ -485,6 +488,10 @@ int CfdFreeTransactionHandle(void* handle, void* create_handle) {
       if (create_tx_struct->txout_list != nullptr) {
         delete create_tx_struct->txout_list;
         create_tx_struct->txout_list = nullptr;
+      }
+      if (create_tx_struct->base_tx_hex != nullptr) {
+        free(create_tx_struct->base_tx_hex);
+        create_tx_struct->base_tx_hex = nullptr;
       }
     }
     FreeBuffer(
@@ -1232,6 +1239,7 @@ int CfdVerifyTxSign(
       ConfidentialTransactionContext tx(tx_hex);
       if (!IsEmptyString(value_bytedata)) {
         utxo.value_commitment = ConfidentialValue(value_bytedata);
+        utxos[0] = utxo;
       }
       tx.GetTxInIndex(outpoint);
       tx.CollectInputUtxo(utxos);
@@ -1878,9 +1886,11 @@ int CfdInitializeFundRawTx(
           "Failed to parameter. network type is not bitcoin.");
     }
     obj.is_blind = false;
-    obj.long_term_fee_rate = (obj.is_elements) ? 0.115 : 20.0;
+    obj.long_term_fee_rate = (obj.is_elements) ? 0.15 : 20.0;
     obj.dust_fee_rate = 3.0;
     obj.knapsack_min_change = -1;
+    obj.exponent = 0;
+    obj.minimum_bits = cfd::capi::kMinimumBits;  // = 36(old)
 
     buffer = static_cast<CfdCapiFundRawTxData*>(
         AllocBuffer(kPrefixFundRawTxData, sizeof(CfdCapiFundRawTxData)));
@@ -1912,6 +1922,17 @@ int CfdAddTxInForFundRawTx(
     int64_t amount, const char* descriptor, const char* asset,
     bool is_issuance, bool is_blind_issuance, bool is_pegin,
     uint32_t pegin_btc_tx_size, const char* fedpeg_script) {
+  return CfdAddTxInTemplateForFundRawTx(
+      handle, fund_handle, txid, vout, amount, descriptor, asset, is_issuance,
+      is_blind_issuance, is_pegin, pegin_btc_tx_size, fedpeg_script, nullptr);
+}
+
+int CfdAddTxInTemplateForFundRawTx(
+    void* handle, void* fund_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* descriptor, const char* asset,
+    bool is_issuance, bool is_blind_issuance, bool is_pegin,
+    uint32_t pegin_btc_tx_size, const char* fedpeg_script,
+    const char* scriptsig_template) {
   try {
     cfd::Initialize();
     CheckBuffer(fund_handle, kPrefixFundRawTxData);
@@ -1935,6 +1956,9 @@ int CfdAddTxInForFundRawTx(
     utxo.vout = vout;
     utxo.amount = Amount(amount);
     utxo.descriptor = std::string(descriptor);
+    if (!IsEmptyString(scriptsig_template)) {
+      utxo.scriptsig_template = Script(std::string(scriptsig_template));
+    }
     if (buffer->is_elements) {
 #ifndef CFD_DISABLE_ELEMENTS
       if (IsEmptyString(asset)) {
@@ -1981,6 +2005,14 @@ int CfdAddTxInForFundRawTx(
 int CfdAddUtxoForFundRawTx(
     void* handle, void* fund_handle, const char* txid, uint32_t vout,
     int64_t amount, const char* descriptor, const char* asset) {
+  return CfdAddUtxoTemplateForFundRawTx(
+      handle, fund_handle, txid, vout, amount, descriptor, asset, nullptr);
+}
+
+int CfdAddUtxoTemplateForFundRawTx(
+    void* handle, void* fund_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* descriptor, const char* asset,
+    const char* scriptsig_template) {
   try {
     cfd::Initialize();
     CheckBuffer(fund_handle, kPrefixFundRawTxData);
@@ -2004,6 +2036,10 @@ int CfdAddUtxoForFundRawTx(
     utxo.vout = vout;
     utxo.amount = Amount(amount);
     utxo.descriptor = std::string(descriptor);
+    utxo.address_type = AddressType::kP2shAddress;  // force init
+    if (!IsEmptyString(scriptsig_template)) {
+      utxo.scriptsig_template = Script(std::string(scriptsig_template));
+    }
     if (buffer->is_elements) {
 #ifndef CFD_DISABLE_ELEMENTS
       if (IsEmptyString(asset)) {
@@ -2096,6 +2132,14 @@ int CfdSetOptionFundRawTx(
       case kCfdFundTxKnapsackMinChange:
         buffer->knapsack_min_change = int64_value;
         break;
+      case kCfdFundTxBlindExponent:
+        buffer->exponent = static_cast<int>(int64_value);
+        break;
+      case kCfdFundTxBlindMinimumBits:
+        if (int64_value >= 0) {
+          buffer->minimum_bits = static_cast<int>(int64_value);
+        }
+        break;
       default:
         warn(CFD_LOG_SOURCE, "illegal key {}.", key);
         throw CfdException(
@@ -2150,6 +2194,9 @@ int CfdFinalizeFundRawTx(
     option_params.SetLongTermFeeBaserate(buffer->long_term_fee_rate);
     option_params.SetDustFeeRate(buffer->dust_fee_rate);
     option_params.SetKnapsackMinimumChange(buffer->knapsack_min_change);
+#ifndef CFD_DISABLE_ELEMENTS
+    option_params.SetBlindInfo(buffer->exponent, buffer->minimum_bits);
+#endif  // CFD_DISABLE_ELEMENTS
 
     Amount utxo_fee_value;
     UtxoFilter filter;

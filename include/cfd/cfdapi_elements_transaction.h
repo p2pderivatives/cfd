@@ -515,6 +515,10 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[in] utxo_fee            utxo fee amount
    * @param[in] is_blind            using tx blinding
    * @param[in] effective_fee_rate  effective fee rate (minimum)
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @return tx fee (contains utxo)
    */
   Amount EstimateFee(
@@ -522,7 +526,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const std::vector<ElementsUtxoAndOption>& utxos,
       const ConfidentialAssetId& fee_asset, Amount* tx_fee = nullptr,
       Amount* utxo_fee = nullptr, bool is_blind = true,
-      double effective_fee_rate = 1) const;
+      double effective_fee_rate = 1, int exponent = 0,
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
 
   /**
    * @brief estimate a fee amount from transaction.
@@ -533,6 +538,10 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[in] utxo_fee            utxo fee amount
    * @param[in] is_blind            using tx blinding
    * @param[in] effective_fee_rate  effective fee rate (minimum)
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @return tx fee (contains utxo)
    */
   Amount EstimateFee(
@@ -540,7 +549,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const std::vector<ElementsUtxoAndOption>& utxos,
       const ConfidentialAssetId& fee_asset, Amount* tx_fee = nullptr,
       Amount* utxo_fee = nullptr, bool is_blind = true,
-      uint64_t effective_fee_rate = 1000) const;
+      uint64_t effective_fee_rate = 1000, int exponent = 0,
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
 
   /**
    * @brief calculate fund transaction.

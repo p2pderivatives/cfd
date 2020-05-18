@@ -50,7 +50,7 @@ void CoinApi::ConvertToUtxo(const UtxoData& utxo_data, Utxo* utxo) const {
     // descriptorがあれば、そこから変換
     std::vector<uint8_t> locking_script_bytes;
     if (!utxo_data.descriptor.empty()) {
-      // FIXME descriptor差し替え
+      // FIXME descriptor差し替え -> クラス自体廃止
       // utxo->locking_script = utxo_data.descriptor;
       // utxo->address_type = utxo_data.descriptor;
     } else if (!utxo_data.address.GetAddress().empty()) {

@@ -336,7 +336,7 @@ TEST(cfdcapi_common, CfdSerializeByteData) {
   }
 
   ret = CfdSerializeByteData(handle, "", &output);
-  EXPECT_EQ(kCfdIllegalArgumentError, ret);
+  EXPECT_EQ(kCfdSuccess, ret);
   if (ret == kCfdSuccess) {
     EXPECT_STREQ("00", output);
     CfdFreeStringBuffer(output);

@@ -16,7 +16,6 @@
 #include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_elements_transaction.h"
 #include "cfd/cfd_transaction_common.h"
-#include "cfd/cfdapi_coin.h"
 #include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_key.h"
 #include "cfdc/cfdcapi_common.h"
@@ -1045,6 +1044,47 @@ int CfdGetIssuanceBlindingKey(
   }
 }
 
+int CfdGetDefaultBlindingKey(
+    void* handle, const char* master_blinding_key, const char* locking_script,
+    char** blinding_key) {
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(master_blinding_key)) {
+      warn(CFD_LOG_SOURCE, "master blinding key is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. master blinding key is null or empty.");
+    }
+    if (IsEmptyString(locking_script)) {
+      warn(CFD_LOG_SOURCE, "locking script is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. locking script is null or empty.");
+    }
+    if (blinding_key == nullptr) {
+      warn(CFD_LOG_SOURCE, "blinding key is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. blinding key is null.");
+    }
+
+    Privkey privkey = ElementsConfidentialAddress::GetBlindingKey(
+        Privkey(std::string(master_blinding_key)),
+        Script(std::string(locking_script)));
+    *blinding_key = CreateString(privkey.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
 int CfdInitializeBlindTx(void* handle, void** blind_handle) {
   CfdCapiBlindTxData* buffer = nullptr;
   try {
@@ -1060,9 +1100,9 @@ int CfdInitializeBlindTx(void* handle, void** blind_handle) {
         AllocBuffer(kPrefixBlindTxData, sizeof(CfdCapiBlindTxData)));
     buffer->txin_blind_keys = new std::vector<TxInBlindParameters>();
     buffer->txout_blind_keys = new std::vector<TxOutBlindKeys>();
-    buffer->minimum_range_value = 1;  // = 1,
-    buffer->exponent = 0;             // = 0
-    buffer->minimum_bits = 36;        // = 36(old)
+    buffer->minimum_range_value = 1;                 // = 1,
+    buffer->exponent = 0;                            // = 0
+    buffer->minimum_bits = cfd::capi::kMinimumBits;  // = 36(old)
 
     *blind_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
@@ -1227,6 +1267,7 @@ int CfdAddBlindTxOutByAddress(
 
 int CfdSetBlindTxOption(
     void* handle, void* blind_handle, int key, int64_t value) {
+  int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
     CheckBuffer(blind_handle, kPrefixBlindTxData);
@@ -1251,14 +1292,13 @@ int CfdSetBlindTxOption(
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    return SetLastError(handle, except);
+    result = SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
   }
+  return result;
 }
 
 int CfdFinalizeBlindTx(
@@ -1294,12 +1334,6 @@ int CfdFinalizeBlindTx(
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. txin blind data is empty.");
-    }
-    if (buffer->txout_blind_keys->empty()) {
-      warn(CFD_LOG_SOURCE, "txout blind data is empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. txout blind data is empty.");
     }
 
     std::map<OutPoint, BlindParameter> utxo_info_map;

@@ -33,6 +33,7 @@ using cfd::core::ConfidentialAssetId;
 
 /**
  * @brief Coin関連のAPIクラス
+ * @deprecated replace to UtxoUtil.
  */
 class CFD_EXPORT CoinApi {
  public:

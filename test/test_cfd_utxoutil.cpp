@@ -5,12 +5,14 @@
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_coin.h"
 
 using cfd::Utxo;
 using cfd::UtxoData;
 using cfd::UtxoUtil;
 using cfd::core::Txid;
+using cfd::core::AddressType;
 
 TEST(UtxoUtil, ConvertToUtxo_list)
 {
@@ -18,9 +20,11 @@ TEST(UtxoUtil, ConvertToUtxo_list)
   UtxoData utxo1;
   utxo1.txid = Txid("9e1ead91c432889cb478237da974dd1e9009c9e22694fd1e3999c40a1ef59b0a");
   utxo1.vout = 1;
+  utxo1.address_type = AddressType::kP2wpkhAddress;
   UtxoData utxo2;
   utxo2.txid = Txid("8f4af7ee42e62a3d32f25ca56f618fb2f5df3d4c3a9c59e2c3646c5535a3d40a");
   utxo2.vout = 2;
+  utxo2.address_type = AddressType::kP2wpkhAddress;
   utxos.push_back(utxo1);
   utxos.push_back(utxo2);
 
@@ -42,6 +46,7 @@ TEST(UtxoUtil, ConvertToUtxo)
   UtxoData utxo1;
   utxo1.txid = Txid("9e1ead91c432889cb478237da974dd1e9009c9e22694fd1e3999c40a1ef59b0a");
   utxo1.vout = 1;
+  utxo1.address_type = AddressType::kP2wpkhAddress;
 
   Utxo utxo;
   memset(&utxo, 0, sizeof(utxo));
