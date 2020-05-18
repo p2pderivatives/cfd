@@ -17,6 +17,7 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_fee.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
@@ -203,13 +204,25 @@ Amount CoinSelectionOption::GetConfidentialDustFeeAmount(
   return dust_fee.GetFee(size);
 }
 
+void CoinSelectionOption::SetBlindInfo(int exponent, int minimum_bits) {
+  exponent_ = exponent;
+  minimum_bits_ = minimum_bits;
+}
+
+void CoinSelectionOption::GetBlindInfo(
+    int* exponent, int* minimum_bits) const {
+  if (exponent != nullptr) *exponent = exponent_;
+  if (minimum_bits != nullptr) *minimum_bits = minimum_bits_;
+}
+
 void CoinSelectionOption::InitializeConfidentialTxSizeInfo() {
   // wpkh想定
   Script wpkh_script("0014ffffffffffffffffffffffffffffffffffffffff");
   ConfidentialTxOut ctxout(
       wpkh_script, ConfidentialAssetId(), ConfidentialValue());
   ConfidentialTxOutReference txout(ctxout);
-  change_output_size_ = txout.GetSerializeVsize(true);
+  change_output_size_ =
+      txout.GetSerializeVsize(true, exponent_, minimum_bits_);
   change_spend_size_ = ConfidentialTxIn::EstimateTxInVsize(
       AddressType::kP2wpkhAddress, Script(), 0, Script(), false, false);
 }
@@ -883,8 +896,7 @@ void CoinSelection::ApproximateBestSubset(
 void CoinSelection::ConvertToUtxo(
     const Txid& txid, uint32_t vout, const std::string& output_descriptor,
     const Amount& amount, const std::string& asset, const void* binary_data,
-    Utxo* utxo) {
-  static constexpr const uint16_t kScriptSize = 50;
+    Utxo* utxo, const Script* scriptsig_template) {
   if (utxo == nullptr) {
     warn(CFD_LOG_SOURCE, "utxo is nullptr.");
     throw CfdException(
@@ -892,85 +904,30 @@ void CoinSelection::ConvertToUtxo(
         "Failed to convert utxo. utxo is nullptr.");
   }
   memset(utxo, 0, sizeof(*utxo));
-  ByteData txid_data = txid.GetData();
-  if (!txid_data.Empty()) {
-    memcpy(utxo->txid, txid_data.GetBytes().data(), sizeof(utxo->txid));
+
+  UtxoData utxo_data;
+  utxo_data.txid = txid;
+  utxo_data.vout = vout;
+  utxo_data.descriptor = output_descriptor;
+  utxo_data.amount = amount;
+  utxo_data.address_type = AddressType::kP2wpkhAddress;  // initialize
+  if (scriptsig_template != nullptr) {
+    utxo_data.scriptsig_template = *scriptsig_template;
   }
-  utxo->vout = vout;
-
-  // TODO(k-matsuzawa): descriptor解析は暫定対処。本対応が必要。
-
-  uint32_t minimum_txin = static_cast<uint32_t>(TxIn::kMinimumTxInSize);
-  uint32_t witness_size = 0;
-  if (output_descriptor.find("wpkh(") == 0) {
-    utxo->address_type = AddressType::kP2wpkhAddress;
-    TxIn::EstimateTxInSize(
-        AddressType::kP2wpkhAddress, Script(), &witness_size);
-    utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-  } else if (output_descriptor.find("wsh(") == 0) {
-    utxo->address_type = AddressType::kP2wshAddress;
-    TxIn::EstimateTxInSize(
-        AddressType::kP2wshAddress, Script(), &witness_size);
-    utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-    utxo->witness_size_max += kScriptSize;
-  } else if (output_descriptor.find("sh(") == 0) {
-    if (output_descriptor.find("sh(wpkh(") == 0) {
-      utxo->address_type = AddressType::kP2shP2wpkhAddress;
-      utxo->uscript_size_max = 22;
-      TxIn::EstimateTxInSize(
-          AddressType::kP2wpkhAddress, Script(), &witness_size);
-      utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-    } else if (output_descriptor.find("sh(wsh(") == 0) {
-      utxo->address_type = AddressType::kP2shP2wshAddress;
-      utxo->uscript_size_max = 34;
-      TxIn::EstimateTxInSize(
-          AddressType::kP2wshAddress, Script(), &witness_size);
-      utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-      utxo->witness_size_max += kScriptSize;
-    } else {
-      utxo->address_type = AddressType::kP2shAddress;
-      utxo->uscript_size_max = kScriptSize;
-      utxo->uscript_size_max +=
-          TxIn::EstimateTxInSize(AddressType::kP2shAddress, Script()) -
-          minimum_txin;
-    }
-  } else if (output_descriptor.find("pkh(") == 0) {
-    utxo->address_type = AddressType::kP2pkhAddress;
-    utxo->uscript_size_max =
-        TxIn::EstimateTxInSize(AddressType::kP2pkhAddress, Script()) -
-        minimum_txin;
-  } else {
-    // unknown type?
-  }
-#if 0
-  const std::vector<uint8_t>& scrpt = locking_script.GetData().GetBytes();
-  if (scrpt.size() < sizeof(utxo->locking_script)) {
-    memcpy(utxo->locking_script, scrpt.data(), sizeof(utxo->locking_script));
-    utxo->script_length = static_cast<uint16_t>(scrpt.size());
-  }
-#endif
-
-  utxo->amount = amount.GetSatoshiValue();
-  memcpy(&utxo->binary_data, &binary_data, sizeof(void*));
-  utxo->effective_value = utxo->amount;
-
+  memcpy(&utxo_data.binary_data, &binary_data, sizeof(void*));
 #ifndef CFD_DISABLE_ELEMENTS
   if (!asset.empty()) {
-    ConfidentialAssetId asset_data(asset);
-    utxo->blinded = asset_data.HasBlinding();
-    memcpy(
-        utxo->asset, asset_data.GetData().GetBytes().data(),
-        sizeof(utxo->asset));
+    utxo_data.asset = ConfidentialAssetId(asset);
   }
 #endif  // CFD_DISABLE_ELEMENTS
+  UtxoUtil::ConvertToUtxo(utxo_data, utxo, nullptr);
 }
 
 void CoinSelection::ConvertToUtxo(
     uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
     uint32_t vout, const Script& locking_script,
     const std::string& output_descriptor, const Amount& amount,
-    const void* binary_data, Utxo* utxo) {
-  static constexpr const uint16_t kScriptSize = 50;
+    const void* binary_data, Utxo* utxo, const Script* scriptsig_template) {
   if (utxo == nullptr) {
     warn(CFD_LOG_SOURCE, "utxo is nullptr.");
     throw CfdException(
@@ -979,66 +936,20 @@ void CoinSelection::ConvertToUtxo(
   }
   memset(utxo, 0, sizeof(*utxo));
 
-  utxo->block_height = block_height;
-  if (!block_hash.GetData().Empty()) {
-    memcpy(
-        utxo->block_hash, block_hash.GetData().GetBytes().data(),
-        sizeof(utxo->block_hash));
+  UtxoData utxo_data;
+  utxo_data.block_height = block_height;
+  utxo_data.block_hash = block_hash;
+  utxo_data.txid = txid;
+  utxo_data.vout = vout;
+  utxo_data.locking_script = locking_script;
+  utxo_data.descriptor = output_descriptor;
+  utxo_data.amount = amount;
+  utxo_data.address_type = AddressType::kP2wpkhAddress;  // initialize
+  if (scriptsig_template != nullptr) {
+    utxo_data.scriptsig_template = *scriptsig_template;
   }
-  ByteData txid_data = txid.GetData();
-  if (!txid_data.Empty()) {
-    memcpy(utxo->txid, txid_data.GetBytes().data(), sizeof(utxo->txid));
-  }
-  utxo->vout = vout;
-  const std::vector<uint8_t>& script = locking_script.GetData().GetBytes();
-  if (script.size() < sizeof(utxo->locking_script)) {
-    memcpy(utxo->locking_script, script.data(), script.size());
-    utxo->script_length = static_cast<uint16_t>(script.size());
-  }
-
-  uint32_t minimum_txin = static_cast<uint32_t>(TxIn::kMinimumTxInSize);
-  uint32_t witness_size = 0;
-  if (locking_script.IsP2pkhScript()) {
-    utxo->address_type = AddressType::kP2pkhAddress;
-    utxo->uscript_size_max =
-        TxIn::EstimateTxInSize(AddressType::kP2pkhAddress, Script()) -
-        minimum_txin;
-  } else if (locking_script.IsP2shScript()) {
-    utxo->address_type = AddressType::kP2shAddress;
-    utxo->uscript_size_max = kScriptSize;
-    utxo->uscript_size_max +=
-        TxIn::EstimateTxInSize(AddressType::kP2shAddress, Script()) -
-        minimum_txin;
-    if (output_descriptor.find("sh(wpkh(") == 0) {
-      utxo->address_type = AddressType::kP2shP2wpkhAddress;
-      utxo->uscript_size_max = 22;
-      TxIn::EstimateTxInSize(
-          AddressType::kP2wpkhAddress, Script(), &witness_size);
-      utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-    } else if (output_descriptor.find("sh(wsh(") == 0) {
-      utxo->address_type = AddressType::kP2shP2wshAddress;
-      utxo->uscript_size_max = 34;
-      TxIn::EstimateTxInSize(
-          AddressType::kP2wshAddress, Script(), &witness_size);
-      utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-      utxo->witness_size_max += kScriptSize;
-    }
-  } else if (locking_script.IsP2wpkhScript()) {
-    utxo->address_type = AddressType::kP2wpkhAddress;
-    TxIn::EstimateTxInSize(
-        AddressType::kP2wpkhAddress, Script(), &witness_size);
-    utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-  } else if (locking_script.IsP2wshScript()) {
-    utxo->address_type = AddressType::kP2wshAddress;
-    TxIn::EstimateTxInSize(
-        AddressType::kP2wshAddress, Script(), &witness_size);
-    utxo->witness_size_max = static_cast<uint16_t>(witness_size);
-    utxo->witness_size_max += kScriptSize;
-  }
-  // TODO(k-matsuzawa): 後でOutputDescriptor対応する
-  utxo->amount = amount.GetSatoshiValue();
-  memcpy(&utxo->binary_data, &binary_data, sizeof(void*));
-  utxo->effective_value = utxo->amount;
+  memcpy(&utxo_data.binary_data, &binary_data, sizeof(void*));
+  UtxoUtil::ConvertToUtxo(utxo_data, utxo, nullptr);
 }
 
 #ifndef CFD_DISABLE_ELEMENTS
@@ -1046,10 +957,11 @@ void CoinSelection::ConvertToUtxo(
     uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
     uint32_t vout, const Script& locking_script,
     const std::string& output_descriptor, const Amount& amount,
-    const ConfidentialAssetId& asset, const void* binary_data, Utxo* utxo) {
+    const ConfidentialAssetId& asset, const void* binary_data, Utxo* utxo,
+    const Script* scriptsig_template) {
   ConvertToUtxo(
       block_height, block_hash, txid, vout, locking_script, output_descriptor,
-      amount, binary_data, utxo);
+      amount, binary_data, utxo, scriptsig_template);
   utxo->blinded = asset.HasBlinding();
   memcpy(utxo->asset, asset.GetData().GetBytes().data(), sizeof(utxo->asset));
 }

@@ -50,6 +50,9 @@ using cfd::core::CfdException;
 constexpr const char* const kEmpty32Bytes =
     "0000000000000000000000000000000000000000000000000000000000000000";
 
+//! blinding minimum bits (current is old value)
+constexpr uint32_t kMinimumBits = 36;
+
 //! prefix size
 constexpr const uint32_t kPrefixLength = 16;
 //! prefix: handle data
@@ -116,7 +119,7 @@ struct CfdCapiTxOutputData {
 struct CfdCapiCreateTransactionData {
   char prefix[kPrefixLength];                    //!< buffer prefix
   int net_type;                                  //!< network type
-  std::string base_tx_hex;                       //!< base tx hex
+  char* base_tx_hex;                             //!< base tx hex
   std::vector<CfdCapiTxInputData>* txin_list;    //!< txin list
   std::vector<CfdCapiTxOutputData>* txout_list;  //!< txout list
 };

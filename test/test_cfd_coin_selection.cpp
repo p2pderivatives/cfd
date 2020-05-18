@@ -43,6 +43,7 @@ static CoinSelectionOption GetBitcoinOption() {
   return option;
 }
 
+// FIXME Utxo illegal creating. need set witness_size_max, uscript_size_max
 static std::vector<Utxo> GetBitcoinUtxoList() {
   std::vector<Utxo> utxos;
   {
@@ -302,27 +303,27 @@ struct TestUtxoCoinVector {
       txid: 'eed524525ec8f94348f3d65661501b293b936e8fff4f2ff9ee70818f17367efe',
       vout: 0,
       amount: 155062500,
-      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x',
+      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))',
     }, {
       txid: 'eed524525ec8f94348f3d65661501b293b936e8fff4f2ff9ee70818f17367efe',
       vout: 0,
       amount: 85062500,
-      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x',
+      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))',
     }, {
       txid: 'efd524525ec8f94348f3d65661501b293b936e8fff4f2ff9ee70818f17367efe',
       vout: 0,
       amount: 61062500,
-      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x',
+      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))',
     }, {
       txid: 'ead524525ec8f94348f3d65661501b293b936e8fff4f2ff9ee70818f17367efe',
       vout: 0,
       amount: 39062500,
-      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x',
+      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))',
     }, {
       txid: 'eac524525ec8f94348f3d65661501b293b936e8fff4f2ff9ee70818f17367efe',
       vout: 0,
       amount: 15675000,
-      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x',
+      descriptor: 'sh(wpkh([ef735203/0\'/0\'/7\']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))',
     }, {
       txid: '0f59594cfecf8fe1733521e29736352935711f34cd958f34df4a031858f6ecfd',
       vout: 0,
@@ -343,37 +344,37 @@ static const std::vector<TestUtxoCoinVector> kExtCoinSelectTestVector = {
     "",
     0,
     155062500,
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     85062500,
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     39062500,
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     61062500,
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     15675000,
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     14938590,
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   }
 };
 
@@ -623,13 +624,20 @@ TEST(CoinSelection, ConvertToUtxo)
   BlockHash block_hash("1234567890123456789012345678901234567890123456789012345678901456");
   Txid txid("0034567890123456789012345678901234567890123456789012345678901456");
   uint32_t vout = 2;
-  Script locking_script("00141234567890123456789012345678901234567890");
-  std::string output_descriptor("wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1)#4z2vy08x");
+  Script locking_script("0014c59664568fad58004e1fac1b275826d8b525e935");
+  std::string output_descriptor("wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1)");
   Amount amount = Amount::CreateBySatoshiAmount(20000);
   void* binary_data = &vout;
   Utxo utxo = {};
   // std::vector<uint8_t> script_bytes;
 
+  try {
+    CoinSelection::ConvertToUtxo(
+      block_height, block_hash, txid, vout, locking_script,
+      output_descriptor, amount, binary_data, &utxo);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
   EXPECT_NO_THROW((CoinSelection::ConvertToUtxo(
     block_height, block_hash, txid, vout, locking_script,
     output_descriptor, amount, binary_data, &utxo)));
@@ -689,6 +697,7 @@ static CoinSelectionOption GetElementsOption() {
   return option;
 }
 
+// FIXME Utxo illegal creating. need set witness_size_max, uscript_size_max
 static std::vector<Utxo> GetElementsUtxoList() {
   std::vector<Utxo> utxos;
   {
@@ -920,84 +929,84 @@ static const std::vector<TestElementsUtxoCoinVector> kExtCoinSelectElementsTestV
     0,
     155062500,
     exp_dummy_asset_a.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     85062500,
     exp_dummy_asset_a.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     39062500,
     exp_dummy_asset_a.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     61062500,
     exp_dummy_asset_a.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     15675000,
     exp_dummy_asset_a.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     14938590,
     exp_dummy_asset_a.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     26918400,
     exp_dummy_asset_b.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     750000,
     exp_dummy_asset_b.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     346430050,
     exp_dummy_asset_b.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     18476350,
     exp_dummy_asset_b.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     37654200,
     exp_dummy_asset_c.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   },
   {
     "",
     0,
     127030000,
     exp_dummy_asset_c.GetHex(),
-    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x"
+    "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))"
   }
 };
 
@@ -1043,7 +1052,7 @@ TEST(CoinSelection, SelectCoins_SelectCoinsBnB_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 100001090);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 360);
+  EXPECT_EQ(fee.GetSatoshiValue(), 364);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1091,7 +1100,7 @@ TEST(CoinSelection, SelectCoins_SelectCoinsBnB_single_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 155062500);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 180);
+  EXPECT_EQ(fee.GetSatoshiValue(), 182);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1141,7 +1150,7 @@ TEST(CoinSelection, SelectCoins_SelectCoinsBnB_empty_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 115063590);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 270);
+  EXPECT_EQ(fee.GetSatoshiValue(), 273);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1231,7 +1240,7 @@ TEST(CoinSelection, SelectCoins_CoinSelectBnB_with_multiple_asset)
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 100001090);
     EXPECT_EQ(map_select_value[exp_dummy_asset_b.GetHex()].GetSatoshiValue(), 347180050);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 720);
+  EXPECT_EQ(fee.GetSatoshiValue(), 728);
   EXPECT_EQ(map_searched_bnb.size(), 2);
   if (map_searched_bnb.size() == 2) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1249,7 +1258,7 @@ TEST(CoinSelection, SelectCoins_with_multiple_asset_fee_only_target)
   map_target_amount[exp_dummy_asset_c.GetHex()] = Amount::CreateBySatoshiAmount(0);
   AmountMap map_select_value;
   Amount fee;
-  Amount tx_fee = Amount::CreateBySatoshiAmount(1500);
+  Amount tx_fee = Amount::CreateBySatoshiAmount(500);
   std::map<std::string, bool> map_searched_bnb;
   CoinSelectionOption option = GetElementsOption();
   option.SetEffectiveFeeBaserate(2);
@@ -1275,23 +1284,24 @@ TEST(CoinSelection, SelectCoins_with_multiple_asset_fee_only_target)
       map_target_amount, utxos, exp_filter, option,
       tx_fee, &map_select_value, &fee, &map_searched_bnb));
 
-  EXPECT_EQ(ret.size(), 4);
-  if (ret.size() == 4) {
-    EXPECT_EQ(ret[0].amount, static_cast<int64_t>(155062500));
-    EXPECT_EQ(ret[1].amount, static_cast<int64_t>(346430050));
-    EXPECT_EQ(ret[2].amount, static_cast<int64_t>(750000));
-    EXPECT_EQ(ret[3].amount, static_cast<int64_t>(37654200));
+  EXPECT_EQ(ret.size(), 5);
+  if (ret.size() == 5) {
+    EXPECT_EQ(ret[0].amount, static_cast<int64_t>(85062500));
+    EXPECT_EQ(ret[1].amount, static_cast<int64_t>(14938590));
+    EXPECT_EQ(ret[2].amount, static_cast<int64_t>(346430050));
+    EXPECT_EQ(ret[3].amount, static_cast<int64_t>(750000));
+    EXPECT_EQ(ret[4].amount, static_cast<int64_t>(37654200));
   }
   EXPECT_EQ(map_select_value.size(), 3);
   if (map_select_value.size() == 3) {
-    EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 155062500);
+    EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 100001090);
     EXPECT_EQ(map_select_value[exp_dummy_asset_b.GetHex()].GetSatoshiValue(), 347180050);
     EXPECT_EQ(map_select_value[exp_dummy_asset_c.GetHex()].GetSatoshiValue(), 37654200);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 720);
+  EXPECT_EQ(fee.GetSatoshiValue(), 910);
   EXPECT_EQ(map_searched_bnb.size(), 3);
   if (map_searched_bnb.size() == 3) {
-    EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
+    EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_b.GetHex()]);
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_c.GetHex()]);
   }

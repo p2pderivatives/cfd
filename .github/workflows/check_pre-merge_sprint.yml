@@ -9,7 +9,7 @@ on:
     - features/sprint*
 
 env:
-  CMAKE_VERSION: 3.15.5
+  CMAKE_VERSION: 3.17.2
 
 jobs:
   cmake-win:
@@ -31,8 +31,12 @@ jobs:
       run: cmake -S . -B build -G "MSYS Makefiles"
     - name: cmake_build
       run: |
-        cmake -DENABLE_SHARED=on -DENABLE_TESTS=off --build build
-        cmake --build build --config Release --parallel 2
+        cmake -DENABLE_SHARED=on -DENABLE_TESTS=on --build build
+        cmake --build build --config Release --parallel 4
+    - name: ctest
+      run: |
+        cd build
+        ctest -C Release --output-on-failure
 
   cmake-mac:
     name: cmake build-mac
@@ -47,16 +51,14 @@ jobs:
         cmake -S . -B build -G "Unix Makefiles"
         cmake -DENABLE_SHARED=on --build build
     - name: cmake_build
-      run: cmake --build build --config Release
+      run: cmake --build build --config Release --parallel 4
     - name: ctest
       run: |
         cd build
         ctest -C Release --output-on-failure
-    - name: lint_check
-      run: ./tools/lint_quiet.sh
 
   cmake-ubuntu-coverage:
-    name: cmake build
+    name: cmake build-ubuntu
     runs-on: ubuntu-latest
 
     steps:
@@ -66,8 +68,9 @@ jobs:
       id: cache
       with:
         path: cache/cmake
-        key: ${{ runner.os }}-cmake-3.15.5-x64
-        restore-keys: ${{ runner.os }}-cmake-3.15.5-x64
+        key: ${{ runner.os }}-cmake-${{ env.CMAKE_VERSION }}-x64-0
+        restore-keys: |
+          ${{ runner.os }}-cmake-${{ env.CMAKE_VERSION }}-x64-
     - name: cmake-download-ubuntu
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -91,7 +94,9 @@ jobs:
         cmake --version
         cmake -S . -B build -G "Unix Makefiles"
         cmake -DENABLE_SHARED=on -DENABLE_DEBUG=on -DENABLE_COVERAGE=on -DCMAKE_BUILD_TYPE=Debug -DTARGET_RPATH=./build/Debug --build build
-        cmake --build build --config Debug --parallel 2
+        cmake --build build --config Debug --parallel 4
+    - name: lint_check
+      run: ./tools/lint_quiet.sh
     - name: test
       run: |
         cd build
@@ -112,7 +117,7 @@ jobs:
       run: rm -rf cache/cmake/cmake-$CMAKE_VERSION-Linux-x86_64
 
   doxygen-ubuntu:
-    name: doxygen-ubuntu
+    name: doxygen-check
     runs-on: ubuntu-latest
 
     steps:

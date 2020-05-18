@@ -78,10 +78,11 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       ElementsConfidentialAddress(),
       BlindFactor(),
       BlindFactor(),
-      ConfidentialValue()
+      ConfidentialValue(),
 #else
-      nullptr
+      nullptr,
 #endif  // CFD_DISABLE_ELEMENTS
+      Script()
     },
     UtxoData{
       22,
@@ -100,10 +101,11 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
       ElementsConfidentialAddress(),
       BlindFactor(),
       BlindFactor(),
-      ConfidentialValue()
+      ConfidentialValue(),
 #else
-      nullptr
+      nullptr,
 #endif  // CFD_DISABLE_ELEMENTS
+      Script()
     }
   };
 
@@ -488,7 +490,7 @@ TEST(cfdcapi_coin, CfCoinSelection_Asset1) {
     int64_t utxo_fee_amount = 0;
     ret = CfdFinalizeCoinSelection(handle, coin_select_handle, &utxo_fee_amount);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_EQ(9000, utxo_fee_amount);
+    EXPECT_EQ(9100, utxo_fee_amount);
 
     int32_t utxo_index = 0;
     std::vector<int32_t> indexes;
@@ -560,7 +562,8 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       ElementsConfidentialAddress(),
       BlindFactor(),
       BlindFactor(),
-      ConfidentialValue()
+      ConfidentialValue(),
+      Script()
     },
     UtxoData{
       5,
@@ -578,7 +581,8 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
       ElementsConfidentialAddress(),
       BlindFactor(),
       BlindFactor(),
-      ConfidentialValue()
+      ConfidentialValue(),
+      Script()
     }
   };
 
@@ -608,7 +612,7 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
     ret = CfdFinalizeEstimateFee(
         handle, fee_handle, kTxData, kFeeAsset, &tx_fee, &utxo_fee, true, 1.0);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_EQ(static_cast<int64_t>(1820), tx_fee);
+    EXPECT_EQ(static_cast<int64_t>(1833), tx_fee);
     EXPECT_EQ(static_cast<int64_t>(138), utxo_fee);
 
     ret = CfdFreeEstimateFeeHandle(handle, fee_handle);

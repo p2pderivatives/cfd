@@ -219,18 +219,29 @@ class CFD_EXPORT ConfidentialTransactionContext
    * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
    * @param[out] witness_area_size     witness area size
    * @param[out] no_witness_area_size  no witness area size
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @return TxInを除外したTxサイズ(Serialize)
    */
   uint32_t GetSizeIgnoreTxIn(
       bool is_blinded = false, uint32_t* witness_area_size = nullptr,
-      uint32_t* no_witness_area_size = nullptr) const;
+      uint32_t* no_witness_area_size = nullptr, int exponent = 0,
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
 
   /**
    * @brief TxInを除外した仮想サイズを取得する。
    * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @return TxInを除外したTx仮想サイズ(Serialize)
    */
-  uint32_t GetVsizeIgnoreTxIn(bool is_blinded = false) const;
+  uint32_t GetVsizeIgnoreTxIn(
+      bool is_blinded = false, int exponent = 0,
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
 
   /**
    * @brief feeのtxout indexを取得する.
@@ -1120,18 +1131,29 @@ class CFD_EXPORT ConfidentialTransactionController
    * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
    * @param[out] witness_area_size     witness area size
    * @param[out] no_witness_area_size  no witness area size
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @return TxInを除外したTxサイズ(Serialize)
    */
   uint32_t GetSizeIgnoreTxIn(
       bool is_blinded = false, uint32_t* witness_area_size = nullptr,
-      uint32_t* no_witness_area_size = nullptr) const;
+      uint32_t* no_witness_area_size = nullptr, int exponent = 0,
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
 
   /**
    * @brief TxInを除外した仮想サイズを取得する。
    * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @return TxInを除外したTx仮想サイズ(Serialize)
    */
-  uint32_t GetVsizeIgnoreTxIn(bool is_blinded = false) const;
+  uint32_t GetVsizeIgnoreTxIn(
+      bool is_blinded = false, int exponent = 0,
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
 
   /**
    * @brief IssueAssetの情報を設定する.

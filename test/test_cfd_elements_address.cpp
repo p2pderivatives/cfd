@@ -128,6 +128,9 @@ TEST(ElementsAddressFactory, GetAddress)
     Address address = factory.GetAddress("XVHzywLC5fPS8N1216n3b2fngqqrPzKYx9");
     EXPECT_STREQ(address.GetAddress().c_str(), "XVHzywLC5fPS8N1216n3b2fngqqrPzKYx9");
 
+    Address address2 = factory.GetAddress("2djHX9wtrtdyGw9cer1u6zB6Yq4SRD8V5zw");
+    EXPECT_STREQ(address2.GetAddress().c_str(), "2djHX9wtrtdyGw9cer1u6zB6Yq4SRD8V5zw");
+
     EXPECT_THROW(factory.GetAddress(""), CfdException);
     EXPECT_THROW(factory.GetAddress("AzpwdpR9siiDBs3nG8SNpvGQcLTHP2od4MQPugUTa3zfKHKkAVwx6M4ea2W1JovrbhuErKosFpfeuxf5"), CfdException);
     EXPECT_THROW(factory.GetAddress("bcrt1qshc8er8ycnxn5mamc9m7acaxcasplqunvaw4f6"), CfdException);

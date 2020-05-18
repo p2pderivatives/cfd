@@ -356,6 +356,20 @@ CFDC_API int CfdGetIssuanceBlindingKey(
     uint32_t vout, char** blinding_key);
 
 /**
+ * @brief get default blinding key.
+ * @param[in] handle                cfd handle.
+ * @param[in] master_blinding_key   master blinding key hex.
+ * @param[in] locking_script        locking script.
+ * @param[out] blinding_key         blinding key hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetDefaultBlindingKey(
+    void* handle, const char* master_blinding_key, const char* locking_script,
+    char** blinding_key);
+
+/**
  * @brief initialize blinding handle.
  * @param[in] handle                cfd handle.
  * @param[out] blind_handle         blinding handle.

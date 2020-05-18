@@ -9,7 +9,7 @@
 ## Dependencies
 
 - C/C++ Compiler
-  - can compilefe c++11
+  - can compile c++11
 - CMake (3.14.3 or higher)
 - Python 3.x
 - node.js (stable version)

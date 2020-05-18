@@ -16,7 +16,6 @@
 #include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_utxo.h"
 #include "cfd/cfdapi_address.h"
-#include "cfd/cfdapi_coin.h"
 #include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_transaction.h"
 #include "cfdc/cfdcapi_coin.h"
@@ -88,6 +87,10 @@ struct CfdCapiCoinSelection {
   double long_term_fee_rate;      //!< longterm feeRate
   double dust_fee_rate;           //!< dust feeRate
   int64_t knapsack_min_change;    //!< knapsack minChange
+  //! blind exponent
+  int exponent;
+  //! blind minimum bits
+  int minimum_bits;
   //! handle for elements
   bool is_elements;
   //! utxo list
@@ -115,6 +118,10 @@ struct CfdCapiEstimateFeeData {
 #endif  // CFD_DISABLE_ELEMENTS
   //! input utxo list
   std::vector<UtxoData>* input_utxos;
+  //! blind exponent
+  int exponent;
+  //! blind minimum bits
+  int minimum_bits;
 };
 
 }  // namespace capi
@@ -188,6 +195,8 @@ int CfdInitializeCoinSelection(
     obj.long_term_fee_rate = long_term_fee_rate;
     obj.dust_fee_rate = dust_fee_rate;
     obj.knapsack_min_change = knapsack_min_change;
+    obj.exponent = 0;
+    obj.minimum_bits = cfd::capi::kMinimumBits;  // = 36(old)
 
     buffer = static_cast<CfdCapiCoinSelection*>(
         AllocBuffer(kPrefixCoinSelection, sizeof(CfdCapiCoinSelection)));
@@ -213,6 +222,15 @@ int CfdAddCoinSelectionUtxo(
     void* handle, void* coin_select_handle, int32_t utxo_index,
     const char* txid, uint32_t vout, int64_t amount, const char* asset,
     const char* descriptor) {
+  return CfdAddCoinSelectionUtxoTemplate(
+      handle, coin_select_handle, utxo_index, txid, vout, amount, asset,
+      descriptor, nullptr);
+}
+
+int CfdAddCoinSelectionUtxoTemplate(
+    void* handle, void* coin_select_handle, int32_t utxo_index,
+    const char* txid, uint32_t vout, int64_t amount, const char* asset,
+    const char* descriptor, const char* scriptsig_template) {
   int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
@@ -252,11 +270,18 @@ int CfdAddCoinSelectionUtxo(
     if (!IsEmptyString(descriptor)) {
       temp_descriptor = std::string(descriptor);
     }
+    Script* template_pointer = nullptr;
+    Script template_script;
+    if (!IsEmptyString(scriptsig_template)) {
+      template_script = Script(scriptsig_template);
+      template_pointer = &template_script;
+    }
+
     CoinSelection::ConvertToUtxo(
         Txid(std::string(txid)), vout, temp_descriptor,
         Amount::CreateBySatoshiAmount(amount), temp_asset,
         reinterpret_cast<const void*>(utxo_index),
-        &((*buffer->utxos)[utxo_index]));
+        &((*buffer->utxos)[utxo_index]), template_pointer);
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     result = SetLastError(handle, except);
@@ -315,6 +340,45 @@ int CfdAddCoinSelectionAmount(
   return result;
 }
 
+int CfdSetOptionCoinSelection(
+    void* handle, void* coin_select_handle, int key, int64_t int64_value,
+    double double_value, bool bool_value) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(coin_select_handle, kPrefixCoinSelection);
+
+    CfdCapiCoinSelection* buffer =
+        static_cast<CfdCapiCoinSelection*>(coin_select_handle);
+    switch (key) {
+      case CfdCoinSelectionOption::kCfdCoinSelectionExponent:
+        buffer->exponent = static_cast<int>(int64_value);
+        break;
+      case CfdCoinSelectionOption::kCfdCoinSelectionMinimumBits:
+        if (int64_value >= 0) {
+          buffer->minimum_bits = static_cast<int>(int64_value);
+        }
+        break;
+      default:
+        warn(
+            CFD_LOG_SOURCE, "illegal option key. [{}] d:{} b:{}", key,
+            double_value, bool_value);
+        throw CfdException(
+            CfdError::kCfdOutOfRangeError,
+            "Failed to coinselection option key.");
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 int CfdFinalizeCoinSelection(
     void* handle, void* coin_select_handle, int64_t* utxo_fee_amount) {
   int result = CfdErrorCode::kCfdUnknownError;
@@ -349,11 +413,14 @@ int CfdFinalizeCoinSelection(
     option_params.SetLongTermFeeBaserate(buffer->long_term_fee_rate);
     option_params.SetDustFeeRate(buffer->dust_fee_rate);
     option_params.SetKnapsackMinimumChange(buffer->knapsack_min_change);
+#ifndef CFD_DISABLE_ELEMENTS
+    option_params.SetBlindInfo(buffer->exponent, buffer->minimum_bits);
+#endif  // CFD_DISABLE_ELEMENTS
 
     Amount utxo_fee_value;
     CoinSelection select_object;
     UtxoFilter filter;
-    Amount tx_fee_value;
+    Amount tx_fee_value(buffer->tx_fee_amount);
     std::vector<Utxo> utxo_list;
     if (buffer->is_elements) {
 #ifndef CFD_DISABLE_ELEMENTS
@@ -544,7 +611,8 @@ int CfdInitializeEstimateFee(
 #ifndef CFD_DISABLE_ELEMENTS
     buffer->is_elements = is_elements;
     buffer->input_elements_utxos = new std::vector<ElementsUtxoAndOption>();
-#endif  // CFD_DISABLE_ELEMENTS
+#endif                                               // CFD_DISABLE_ELEMENTS
+    buffer->minimum_bits = cfd::capi::kMinimumBits;  // old(36)
 
     *fee_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
@@ -567,6 +635,16 @@ int CfdAddTxInForEstimateFee(
     const char* descriptor, const char* asset, bool is_issuance,
     bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
     const char* fedpeg_script) {
+  return CfdAddTxInTemplateForEstimateFee(
+      handle, fee_handle, txid, vout, descriptor, asset, is_issuance,
+      is_blind_issuance, is_pegin, pegin_btc_tx_size, fedpeg_script, nullptr);
+}
+
+int CfdAddTxInTemplateForEstimateFee(
+    void* handle, void* fee_handle, const char* txid, uint32_t vout,
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
+    const char* fedpeg_script, const char* scriptsig_template) {
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
@@ -589,6 +667,10 @@ int CfdAddTxInForEstimateFee(
     utxo.txid = Txid(txid);
     utxo.vout = vout;
     utxo.descriptor = std::string(descriptor);
+    if (!IsEmptyString(scriptsig_template)) {
+      utxo.scriptsig_template = Script(std::string(scriptsig_template));
+    }
+
     if (buffer->is_elements) {
 #ifndef CFD_DISABLE_ELEMENTS
       if (IsEmptyString(asset)) {
@@ -631,6 +713,45 @@ int CfdAddTxInForEstimateFee(
   }
 }
 
+int CfdSetOptionEstimateFee(
+    void* handle, void* fee_handle, int key, int64_t int64_value,
+    double double_value, bool bool_value) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(fee_handle, kPrefixEstimateFeeData);
+
+    CfdCapiEstimateFeeData* buffer =
+        static_cast<CfdCapiEstimateFeeData*>(fee_handle);
+    switch (key) {
+      case CfdEstimateFeeOption::kCfdEstimateFeeExponent:
+        buffer->exponent = static_cast<int>(int64_value);
+        break;
+      case CfdEstimateFeeOption::kCfdEstimateFeeMinimumBits:
+        if (int64_value >= 0) {
+          buffer->minimum_bits = static_cast<int>(int64_value);
+        }
+        break;
+      default:
+        warn(
+            CFD_LOG_SOURCE, "illegal option key. [{}] d:{} b:{}", key,
+            double_value, bool_value);
+        throw CfdException(
+            CfdError::kCfdOutOfRangeError,
+            "Failed to estimate fee option key.");
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 int CfdFinalizeEstimateFee(
     void* handle, void* fee_handle, const char* tx_hex, const char* fee_asset,
     int64_t* tx_fee, int64_t* utxo_fee, bool is_blind,
@@ -670,7 +791,7 @@ int CfdFinalizeEstimateFee(
       api.EstimateFee(
           std::string(tx_hex), *(buffer->input_elements_utxos),
           ConfidentialAssetId(fee_asset), &tx_fee_amt, &utxo_fee_amt, is_blind,
-          effective_fee_rate);
+          effective_fee_rate, buffer->exponent, buffer->minimum_bits);
 #endif  // CFD_DISABLE_ELEMENTS
     } else {
       TransactionApi api;

@@ -167,8 +167,8 @@ TEST(ConfidentialTransactionContext, GetVsizeIgnoreTxIn) {
   EXPECT_EQ(expect_tx.GetSizeIgnoreTxIn(), 268);
   EXPECT_EQ(expect_tx.GetVsizeIgnoreTxIn(), 262);
 
-  EXPECT_EQ(blind_tx.GetSizeIgnoreTxIn(), 6361);
-  EXPECT_EQ(blind_tx.GetVsizeIgnoreTxIn(), 1818);
+  EXPECT_EQ(blind_tx.GetSizeIgnoreTxIn(), 8977);
+  EXPECT_EQ(blind_tx.GetVsizeIgnoreTxIn(), 2472);
 }
 
 TEST(ConfidentialTransactionContext, SetAssetReissuanceTest1)

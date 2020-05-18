@@ -186,6 +186,24 @@ class CFD_EXPORT CoinSelectionOption {
   Amount GetConfidentialDustFeeAmount(const Address& address) const;
 
   /**
+   * @brief set blind information.
+   * @param[in] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   */
+  void SetBlindInfo(int exponent, int minimum_bits);
+
+  /**
+   * @brief get blind information.
+   * @param[out] exponent                  rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[out] minimum_bits              rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   */
+  void GetBlindInfo(int* exponent, int* minimum_bits) const;
+
+  /**
    * @brief ConfidentialTxベースでサイズ関連情報を初期化します。
    */
   void InitializeConfidentialTxSizeInfo();
@@ -201,7 +219,9 @@ class CFD_EXPORT CoinSelectionOption {
   int64_t dust_fee_rate_;            //!< dust fee rate
 #ifndef CFD_DISABLE_ELEMENTS
   ConfidentialAssetId fee_asset_;  //!< feeとして利用するasset
-#endif                             // CFD_DISABLE_ELEMENTS
+  int exponent_ = 0;               //!< rangeproof exponent value
+  int minimum_bits_ = cfd::core::kDefaultBlindMinimumBits;  //!< minimum bits
+#endif  // CFD_DISABLE_ELEMENTS
 };
 
 /**
@@ -274,11 +294,12 @@ class CFD_EXPORT CoinSelection {
    * @param[in] asset               asset
    * @param[in] binary_data         任意のデータアドレス
    * @param[out] utxo               変換後のUTXO
+   * @param[in] scriptsig_template  scriptsig template
    */
   static void ConvertToUtxo(
       const Txid& txid, uint32_t vout, const std::string& output_descriptor,
       const Amount& amount, const std::string& asset, const void* binary_data,
-      Utxo* utxo);
+      Utxo* utxo, const Script* scriptsig_template = nullptr);
 
   /**
    * @brief UTXO構造体への変換を行う。
@@ -291,12 +312,14 @@ class CFD_EXPORT CoinSelection {
    * @param[in] amount              amount
    * @param[in] binary_data         任意のデータアドレス
    * @param[out] utxo               変換後のUTXO
+   * @param[in] scriptsig_template  scriptsig template
    */
   static void ConvertToUtxo(
       uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
       uint32_t vout, const Script& locking_script,
       const std::string& output_descriptor, const Amount& amount,
-      const void* binary_data, Utxo* utxo);
+      const void* binary_data, Utxo* utxo,
+      const Script* scriptsig_template = nullptr);
 
 #ifndef CFD_DISABLE_ELEMENTS
   /**
@@ -311,12 +334,14 @@ class CFD_EXPORT CoinSelection {
    * @param[in] asset               asset
    * @param[in] binary_data         任意のデータアドレス
    * @param[out] utxo               変換後のUTXO
+   * @param[in] scriptsig_template  scriptsig template
    */
   static void ConvertToUtxo(
       uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
       uint32_t vout, const Script& locking_script,
       const std::string& output_descriptor, const Amount& amount,
-      const ConfidentialAssetId& asset, const void* binary_data, Utxo* utxo);
+      const ConfidentialAssetId& asset, const void* binary_data, Utxo* utxo,
+      const Script* scriptsig_template = nullptr);
 #endif  // CFD_DISABLE_ELEMENTS
 
  protected:
