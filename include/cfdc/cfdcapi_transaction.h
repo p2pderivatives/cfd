@@ -108,6 +108,20 @@ CFDC_API int CfdFinalizeTransaction(
 CFDC_API int CfdFreeTransactionHandle(void* handle, void* create_handle);
 
 /**
+ * @brief update txout's amount.
+ * @param[in] handle          cfd handle.
+ * @param[in] net_type        network type.
+ * @param[in] tx_hex_string   transaction hex.
+ * @param[in] index           txout index.
+ * @param[in] amount          txout amount.
+ * @param[out] tx_string      modify transaction hex.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdUpdateTxOutAmount(
+    void* handle, int net_type, const char* tx_hex_string, uint32_t index,
+    int64_t amount, char** tx_string);
+
+/**
  * @brief add sign to transaction.
  * @param[in] handle          cfd handle.
  * @param[in] net_type        network type.

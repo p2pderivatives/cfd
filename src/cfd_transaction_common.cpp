@@ -189,8 +189,8 @@ void UtxoUtil::ConvertToUtxo(
       utxo->blinded = utxo_data.asset.HasBlinding();
 
       ConfidentialTxIn::EstimateTxInSize(
-          output.address_type, output.redeem_script, 0, Script(), false,
-          false, &wit_size, &txin_size, false, scriptsig_template);
+          output.address_type, output.redeem_script, 0, Script(), false, false,
+          &wit_size, &txin_size, false, scriptsig_template);
       txin_size -= static_cast<uint32_t>(TxIn::kMinimumTxInSize);
       utxo->witness_size_max = static_cast<uint16_t>(wit_size);
       utxo->uscript_size_max = static_cast<uint16_t>(txin_size);

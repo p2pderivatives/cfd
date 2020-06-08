@@ -678,6 +678,35 @@ CFDC_API int CfdGetConfidentialValueHex(
     void* handle, int64_t value_satoshi, bool ignore_version_info,
     char** value_hex);
 
+/**
+ * @brief get asset commitment.
+ * @param[in] handle              cfd handle.
+ * @param[in] asset               unblind asset.
+ * @param[in] asset_blind_factor  asset blind factor.
+ * @param[out] asset_commitment   asset commitment.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetAssetCommitment(
+    void* handle, const char* asset, const char* asset_blind_factor,
+    char** asset_commitment);
+
+/**
+ * @brief get asset commitment.
+ * @param[in] handle              cfd handle.
+ * @param[in] value_satoshi       satoshi value.
+ * @param[in] asset_commitment    asset commitment.
+ * @param[in] value_blind_vactor  value blind factor.
+ * @param[out] value_commitment   value commitment
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetValueCommitment(
+    void* handle, int64_t value_satoshi, const char* asset_commitment,
+    const char* value_blind_vactor, char** value_commitment);
+
 /* 後回し
 CFDC_API int CfdAddConfidentialTxPeginInput(
     void* handle, void* create_handle, const char* txid, uint32_t vout,

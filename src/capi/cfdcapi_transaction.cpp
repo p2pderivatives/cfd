@@ -509,6 +509,53 @@ int CfdFreeTransactionHandle(void* handle, void* create_handle) {
   }
 }
 
+int CfdUpdateTxOutAmount(
+    void* handle, int net_type, const char* tx_hex_string, uint32_t index,
+    int64_t amount, char** tx_string) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tx_hex_string)) {
+      warn(CFD_LOG_SOURCE, "tx is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx is null or empty.");
+    }
+    if (tx_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "tx output is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx output is null.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(net_type, &is_bitcoin);
+    if (is_bitcoin) {
+      TransactionContext tx(tx_hex_string);
+      tx.SetTxOutValue(index, Amount(amount));
+      *tx_string = CreateString(tx.GetHex());
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext tx(tx_hex_string);
+      tx.SetTxOutValue(index, Amount(amount));
+      *tx_string = CreateString(tx.GetHex());
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 int CfdAddTxSign(
     void* handle, int net_type, const char* tx_hex_string, const char* txid,
     uint32_t vout, int hash_type, const char* sign_data_hex,

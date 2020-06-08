@@ -72,6 +72,14 @@ struct IssuanceOutputParameter {
 };
 
 /**
+ * @brief blind parameter's confidential key.
+ */
+struct ConfidentialKeyBlindParameter {
+  uint32_t index;           //!< txout index
+  Pubkey confidential_key;  //!< confidential key
+};
+
+/**
  * @brief Context class for generating bitcoin transaction.
  */
 class CFD_EXPORT ConfidentialTransactionContext
@@ -170,12 +178,14 @@ class CFD_EXPORT ConfidentialTransactionContext
   bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
   /**
    * @brief Get txout address by index.
-   * @param[in] index     txout index.
-   * @param[in] net_type  network type.
+   * @param[in] index         txout index.
+   * @param[in] net_type      network type.
+   * @param[in] ignore_error  ignore error flag.
    * @return address
    */
   Address GetTxOutAddress(
-      uint32_t index, NetType net_type = NetType::kLiquidV1) const;
+      uint32_t index, NetType net_type = NetType::kLiquidV1,
+      bool ignore_error = false) const;
 
   /**
    * @brief ConfidentialTransaction's AddTxIn.
@@ -411,6 +421,27 @@ class CFD_EXPORT ConfidentialTransactionContext
       const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
       const std::vector<ElementsConfidentialAddress>&
           confidential_address_list,
+      int64_t minimum_range_value = 1, int exponent = 0,
+      int minimum_bits = kDefaultBlindMinimumBits);
+  /**
+   * @brief Blind Trasnsaction.
+   * @param[in] utxo_info_map              txin utxo information map.
+   * @param[in] issuance_key_map           issue blinding key map.
+   * @param[in] confidential_address_list  txout confidential address list.
+   * @param[in] confidential_key_list      txout confidential key list.
+   * @param[in] minimum_range_value        rangeproof minimum value.
+   *   0 to max(int64_t)
+   * @param[in] exponent                   rangeproof exponent value.
+   *   -1 to 18. -1 is public value. 0 is most private.
+   * @param[in] minimum_bits               rangeproof blinding bits.
+   *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   */
+  void BlindTransactionWithDirectKey(
+      const std::map<OutPoint, BlindParameter>& utxo_info_map,
+      const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
+      const std::vector<ElementsConfidentialAddress>&
+          confidential_address_list,
+      const std::vector<ConfidentialKeyBlindParameter>& confidential_key_list,
       int64_t minimum_range_value = 1, int exponent = 0,
       int minimum_bits = kDefaultBlindMinimumBits);
 
