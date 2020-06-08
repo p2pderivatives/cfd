@@ -217,14 +217,21 @@ bool ConfidentialTransactionContext::IsFindTxOut(
 }
 
 Address ConfidentialTransactionContext::GetTxOutAddress(
-    uint32_t index, NetType net_type) const {
+    uint32_t index, NetType net_type, bool ignore_error) const {
   if (vout_.size() <= index) {
     throw CfdException(
         CfdError::kCfdOutOfRangeError, "vout out_of_range error.");
   }
-  ElementsAddressFactory address_factory(net_type);
-  return address_factory.GetAddressByLockingScript(
-      vout_[index].GetLockingScript());
+  try {
+    ElementsAddressFactory address_factory(net_type);
+    return address_factory.GetAddressByLockingScript(
+        vout_[index].GetLockingScript());
+  } catch (const CfdException& except) {
+    if (!ignore_error) {
+      throw except;
+    }
+    return Address();
+  }
 }
 
 uint32_t ConfidentialTransactionContext::AddTxOut(
@@ -530,7 +537,19 @@ IssuanceParameter ConfidentialTransactionContext::SetAssetReissuance(
 void ConfidentialTransactionContext::BlindTransaction(
     const std::map<OutPoint, BlindParameter>& utxo_info_map,
     const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
-    const std::vector<ElementsConfidentialAddress>& confidential_key_list,
+    const std::vector<ElementsConfidentialAddress>& confidential_address_list,
+    int64_t minimum_range_value, int exponent, int minimum_bits) {
+  std::vector<ConfidentialKeyBlindParameter> confidential_key_list;
+  BlindTransactionWithDirectKey(
+      utxo_info_map, issuance_key_map, confidential_address_list,
+      confidential_key_list, minimum_range_value, exponent, minimum_bits);
+}
+
+void ConfidentialTransactionContext::BlindTransactionWithDirectKey(
+    const std::map<OutPoint, BlindParameter>& utxo_info_map,
+    const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
+    const std::vector<ElementsConfidentialAddress>& confidential_address_list,
+    const std::vector<ConfidentialKeyBlindParameter>& confidential_key_list,
     int64_t minimum_range_value, int exponent, int minimum_bits) {
   uint32_t index = 0;
   std::vector<BlindParameter> txin_info_list;
@@ -553,17 +572,26 @@ void ConfidentialTransactionContext::BlindTransaction(
 
   std::vector<Pubkey> confidential_keys(vout_.size());
   std::map<std::string, Pubkey> ct_map;
-  if (!confidential_key_list.empty()) {
-    for (const auto& ct_addr : confidential_key_list) {
+  if (!confidential_address_list.empty()) {
+    for (const auto& ct_addr : confidential_address_list) {
       ct_map.emplace(
           ct_addr.GetUnblindedAddress().GetLockingScript().GetHex(),
           ct_addr.GetConfidentialKey());
     }
   }
+  if (!confidential_key_list.empty()) {
+    for (const auto& data : confidential_key_list) {
+      if (data.index < static_cast<uint32_t>(vout_.size())) {
+        confidential_keys[data.index] = data.confidential_key;
+      }
+    }
+  }
   for (index = 0; index < static_cast<uint32_t>(vout_.size()); ++index) {
     const auto& txout = vout_[index];
     std::string script = txout.GetLockingScript().GetHex();
-    if (ct_map.count(script) != 0) {
+    if (confidential_keys[index].IsValid()) {
+      // do nothing
+    } else if (ct_map.count(script) != 0) {
       confidential_keys[index] = ct_map.at(script);
     } else {
       ByteData nonce = txout.GetNonce().GetData();

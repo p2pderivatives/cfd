@@ -633,11 +633,12 @@ Amount ElementsTransactionApi::EstimateFee(
       }
       if ((!utxo.is_pegin) && (ref.GetPeginWitnessStackNum() >= 6)) {
         std::vector<ByteData> pegin_stack = ref.GetPeginWitness().GetWitness();
-        pegin_btc_tx_size = pegin_stack[4].GetSerializeSize();
+        pegin_btc_tx_size =
+            static_cast<uint32_t>(pegin_stack[4].GetSerializeSize());
         fedpeg_script = Script(pegin_stack[3]);
       }
     } catch (const CfdException& except) {
-      // do nothing
+      info(CFD_LOG_SOURCE, "Error:{}", std::string(except.what()));
     }
 
     ConfidentialTxIn::EstimateTxInSize(
