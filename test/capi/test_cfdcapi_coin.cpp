@@ -612,7 +612,7 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
     ret = CfdFinalizeEstimateFee(
         handle, fee_handle, kTxData, kFeeAsset, &tx_fee, &utxo_fee, true, 1.0);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_EQ(static_cast<int64_t>(1833), tx_fee);
+    EXPECT_EQ(static_cast<int64_t>(1802), tx_fee);
     EXPECT_EQ(static_cast<int64_t>(138), utxo_fee);
 
     ret = CfdFreeEstimateFeeHandle(handle, fee_handle);

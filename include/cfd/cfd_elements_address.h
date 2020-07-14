@@ -11,9 +11,8 @@
 #include <string>
 #include <vector>
 
-#include "cfd/cfd_common.h"
-
 #include "cfd/cfd_address.h"
+#include "cfd/cfd_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_key.h"

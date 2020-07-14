@@ -217,6 +217,44 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     }
   }
 #endif  // CFD_DISABLE_ELEMENTS
+
+  {
+    // p2sh-p2wsh miniscript descriptor
+    const char* descriptor = "sh(wsh(c:or_i(andor(c:pk_h(xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB/1/0/*),pk_h(xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/*),pk_h(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5)),pk_k(02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e))))";
+    int net_type = kCfdNetworkMainnet;
+    void* descriptor_handle = nullptr;
+    uint32_t max_index = 0;
+  
+    ret = CfdParseDescriptor(handle, descriptor, net_type, "44", &descriptor_handle, &max_index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_FALSE((nullptr == descriptor_handle));
+    EXPECT_EQ(1, max_index);
+  
+    if (ret == kCfdSuccess) {
+      assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
+          kCfdDescriptorScriptSh, "a914a7a9f411001e3e3db96d7f02fc9ab1d0dc6aa69187", "3GyYN9WnJBoMn8M5tuqVcFJq1BvbAcdPAt",
+          kCfdP2shP2wsh, "0020e29b7f3e543d581c99c92b59d45218b008b82c2d406bba3c7384d52e568124aa",
+          kCfdDescriptorKeyNull, "", "", "",
+          false, 0, 0);
+      assert_desc_data(handle, descriptor_handle, 1, max_index, 1,
+          kCfdDescriptorScriptWsh, "0020e29b7f3e543d581c99c92b59d45218b008b82c2d406bba3c7384d52e568124aa", "bc1qu2dh70j584vpexwf9dvag5sckqytstpdgp4m50rnsn2ju45pyj4qudazmh",
+          kCfdP2wsh, "6376a914520e6e72bcd5b616bc744092139bd759c31d6bbe88ac6476a91406afd46bcdfd22ef94ac122aa11f241244a37ecc886776a9145ab62f0be26fe9d6205a155403f33e2ad2d31efe8868672102d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e68ac",
+          kCfdDescriptorKeyNull, "", "", "",
+          false, 0, 0);
+    }
+    ret = CfdFreeDescriptorHandle(handle, descriptor_handle);
+    ASSERT_EQ(ret, kCfdSuccess);
+
+    ret = CfdGetLastErrorCode(handle);
+    if (ret != kCfdSuccess) {
+      char* str_buffer = NULL;
+      ret = CfdGetLastErrorMessage(handle, &str_buffer);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_STREQ("", str_buffer);
+      CfdFreeStringBuffer(str_buffer);
+      str_buffer = NULL;
+    }
+  }
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);
 }

@@ -4,6 +4,8 @@
  *
  * @brief UTXO操作の関連クラスの実装ファイル
  */
+#include "cfd/cfd_utxo.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -12,8 +14,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "cfd/cfd_utxo.h"
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_fee.h"

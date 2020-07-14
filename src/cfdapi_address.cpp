@@ -5,6 +5,8 @@
  * @brief \~english implementation of address operation that uses cfd-api
  *   \~japanese cfd-apiで利用するAddress操作の実装ファイル
  */
+#include "cfd/cfdapi_address.h"
+
 #include <string>
 #include <vector>
 
@@ -16,8 +18,6 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
-
-#include "cfd/cfdapi_address.h"
 
 namespace cfd {
 namespace api {
@@ -347,6 +347,10 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
                DescriptorScriptType::kDescriptorScriptSortedMulti)) {
             multisig_keys = child.GetKeyList();
             multisig_req_num = child.GetReqNum();
+            is_loop = false;
+          } else if (
+              child.GetScriptType() ==
+              DescriptorScriptType::kDescriptorScriptMiniscript) {
             is_loop = false;
           }
           break;

@@ -5,12 +5,13 @@
  * @brief \~english implementation of common classes related to transaction operation
  *   \~japanese Transaction操作共通の関連クラスの実装ファイル
  */
+#include "cfd/cfd_transaction_common.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
 
 #include "cfd/cfd_common.h"
-#include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
@@ -304,12 +305,22 @@ SignParameter::SignParameter(const ScriptOperator& op_code)
   data_ = ByteData(list);
 }
 
+SignParameter::SignParameter(const SignParameter& sign_parameter) {
+  data_ = sign_parameter.GetData();
+  data_type_ = sign_parameter.GetDataType();
+  related_pubkey_ = sign_parameter.GetRelatedPubkey();
+  der_encode_ = sign_parameter.IsDerEncode();
+  sighash_type_ = sign_parameter.GetSigHashType();
+  op_code_ = sign_parameter.GetOpCode();
+}
+
 SignParameter& SignParameter::operator=(const SignParameter& sign_parameter) {
   data_ = sign_parameter.GetData();
   data_type_ = sign_parameter.GetDataType();
   related_pubkey_ = sign_parameter.GetRelatedPubkey();
   der_encode_ = sign_parameter.IsDerEncode();
   sighash_type_ = sign_parameter.GetSigHashType();
+  op_code_ = sign_parameter.GetOpCode();
   return *this;
 }
 

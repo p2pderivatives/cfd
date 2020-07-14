@@ -7,6 +7,8 @@
  * C言語のAPIを提供する.
  */
 #ifndef CFD_DISABLE_CAPI
+#include "cfdc/cfdcapi_script.h"
+
 #include <exception>
 #include <sstream>
 #include <string>
@@ -17,7 +19,6 @@
 #include "cfd/cfd_transaction_common.h"
 #include "cfd/cfdapi_transaction.h"
 #include "cfdc/cfdcapi_common.h"
-#include "cfdc/cfdcapi_script.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"

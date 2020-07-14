@@ -8,13 +8,12 @@
 #ifndef CFD_SRC_CFD_TRANSACTION_INTERNAL_H_
 #define CFD_SRC_CFD_TRANSACTION_INTERNAL_H_
 
-#include "cfd/cfd_transaction.h"
-
 #include <algorithm>
 #include <string>
 #include <vector>
 
 #include "cfd/cfd_address.h"
+#include "cfd/cfd_transaction.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_bytedata.h"

@@ -5,6 +5,8 @@
  * @brief cfd-capiで利用するKey操作の実装ファイル
  */
 #ifndef CFD_DISABLE_CAPI
+#include "cfdc/cfdcapi_key.h"
+
 #include <string>
 #include <vector>
 
@@ -13,7 +15,6 @@
 #include "cfd/cfdapi_hdwallet.h"
 #include "cfd/cfdapi_key.h"
 #include "cfdc/cfdcapi_common.h"
-#include "cfdc/cfdcapi_key.h"
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_hdwallet.h"
@@ -1027,14 +1028,8 @@ int CfdPrivkeyTweakAdd(
           "Failed to parameter. tweak is null or empty.");
     }
 
-    Privkey key;
-    std::string privkey_str(privkey);
-    if (privkey_str.size() == Privkey::kPrivkeySize * 2) {
-      key = Privkey(privkey_str);
-    } else {
-      KeyApi api;
-      key = api.GetPrivkeyFromWif(privkey_str, nullptr, nullptr);
-    }
+    KeyApi api;
+    Privkey key = api.GetPrivkey(std::string(privkey), nullptr, nullptr);
     ByteData256 tweak_data(tweak);
     *output = CreateString(key.CreateTweakAdd(tweak_data).GetHex());
 
@@ -1073,14 +1068,8 @@ int CfdPrivkeyTweakMul(
           "Failed to parameter. tweak is null or empty.");
     }
 
-    Privkey key;
-    std::string privkey_str(privkey);
-    if (privkey_str.size() == Privkey::kPrivkeySize * 2) {
-      key = Privkey(privkey_str);
-    } else {
-      KeyApi api;
-      key = api.GetPrivkeyFromWif(privkey_str, nullptr, nullptr);
-    }
+    KeyApi api;
+    Privkey key = api.GetPrivkey(std::string(privkey), nullptr, nullptr);
     ByteData256 tweak_data(tweak);
     *output = CreateString(key.CreateTweakMul(tweak_data).GetHex());
 
@@ -1112,14 +1101,8 @@ int CfdNegatePrivkey(void* handle, const char* privkey, char** output) {
           "Failed to parameter. privkey is null or empty.");
     }
 
-    Privkey key;
-    std::string privkey_str(privkey);
-    if (privkey_str.size() == Privkey::kPrivkeySize * 2) {
-      key = Privkey(privkey_str);
-    } else {
-      KeyApi api;
-      key = api.GetPrivkeyFromWif(privkey_str, nullptr, nullptr);
-    }
+    KeyApi api;
+    Privkey key = api.GetPrivkey(std::string(privkey), nullptr, nullptr);
     *output = CreateString(key.CreateNegate().GetHex());
 
     return CfdErrorCode::kCfdSuccess;

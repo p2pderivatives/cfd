@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include "cfd/cfd_common.h"
+#include "cfd/cfd_transaction_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
@@ -22,9 +24,6 @@
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_util.h"
-
-#include "cfd/cfd_common.h"
-#include "cfd/cfd_transaction_common.h"
 
 /**
  * @brief cfd名前空間
@@ -177,6 +176,16 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
   /**
+   * @brief ConfidentialTransaction's GetTxIn.
+   */
+  using ConfidentialTransaction::GetTxIn;
+  /**
+   * @brief Get txin by outpoint.
+   * @param[in] outpoint  target outpoint.
+   * @return ConfidentialTxInReference
+   */
+  const ConfidentialTxInReference GetTxIn(const OutPoint& outpoint) const;
+  /**
    * @brief Get txout address by index.
    * @param[in] index         txout index.
    * @param[in] net_type      network type.
@@ -229,16 +238,18 @@ class CFD_EXPORT ConfidentialTransactionContext
    * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
    * @param[out] witness_area_size     witness area size
    * @param[out] no_witness_area_size  no witness area size
-   * @param[in] exponent                  rangeproof exponent value.
+   * @param[in] exponent               rangeproof exponent value.
    *   -1 to 18. -1 is public value. 0 is most private.
-   * @param[in] minimum_bits              rangeproof blinding bits.
+   * @param[in] minimum_bits           rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in] asset_count            input asset count.
    * @return TxInを除外したTxサイズ(Serialize)
    */
   uint32_t GetSizeIgnoreTxIn(
       bool is_blinded = false, uint32_t* witness_area_size = nullptr,
       uint32_t* no_witness_area_size = nullptr, int exponent = 0,
-      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits,
+      uint32_t asset_count = 0) const;
 
   /**
    * @brief TxInを除外した仮想サイズを取得する。
@@ -247,11 +258,13 @@ class CFD_EXPORT ConfidentialTransactionContext
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in] asset_count               input asset count.
    * @return TxInを除外したTx仮想サイズ(Serialize)
    */
   uint32_t GetVsizeIgnoreTxIn(
       bool is_blinded = false, int exponent = 0,
-      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits,
+      uint32_t asset_count = 0) const;
 
   /**
    * @brief feeのtxout indexを取得する.

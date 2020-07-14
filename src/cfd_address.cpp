@@ -6,10 +6,11 @@
  *   \~japanese Address操作の関連クラスの実装ファイル
  */
 
+#include "cfd/cfd_address.h"
+
 #include <string>
 #include <vector>
 
-#include "cfd/cfd_address.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_exception.h"

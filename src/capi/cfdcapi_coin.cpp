@@ -5,6 +5,8 @@
  * @brief cfd-capiで利用するCoin操作の実装ファイル
  */
 #ifndef CFD_DISABLE_CAPI
+#include "cfdc/cfdcapi_coin.h"
+
 #include <algorithm>
 #include <limits>
 #include <set>
@@ -18,7 +20,6 @@
 #include "cfd/cfdapi_address.h"
 #include "cfd/cfdapi_elements_transaction.h"
 #include "cfd/cfdapi_transaction.h"
-#include "cfdc/cfdcapi_coin.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"

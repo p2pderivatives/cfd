@@ -549,3 +549,128 @@ TEST(TransactionContext, SequenceApiTestWithScript)
   EXPECT_EQ(txc.GetFeeAmount().GetSatoshiValue(), utxo3.amount.GetSatoshiValue());
   EXPECT_STREQ(tx.GetHex().c_str(), "02000000000103a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b69291553101000000232200204c74fe8b7289c82e22bea07e45a4d8c911e770905176c2ed8d1fe005c8b49b2bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b6929155310200000000ffffffff0280969800000000001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac20bf02000000000016001445663e592ff613587f0fdd6e74034c5239710dca0004004730440220329d9b55274f5d77bf9115a07e6272b28945edd846d06656812faf7bb8bbed0f0220306969ce3aa41efa9cdef778d3c649ff196876c6314fe9c9c5daa5edf4b60d10014730440220266222c9508b6f8cd558c6c6327debef845406072939b26d157b2de9f859dfab0220718f2a192eace2ba7a17a1faebfdde067d24185adb470ba45d16bf9c57ce3ecb016952210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2721020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f22812103ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae53ae0000000000");
 }
+
+TEST(TransactionContext, VerifyErrorCheck)
+{
+  AddressFactory factory(NetType::kRegtest);
+  // Address1 (p2sh-p2wpkh)
+  // pubkey: '0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b',
+  // privkey: 'cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5'
+  // dummy pubkey: '020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281',
+  // dummy privkey: 'cQqnH8e9qzHDAVfYHRwH3X7mDrvz9tw3v1EEYw5tfkzWbTpbsgvt'
+  UtxoData utxo1;
+  utxo1.block_height = 0;
+  utxo1.binary_data = nullptr;
+  utxo1.txid = Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3");
+  utxo1.vout = 0;
+  utxo1.address = factory.GetAddress("2NDdj5X7X7qS9LYZJPdD8tY4NZ7CZFR3Tbi");
+  utxo1.locking_script = utxo1.address.GetLockingScript();
+  utxo1.descriptor = "sh(wpkh(0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b))";
+  utxo1.amount = Amount(int64_t{10000000});
+  utxo1.address_type = AddressType::kP2shP2wpkhAddress;
+
+  // Address2 (p2wpkh)
+  // pubkey: '03ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae',
+  // privkey: 'cP3zjeHXgPnu3KJH4nLRbNSKbVnZgb92sPiC9ciJcsnWkubq2ny9'
+  // dummy pubkey: '020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281',
+  // dummy privkey: 'cQqnH8e9qzHDAVfYHRwH3X7mDrvz9tw3v1EEYw5tfkzWbTpbsgvt'
+  UtxoData utxo2;
+  utxo2.block_height = 0;
+  utxo2.binary_data = nullptr;
+  utxo2.txid = Txid("31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3");
+  utxo2.vout = 2;
+  utxo2.address = factory.GetAddress("bcrt1qeh098dzrl5d5n50duth76uhv9mr9fq9309ymtn");
+  utxo2.locking_script = utxo2.address.GetLockingScript();
+  utxo2.descriptor = "wpkh(03ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae)";
+  utxo2.amount = Amount(int64_t{10000});
+  utxo2.address_type = AddressType::kP2wpkhAddress;
+
+  // Address3 (2 of 3 multisig)
+  // pubkey1: '0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27',
+  // privkey1: 'cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP'
+  // pubkey2: '020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281',
+  // privkey2: 'cQqnH8e9qzHDAVfYHRwH3X7mDrvz9tw3v1EEYw5tfkzWbTpbsgvt'
+  // pubkey3: '03ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae',
+  // privkey3: 'cP3zjeHXgPnu3KJH4nLRbNSKbVnZgb92sPiC9ciJcsnWkubq2ny9'
+  std::vector<Pubkey> pubkeys = {
+    Pubkey("0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27"),
+    Pubkey("020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281"),
+    Pubkey("03ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae")
+  };
+  std::vector<Privkey> privkeys = {
+    Privkey::FromWif("cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP", NetType::kTestnet),
+    Privkey::FromWif("cQqnH8e9qzHDAVfYHRwH3X7mDrvz9tw3v1EEYw5tfkzWbTpbsgvt", NetType::kTestnet),
+    Privkey::FromWif("cP3zjeHXgPnu3KJH4nLRbNSKbVnZgb92sPiC9ciJcsnWkubq2ny9", NetType::kTestnet)
+  };
+  UtxoData utxo3;
+  utxo3.block_height = 0;
+  utxo3.binary_data = nullptr;
+  utxo3.txid = Txid("31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3");
+  utxo3.vout = 1;
+  utxo3.redeem_script = ScriptUtil::CreateMultisigRedeemScript(2, pubkeys);
+  utxo3.address = factory.CreateP2shAddress(utxo3.redeem_script);
+  utxo3.locking_script = utxo3.address.GetLockingScript();
+  utxo3.descriptor = "wsh(multi(2,0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27,020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281,03ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae))";
+  utxo3.amount = Amount(int64_t{180000});
+  utxo3.address_type = AddressType::kP2wshAddress;
+
+  // "2dngFLukCWCjXVusBspjAuGsCRwW4eyAtg6";
+  Address address("mtmTFSnUTqGt6AaSqoRemj7ePPZ6YGXWeo");
+  // "0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27"
+  Address address2("bcrt1qg4nrukf07cf4slc0m4h8gq6v2guhzrw29sfnlu");
+
+  TransactionContext txc(2, 0);
+  std::vector<cfd::UtxoData> utxos{utxo1, utxo2, utxo3};
+  SigHashType sighash_type;
+
+  EXPECT_NO_THROW(txc.AddInputs(utxos));
+  txc.AddTxOut(address, utxo1.amount);
+  txc.AddTxOut(address2, utxo2.amount);
+
+  ByteData tx;
+
+  // sign1
+  OutPoint outpoint1(utxo1.txid, utxo1.vout);
+  EXPECT_NO_THROW(txc.SignWithKey(outpoint1,
+      Pubkey("0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b"),
+      Privkey::FromWif(
+          "cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5", NetType::kTestnet)));
+  Script scriptSig(ScriptUtil::CreateP2wpkhLockingScript(
+      Pubkey("020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281"))
+        .GetData().Serialize());
+  EXPECT_NO_THROW(txc.SetUnlockingScript(0, scriptSig));
+  try {
+    txc.Verify(outpoint1);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("p2sh-p2wpkh scriptsig unmatch.", except.what());
+  }
+
+  // sign2
+  OutPoint outpoint2(utxo2.txid, utxo2.vout);
+  EXPECT_NO_THROW(txc.SignWithKey(outpoint2,
+      Pubkey("020bc943cfbc6fb8eb668b3516c920bad7f46bd227032fa4f00b72eb55197f2281"),
+      Privkey::FromWif(
+          "cQqnH8e9qzHDAVfYHRwH3X7mDrvz9tw3v1EEYw5tfkzWbTpbsgvt", NetType::kTestnet)));
+  try {
+    txc.Verify(outpoint2);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("Unmatch locking script.", except.what());
+  }
+
+  // sign3
+  OutPoint outpoint3(utxo3.txid, utxo3.vout);
+  ByteData256 sighash3 = ByteData256(txc.CreateSignatureHash(outpoint3,
+      utxo3.redeem_script, sighash_type, utxo3.amount, WitnessVersion::kVersion0));
+  ByteData signature2 = SignatureUtil::CalculateEcSignature(sighash3, privkeys[2]);
+  ByteData signature1 = SignatureUtil::CalculateEcSignature(sighash3, privkeys[1]);
+  SignParameter sign2(signature2, true, sighash_type);
+  SignParameter sign1(signature1, true, sighash_type);
+  std::vector<SignParameter> signatures3 = {sign2, sign1};
+  txc.AddMultisigSign(
+      outpoint3, signatures3, utxo3.redeem_script, utxo3.address_type);
+  try {
+    txc.Verify(outpoint3);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("Signature order is incorrect.", except.what());
+  }
+}

@@ -1,5 +1,7 @@
 # Crypto Finance Development Kit (CFD)
 
+cfd library in C/C++
+
 <!-- TODO: Write Summary and Overview
 
 ## Overview
@@ -126,7 +128,7 @@ npm cmake_install
 ```Shell
 cd build && sudo make install
 
-(Using ninja:)
+(Using ninja)
 cd build && sudo ninja install
 ```
 
@@ -136,7 +138,7 @@ cmake version is 3.15 or higher: `cmake --install build`
 ```Shell
 cd build && sudo make uninstall
 
-(Using ninja:)
+(Using ninja)
 cd build && sudo ninja uninstall
 ```
 
@@ -153,6 +155,29 @@ npm run ctest
 ### Example
 
 - Not Implemented yet
+
+---
+
+## Information for developers
+
+### using library
+
+- cfd-core
+- googletest (for testing)
+
+### formatter
+
+- clang-format (using v10.0.0)
+
+### linter
+
+- cpplint
+
+### document tool
+
+- doxygen & graphviz
+
+---
 
 ## Note
 
