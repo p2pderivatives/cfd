@@ -5,11 +5,12 @@
  * @brief \~english implementation of classes related to fee calculation
  *   \~japanese Fee計算の関連クラスの実装ファイル
  */
+#include "cfd/cfd_fee.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
 
-#include "cfd/cfd_fee.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_transaction_common.h"

@@ -5,6 +5,8 @@
  * @brief cfd-capiで利用するTransaction処理の実装ファイル
  */
 #ifndef CFD_DISABLE_CAPI
+#include "cfdc/cfdcapi_transaction.h"
+
 #include <exception>
 #include <map>
 #include <string>
@@ -21,7 +23,6 @@
 #include "cfd/cfdapi_key.h"
 #include "cfd/cfdapi_transaction.h"
 #include "cfdc/cfdcapi_common.h"
-#include "cfdc/cfdcapi_transaction.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
@@ -1301,6 +1302,8 @@ int CfdVerifyTxSign(
   } catch (const CfdException& except) {
     if (result != CfdErrorCode::kCfdSignVerificationError) {
       result = SetLastError(handle, except);
+    } else {
+      SetLastError(handle, except);  // collect error message
     }
   } catch (const std::exception& std_except) {
     SetLastFatalError(handle, std_except.what());

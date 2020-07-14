@@ -6,10 +6,13 @@
  *   \~japanese cfd-apiで利用するAddress操作の実装ファイル
  */
 #ifndef CFD_DISABLE_ELEMENTS
+#include "cfd/cfdapi_elements_address.h"
+
 #include <string>
 #include <vector>
 
 #include "cfd/cfd_elements_address.h"
+#include "cfd/cfdapi_address.h"
 #include "cfd_manager.h"  // NOLINT
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_elements_address.h"
@@ -18,9 +21,6 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
-
-#include "cfd/cfdapi_address.h"
-#include "cfd/cfdapi_elements_address.h"
 
 namespace cfd {
 namespace api {

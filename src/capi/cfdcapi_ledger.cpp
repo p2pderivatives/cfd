@@ -5,6 +5,8 @@
  * @brief implements ledger support function on cfd-capi.
  */
 #ifndef CFD_DISABLE_CAPI
+#include "cfdc/cfdcapi_ledger.h"
+
 #include <string>
 #include <vector>
 
@@ -13,7 +15,6 @@
 #include "cfd/cfd_elements_transaction.h"
 #include "cfd/cfdapi_ledger.h"
 #include "cfdc/cfdcapi_common.h"
-#include "cfdc/cfdcapi_ledger.h"
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_logger.h"

@@ -45,6 +45,10 @@ static CoinSelectionOption GetBitcoinOption() {
 
 // FIXME Utxo illegal creating. need set witness_size_max, uscript_size_max
 static std::vector<Utxo> GetBitcoinUtxoList() {
+  // std::string desc = "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x";
+  constexpr uint16_t witness_size = 106; // 71 + 33 + 2
+  constexpr uint16_t scriptsig_size = 22; // 20 + 2
+
   std::vector<Utxo> utxos;
   {
     Txid txid("7ca81dd22c934747f4f5ab7844178445fe931fb248e0704c062b8f4fbd3d500a");
@@ -53,6 +57,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 312500000;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -62,6 +68,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 78125000;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -71,6 +79,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 1250000000;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -80,6 +90,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 39062500;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -89,6 +101,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 156250000;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -98,6 +112,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 2500000000;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -107,6 +123,8 @@ static std::vector<Utxo> GetBitcoinUtxoList() {
     memcpy(utxo.txid, txid.GetData().GetBytes().data(), 32);
     utxo.vout = 0;
     utxo.amount = 5000000000;
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   return utxos;
@@ -135,8 +153,8 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_targetvalue_0)
 
 TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_match_utxo)
 {
-  // 39062500 - 820 - 1500
-  Amount target_amount = Amount::CreateBySatoshiAmount(39060180);
+  // 39062500 - 1500 - 1800
+  Amount target_amount = Amount::CreateBySatoshiAmount(39059200);
   Amount select_value;
   Amount fee;
   Amount tx_fee = Amount::CreateBySatoshiAmount(1500);
@@ -148,7 +166,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_match_utxo)
 
   EXPECT_EQ(ret.size(), 1);
   EXPECT_EQ(select_value.GetSatoshiValue(), 39062500);
-  EXPECT_EQ(fee.GetSatoshiValue(), 820);
+  EXPECT_EQ(fee.GetSatoshiValue(), 1800);
   if (ret.size() == 1) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(39062500));
   }
@@ -157,8 +175,8 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_match_utxo)
 
 TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_match_utxo2)
 {
-  // 117187500 - 1640 - 1500
-  Amount target_amount = Amount::CreateBySatoshiAmount(117184360);
+  // 117187500 - 3600 - 1500
+  Amount target_amount = Amount::CreateBySatoshiAmount(117182400);
   Amount select_value;
   Amount fee;
   Amount tx_fee = Amount::CreateBySatoshiAmount(1500);
@@ -170,7 +188,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_match_utxo2)
 
   EXPECT_EQ(ret.size(), 2);
   EXPECT_EQ(select_value.GetSatoshiValue(), 117187500);
-  EXPECT_EQ(fee.GetSatoshiValue(), 1640);
+  EXPECT_EQ(fee.GetSatoshiValue(), 3600);
   if (ret.size() == 2) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(78125000));
     EXPECT_EQ(ret[1].amount, static_cast<int64_t>(39062500));
@@ -192,7 +210,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_lowest_larger)
 
   EXPECT_EQ(ret.size(), 1);
   EXPECT_EQ(select_value.GetSatoshiValue(), 156250000);
-  EXPECT_EQ(fee.GetSatoshiValue(), 820);
+  EXPECT_EQ(fee.GetSatoshiValue(), 1800);
   if (ret.size() == 1) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(156250000));
   }
@@ -213,7 +231,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_ApproximateBestSubset)
 
   EXPECT_EQ(ret.size(), 2);
   EXPECT_EQ(select_value.GetSatoshiValue(), 234375000);
-  EXPECT_EQ(fee.GetSatoshiValue(), 1640);
+  EXPECT_EQ(fee.GetSatoshiValue(), 3600);
   if (ret.size() == 2) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(156250000));
     EXPECT_EQ(ret[1].amount, static_cast<int64_t>(78125000));
@@ -235,7 +253,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_ApproximateBestSubset2)
 
   EXPECT_EQ(ret.size(), 2);
   EXPECT_EQ(select_value.GetSatoshiValue(), 468750000);
-  EXPECT_EQ(fee.GetSatoshiValue(), 1640);
+  EXPECT_EQ(fee.GetSatoshiValue(), 3600);
   if (ret.size() == 2) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(312500000));
     EXPECT_EQ(ret[1].amount, static_cast<int64_t>(156250000));
@@ -258,7 +276,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_ApproximateBestSubset2_low
 
   EXPECT_EQ(ret.size(), 1);
   EXPECT_EQ(select_value.GetSatoshiValue(), 1250000000);
-  EXPECT_EQ(fee.GetSatoshiValue(), 820);
+  EXPECT_EQ(fee.GetSatoshiValue(), 1800);
   if (ret.size() == 1) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(1250000000));
   }
@@ -281,7 +299,7 @@ TEST(CoinSelection, SelectCoins_Simple_KnapsackSolver_MinimumFee)
 
   EXPECT_EQ(ret.size(), 2);
   EXPECT_EQ(select_value.GetSatoshiValue(), 468750000);
-  EXPECT_EQ(fee.GetSatoshiValue(), 1640);
+  EXPECT_EQ(fee.GetSatoshiValue(), 3600);
   if (ret.size() == 2) {
     EXPECT_EQ(ret[0].amount, static_cast<int64_t>(312500000));
     EXPECT_EQ(ret[1].amount, static_cast<int64_t>(156250000));
@@ -699,6 +717,9 @@ static CoinSelectionOption GetElementsOption() {
 
 // FIXME Utxo illegal creating. need set witness_size_max, uscript_size_max
 static std::vector<Utxo> GetElementsUtxoList() {
+  // std::string desc = "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x";
+  constexpr uint16_t witness_size = 106; // 71 + 33 + 2
+  constexpr uint16_t scriptsig_size = 22; // 20 + 2
   std::vector<Utxo> utxos;
   {
     Txid txid("7ca81dd22c934747f4f5ab7844178445fe931fb248e0704c062b8f4fbd3d500a");
@@ -708,6 +729,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 312500000;
     memcpy(utxo.asset, exp_dummy_asset_a.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -718,6 +741,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 78125000;
     memcpy(utxo.asset, exp_dummy_asset_a.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -728,6 +753,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 1250000000;
     memcpy(utxo.asset, exp_dummy_asset_a.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -738,6 +765,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 39062500;
     memcpy(utxo.asset, exp_dummy_asset_a.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -748,6 +777,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 156250000;
     memcpy(utxo.asset, exp_dummy_asset_a.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -758,6 +789,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 2500000000;
     memcpy(utxo.asset, exp_dummy_asset_a.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -768,6 +801,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 26918400;
     memcpy(utxo.asset, exp_dummy_asset_b.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -778,6 +813,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 750000;
     memcpy(utxo.asset, exp_dummy_asset_b.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -788,6 +825,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 346430050;
     memcpy(utxo.asset, exp_dummy_asset_b.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -798,6 +837,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 18476350;
     memcpy(utxo.asset, exp_dummy_asset_b.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -808,6 +849,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 37654200;
     memcpy(utxo.asset, exp_dummy_asset_c.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   {
@@ -818,6 +861,8 @@ static std::vector<Utxo> GetElementsUtxoList() {
     utxo.vout = 0;
     utxo.amount = 127030000;
     memcpy(utxo.asset, exp_dummy_asset_c.GetData().GetBytes().data(), sizeof(utxo.asset));
+    utxo.witness_size_max = witness_size;
+    utxo.uscript_size_max = scriptsig_size;
     utxos.push_back(utxo);
   }
   return utxos;
@@ -856,9 +901,9 @@ TEST(CoinSelection, SelectCoins_KnapsackSolver_match_utxo_with_asset)
 {
   CoinSelectionOption option = GetElementsOption();
   option.SetFeeAsset(exp_dummy_asset_a);
-  // 39062500 - 820 - 1500
+  // 39062500 - 1800 - 1500
   AmountMap map_target_amount;
-  map_target_amount[exp_dummy_asset_a.GetHex()] = Amount::CreateBySatoshiAmount(39060180);
+  map_target_amount[exp_dummy_asset_a.GetHex()] = Amount::CreateBySatoshiAmount(39059200);
   AmountMap map_select_value;
   Amount fee;
   Amount tx_fee = Amount::CreateBySatoshiAmount(1500);
@@ -876,7 +921,7 @@ TEST(CoinSelection, SelectCoins_KnapsackSolver_match_utxo_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 39062500);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 820);
+  EXPECT_EQ(fee.GetSatoshiValue(), 1800);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -907,7 +952,7 @@ TEST(CoinSelection, SelectCoins_KnapsackSolver_ApproximateBestSubset_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 234375000);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 1640);
+  EXPECT_EQ(fee.GetSatoshiValue(), 3600);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1185,7 +1230,7 @@ TEST(CoinSelection, SelectCoins_KnapsackSolver_with_multiple_asset)
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), 78125000);
     EXPECT_EQ(map_select_value[exp_dummy_asset_b.GetHex()].GetSatoshiValue(), 26918400);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 1640);
+  EXPECT_EQ(fee.GetSatoshiValue(), 3600);
   EXPECT_EQ(map_searched_bnb.size(), 2);
   if (map_searched_bnb.size() == 2) {
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1408,7 +1453,7 @@ TEST(CoinSelection, SelectCoins_empty_target_value_map_but_calculate_fee) {
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()].GetSatoshiValue(), static_cast<int64_t>(39062500));
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 820);
+  EXPECT_EQ(fee.GetSatoshiValue(), 1800);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);

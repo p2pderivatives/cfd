@@ -12,6 +12,7 @@
 #include <string>
 
 #include "cfd/cfd_common.h"
+#include "cfdcore/cfdcore_key.h"
 
 namespace cfd {
 namespace api {
@@ -60,6 +61,17 @@ class CFD_EXPORT KeyApi {
    */
   Privkey GetPrivkeyFromWif(
       const std::string& wif, NetType* net_type = nullptr,
+      bool* is_compressed = nullptr) const;
+
+  /**
+   * @brief Get privkey.
+   * @param[in] privkey         private key (WIF or hex)
+   * @param[out] net_type       network type.
+   * @param[out] is_compressed  compressed flag. (for pubkey)
+   * @return privkey
+   */
+  Privkey GetPrivkey(
+      const std::string& privkey, NetType* net_type = nullptr,
       bool* is_compressed = nullptr) const;
 };
 

@@ -16,6 +16,7 @@
 #include "cfd/cfd_address.h"
 #include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_fee.h"
+#include "cfd_transaction_internal.h"  // NOLINT
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
@@ -27,8 +28,6 @@
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
-
-#include "cfd_transaction_internal.h"  // NOLINT
 
 namespace cfd {
 using cfd::core::Address;
@@ -216,6 +215,12 @@ bool ConfidentialTransactionContext::IsFindTxOut(
   }
 }
 
+const ConfidentialTxInReference ConfidentialTransactionContext::GetTxIn(
+    const OutPoint& outpoint) const {
+  uint32_t index = GetTxInIndex(outpoint);
+  return GetTxIn(index);
+}
+
 Address ConfidentialTransactionContext::GetTxOutAddress(
     uint32_t index, NetType net_type, bool ignore_error) const {
   if (vout_.size() <= index) {
@@ -253,9 +258,26 @@ uint32_t ConfidentialTransactionContext::AddTxOut(
 
 uint32_t ConfidentialTransactionContext::GetSizeIgnoreTxIn(
     bool is_blinded, uint32_t* witness_area_size,
-    uint32_t* no_witness_area_size, int exponent, int minimum_bits) const {
+    uint32_t* no_witness_area_size, int exponent, int minimum_bits,
+    uint32_t asset_count) const {
   uint32_t size = ConfidentialTransaction::kElementsTransactionMinimumSize;
   std::vector<ConfidentialTxOutReference> txouts = GetTxOutList();
+  uint32_t temp_asset_count = asset_count;
+
+  // search vin from issue/reissue
+  if (temp_asset_count == 0) {
+    for (const auto& txin : vin_) {
+      if (!txin.GetAssetEntropy().IsEmpty()) {
+        ++temp_asset_count;
+        if (!txin.GetBlindingNonce().IsEmpty()) {
+          // reissuance
+        } else {
+          ++temp_asset_count;  // issuance
+        }
+      }
+      ++temp_asset_count;
+    }
+  }
 
   uint32_t witness_size = 0;
   uint32_t no_witness_size = 0;
@@ -265,7 +287,7 @@ uint32_t ConfidentialTransactionContext::GetSizeIgnoreTxIn(
   for (const auto& txout : txouts) {
     txout.GetSerializeSize(
         is_blinded, &temp_witness_size, &temp_no_witness_size, exponent,
-        minimum_bits, &rangeproof_size_cache);
+        minimum_bits, &rangeproof_size_cache, temp_asset_count);
     witness_size += temp_witness_size;
     no_witness_size += temp_no_witness_size;
   }
@@ -281,11 +303,13 @@ uint32_t ConfidentialTransactionContext::GetSizeIgnoreTxIn(
 }
 
 uint32_t ConfidentialTransactionContext::GetVsizeIgnoreTxIn(
-    bool is_blinded, int exponent, int minimum_bits) const {
+    bool is_blinded, int exponent, int minimum_bits,
+    uint32_t asset_count) const {
   uint32_t witness_size = 0;
   uint32_t no_witness_size = 0;
   GetSizeIgnoreTxIn(
-      is_blinded, &witness_size, &no_witness_size, exponent, minimum_bits);
+      is_blinded, &witness_size, &no_witness_size, exponent, minimum_bits,
+      asset_count);
   return AbstractTransaction::GetVsizeFromSize(no_witness_size, witness_size);
 }
 
@@ -591,8 +615,8 @@ void ConfidentialTransactionContext::BlindTransactionWithDirectKey(
     std::string script = txout.GetLockingScript().GetHex();
     if (confidential_keys[index].IsValid()) {
       // do nothing
-    } else if (ct_map.count(script) != 0) {
-      confidential_keys[index] = ct_map.at(script);
+    } else if (ct_map.find(script) != std::end(ct_map)) {
+      confidential_keys[index] = ct_map.find(script)->second;
     } else {
       ByteData nonce = txout.GetNonce().GetData();
       if (Pubkey::IsValid(nonce)) {
@@ -650,7 +674,7 @@ void ConfidentialTransactionContext::CollectInputUtxo(
       uint32_t vout = txin_ref.GetVout();
 
       OutPoint outpoint(txid, vout);
-      if (utxo_map_.count(outpoint) == 0) {
+      if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
         for (const auto& utxo : utxos) {
           if ((utxo.vout == vout) && utxo.txid.Equals(txid)) {
             utxo_map_.emplace(outpoint, utxo);
@@ -677,11 +701,11 @@ void ConfidentialTransactionContext::BlindIssuance(
   std::map<OutPoint, BlindParameter> utxo_info_map;
   for (const auto& txin_ref : vin_) {
     OutPoint outpoint = txin_ref.GetOutPoint();
-    if (utxo_map_.count(outpoint) == 0) {
+    if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
       throw CfdException(
           CfdError::kCfdIllegalStateError, "Utxo is not found. blind fail.");
     }
-    UtxoData utxo = utxo_map_[outpoint];
+    UtxoData utxo = utxo_map_.find(outpoint)->second;
     BlindParameter param;
     param.asset = utxo.asset;
     param.abf = utxo.asset_blind_factor;
@@ -704,11 +728,11 @@ void ConfidentialTransactionContext::BlindIssuance(
 void ConfidentialTransactionContext::SignWithKey(
     const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
     SigHashType sighash_type, bool has_grind_r) {
-  if (utxo_map_.count(outpoint) == 0) {
+  if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "Utxo is not found. sign fail.");
   }
-  UtxoData utxo = utxo_map_[outpoint];
+  UtxoData utxo = utxo_map_.find(outpoint)->second;
 
   if (utxo.amount_blind_factor.IsEmpty() &&
       (!utxo.value_commitment.HasBlinding())) {
@@ -730,18 +754,18 @@ void ConfidentialTransactionContext::IgnoreVerify(const OutPoint& outpoint) {
 void ConfidentialTransactionContext::Verify() {
   for (const auto& vin : vin_) {
     OutPoint outpoint = vin.GetOutPoint();
-    if (verify_ignore_map_.count(outpoint) == 0) {
+    if (verify_ignore_map_.find(outpoint) == std::end(verify_ignore_map_)) {
       Verify(outpoint);
     }
   }
 }
 
 void ConfidentialTransactionContext::Verify(const OutPoint& outpoint) {
-  if (utxo_map_.count(outpoint) == 0) {
+  if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "Utxo is not found. verify fail.");
   }
-  const auto& utxo = utxo_map_[outpoint];
+  const auto& utxo = utxo_map_.find(outpoint)->second;
   const auto& txin = vin_[GetTxInIndex(outpoint)];
 
   TransactionContextUtil::Verify<ConfidentialTransactionContext>(
@@ -920,8 +944,9 @@ ConfidentialTransactionController::ConfidentialTransactionController(
   // do nothing
 }
 
-ConfidentialTransactionController& ConfidentialTransactionController::
-operator=(const ConfidentialTransactionController& transaction) & {
+ConfidentialTransactionController&
+ConfidentialTransactionController::operator=(
+    const ConfidentialTransactionController& transaction) & {
   transaction_ = transaction.transaction_;
   return *this;
 }

@@ -5,6 +5,8 @@
  * @brief cfd-capiで利用するAddress操作の実装ファイル
  */
 #ifndef CFD_DISABLE_CAPI
+#include "cfdc/cfdcapi_address.h"
+
 #include <algorithm>
 #include <limits>
 #include <set>
@@ -16,7 +18,6 @@
 #include "cfd/cfd_elements_address.h"
 #include "cfd/cfdapi_address.h"
 #include "cfd/cfdapi_elements_address.h"
-#include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_common.h"

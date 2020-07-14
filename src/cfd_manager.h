@@ -11,9 +11,8 @@
 
 #include <memory>
 
-#include "cfdcore/cfdcore_common.h"
-
 #include "cfd/cfd_common.h"
+#include "cfdcore/cfdcore_common.h"
 
 /**
  * @brief cfd名前空間

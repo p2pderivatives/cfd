@@ -5,12 +5,12 @@
  * @brief cfd管理クラス実装ファイルです。
  *
  */
+#include "cfd_manager.h"  // NOLINT
+
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_logger_interface.h"
-
-#include "cfd_manager.h"  // NOLINT
 
 using cfd::core::CfdError;
 using cfd::core::CfdException;

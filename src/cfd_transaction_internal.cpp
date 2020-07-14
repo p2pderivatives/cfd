@@ -5,6 +5,8 @@
  * @brief \~english implementation of transaction utility class.
  *   \~japanese Transaction Utilityクラスの実装ファイル
  */
+#include "cfd_transaction_internal.h"  // NOLINT
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -20,8 +22,6 @@
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
-
-#include "cfd_transaction_internal.h"  // NOLINT
 
 namespace cfd {
 
@@ -325,6 +325,24 @@ void TransactionContextUtil::Verify(
   } else {
     // check script format
     Script redeem_script(signature_stack.back());
+    if (!redeem_script.IsMultisigScript()) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Unsupported script format. verify support is multisig only.");
+    }
+    if (utxo.address_type == AddressType::kP2shAddress) {
+      if (signature_stack[0].GetHex() != "00") {
+        throw CfdException(
+            CfdError::kCfdIllegalStateError,
+            "Invalid multisig format. top stack is OP_0 only.");
+      }
+    } else {
+      if (!signature_stack[0].IsEmpty()) {
+        throw CfdException(
+            CfdError::kCfdIllegalStateError,
+            "Invalid multisig format. top byte is empty only.");
+      }
+    }
     uint32_t req_num = 0;
     std::vector<Pubkey> pubkeys =
         ScriptUtil::ExtractPubkeysFromMultisigScript(redeem_script, &req_num);
@@ -339,7 +357,9 @@ void TransactionContextUtil::Verify(
     }
 
     uint32_t success_count = 0;
+    std::string fail_indexes;
     SigHashType sighashtype;
+    int prev_key_index = -1;
     for (size_t index = 0; index < sig_size; ++index) {
       bool is_exist = false;
       auto signature = CryptoUtil::ConvertSignatureFromDer(
@@ -347,19 +367,32 @@ void TransactionContextUtil::Verify(
       auto sighash = create_sighash_func(
           transaction, outpoint, utxo, sighashtype, Pubkey(), redeem_script,
           version);
-      for (const auto& pubkey : pubkeys) {
+      for (size_t key_index = 0; key_index < pubkeys.size(); ++key_index) {
+        const auto& pubkey = pubkeys[key_index];
         is_exist =
             SignatureUtil::VerifyEcSignature(sighash, pubkey, signature);
-        if (is_exist) break;
+        if (is_exist) {
+          if (prev_key_index >= static_cast<int>(key_index)) {
+            throw CfdException(
+                CfdError::kCfdIllegalStateError,
+                "Signature order is incorrect.");
+          }
+          prev_key_index = static_cast<int>(key_index);
+          break;
+        }
       }
-      if (is_exist) ++success_count;
+      if (is_exist) {
+        ++success_count;
+      } else {
+        if (!fail_indexes.empty()) fail_indexes += ",";
+        fail_indexes += std::to_string(index);
+      }
     }
 
     if (success_count != sig_size) {
-      uint32_t fail_count = sig_size - success_count;
       throw CfdException(
           CfdError::kCfdIllegalStateError,
-          "Verify signature fail. fail count = " + std::to_string(fail_count));
+          "Verify signature fail. fail index = " + fail_indexes);
     }
   }
 }
@@ -471,6 +504,7 @@ std::vector<ByteData> TransactionContextUtil::GetVerifySignatureStack(
   WitnessVersion version =
       (has_witness) ? WitnessVersion::kVersion0 : WitnessVersion::kVersionNone;
   bool has_pubkey = false;
+  Script locking_script;
   if ((utxo.address_type == AddressType::kP2wpkhAddress) ||
       (utxo.address_type == AddressType::kP2shP2wpkhAddress) ||
       (utxo.address_type == AddressType::kP2pkhAddress)) {
@@ -480,21 +514,41 @@ std::vector<ByteData> TransactionContextUtil::GetVerifySignatureStack(
           "signature stack unmatch. stack count is 2 only.");
     }
     has_pubkey = true;
+    Pubkey pubkey(signature_stack.back());
+    if (utxo.address_type == AddressType::kP2pkhAddress) {
+      locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
+    } else {
+      locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+      if (utxo.address_type == AddressType::kP2shP2wpkhAddress) {
+        if (locking_script.GetHex() != unlocking_script.GetHex()) {
+          throw CfdException(
+              CfdError::kCfdIllegalStateError,
+              "p2sh-p2wpkh scriptsig unmatch.");
+        }
+        locking_script = ScriptUtil::CreateP2shLockingScript(locking_script);
+      }
+    }
   } else {
     // check script format
     Script redeem_script(signature_stack.back());
-    if (utxo.address_type == AddressType::kP2shP2wshAddress) {
-      Script locking_script =
-          ScriptUtil::CreateP2wshLockingScript(redeem_script);
-      if (locking_script.GetHex() != unlocking_script.GetHex()) {
-        throw CfdException(
-            CfdError::kCfdIllegalStateError, "p2sh-p2wsh scriptsig unmatch.");
+    if (utxo.address_type == AddressType::kP2shAddress) {
+      locking_script = ScriptUtil::CreateP2shLockingScript(redeem_script);
+    } else {
+      locking_script = ScriptUtil::CreateP2wshLockingScript(redeem_script);
+      if (utxo.address_type == AddressType::kP2shP2wshAddress) {
+        if (locking_script.GetHex() != unlocking_script.GetHex()) {
+          throw CfdException(
+              CfdError::kCfdIllegalStateError,
+              "p2sh-p2wsh scriptsig unmatch.");
+        }
+        locking_script = ScriptUtil::CreateP2shLockingScript(locking_script);
       }
     }
-    if (!redeem_script.IsMultisigScript()) {
+  }
+  if (!utxo.locking_script.IsEmpty()) {
+    if (locking_script.GetHex() != utxo.locking_script.GetHex()) {
       throw CfdException(
-          CfdError::kCfdIllegalStateError,
-          "Unsupported script format. verify support is multisig only.");
+          CfdError::kCfdIllegalStateError, "Unmatch locking script.");
     }
   }
 

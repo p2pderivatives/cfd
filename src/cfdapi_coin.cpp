@@ -4,6 +4,8 @@
  *
  * @brief cfd-apiで利用するCoin関連の実装ファイル
  */
+#include "cfd/cfdapi_coin.h"
+
 #include <cstring>
 #include <string>
 #include <vector>
@@ -11,7 +13,6 @@
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_transaction_common.h"
 #include "cfd/cfd_utxo.h"
-#include "cfd/cfdapi_coin.h"
 
 namespace cfd {
 namespace api {

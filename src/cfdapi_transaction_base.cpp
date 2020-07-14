@@ -5,6 +5,8 @@
  * @brief \~english implementation file for transaction operation that uses cfd-api
  *   \~japanese cfd-apiで利用するTransaction作成の実装ファイル
  */
+#include "cfdapi_transaction_base.h"  // NOLINT
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -17,8 +19,6 @@
 #include "cfdcore/cfdcore_iterator.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_util.h"
-
-#include "cfdapi_transaction_base.h"  // NOLINT
 
 namespace cfd {
 namespace api {

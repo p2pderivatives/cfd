@@ -6,12 +6,12 @@
  *   \~japanese Elements用Address操作関連クラスの実装
  */
 #ifndef CFD_DISABLE_ELEMENTS
+#include "cfd/cfd_elements_address.h"
+
 #include <string>
 #include <vector>
 
 #include "cfd/cfd_common.h"
-#include "cfd/cfd_elements_address.h"
-
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_elements_address.h"

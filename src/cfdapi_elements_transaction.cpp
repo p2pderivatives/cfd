@@ -6,6 +6,8 @@
  *   \~japanese cfd-apiで利用するConfidential Transaction操作の実装ファイル
  */
 #ifndef CFD_DISABLE_ELEMENTS
+#include "cfd/cfdapi_elements_transaction.h"
+
 #include <algorithm>
 #include <limits>
 #include <map>
@@ -13,9 +15,15 @@
 #include <string>
 #include <vector>
 
+#include "cfd/cfd_address.h"
+#include "cfd/cfd_elements_address.h"
 #include "cfd/cfd_elements_transaction.h"
 #include "cfd/cfd_fee.h"
-#include "cfd_manager.h"  // NOLINT
+#include "cfd/cfdapi_address.h"
+#include "cfd/cfdapi_elements_address.h"
+#include "cfd/cfdapi_transaction.h"
+#include "cfd_manager.h"              // NOLINT
+#include "cfdapi_transaction_base.h"  // NOLINT
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_coin.h"
@@ -27,14 +35,6 @@
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_util.h"
-
-#include "cfd/cfd_address.h"
-#include "cfd/cfd_elements_address.h"
-#include "cfd/cfdapi_address.h"
-#include "cfd/cfdapi_elements_address.h"
-#include "cfd/cfdapi_elements_transaction.h"
-#include "cfd/cfdapi_transaction.h"
-#include "cfdapi_transaction_base.h"  // NOLINT
 
 namespace cfd {
 namespace api {
@@ -545,7 +545,7 @@ Amount ElementsTransactionApi::EstimateFee(
     const ConfidentialAssetId& fee_asset, Amount* tx_fee, Amount* utxo_fee,
     bool is_blind, uint64_t effective_fee_rate, int exponent,
     int minimum_bits) const {
-  ConfidentialTransactionController txc(tx_hex);
+  ConfidentialTransactionContext txc(tx_hex);
 
   if (fee_asset.IsEmpty()) {
     warn(CFD_LOG_SOURCE, "Failed to EstimateFee. Empty fee asset.");
@@ -554,8 +554,7 @@ Amount ElementsTransactionApi::EstimateFee(
 
   // check fee in txout
   bool exist_fee = false;
-  const ConfidentialTransaction& ctx = txc.GetTransaction();
-  for (const auto& txout : ctx.GetTxOutList()) {
+  for (const auto& txout : txc.GetTxOutList()) {
     if (txout.GetLockingScript().IsEmpty()) {
       if (txout.GetAsset().GetHex() != fee_asset.GetHex()) {
         warn(CFD_LOG_SOURCE, "Failed to EstimateFee. Unmatch fee asset.");
@@ -570,13 +569,13 @@ Amount ElementsTransactionApi::EstimateFee(
     txc.AddTxOutFee(Amount::CreateBySatoshiAmount(1), fee_asset);  // dummy fee
   }
 
-  uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn(is_blind, exponent, minimum_bits);
-
   uint32_t size = 0;
   uint32_t witness_size = 0;
   uint32_t wit_size = 0;
   uint32_t txin_size = 0;
   uint32_t rangeproof_size_cache = 0;
+  uint32_t asset_count = 0;
+  uint32_t not_witness_count = 0;
   ElementsAddressApi address_api;
   for (const auto& utxo : utxos) {
     uint32_t pegin_btc_tx_size = 0;
@@ -615,13 +614,13 @@ Amount ElementsTransactionApi::EstimateFee(
     bool is_reissuance = false;
     bool is_blind_issuance = utxo.is_blind_issuance;
     try {
-      auto ref = txc.GetTxIn(utxo.utxo.txid, utxo.utxo.vout);
-      if (utxo.is_issuance && utxo.is_blind_issuance) {
+      auto ref = txc.GetTxIn(OutPoint(utxo.utxo.txid, utxo.utxo.vout));
+      if (utxo.is_issuance) {
         if ((!ref.GetAssetEntropy().IsEmpty()) &&
             (!ref.GetBlindingNonce().IsEmpty())) {
           is_reissuance = true;
         }
-      } else if ((!utxo.is_issuance) && (!utxo.is_blind_issuance)) {
+      } else if ((!utxo.is_issuance) && (!utxo.is_blind_issuance)) {  // init
         if (!ref.GetAssetEntropy().IsEmpty()) {
           is_issuance = true;
           is_blind_issuance = is_blind;
@@ -641,15 +640,31 @@ Amount ElementsTransactionApi::EstimateFee(
       info(CFD_LOG_SOURCE, "Error:{}", std::string(except.what()));
     }
 
+    if (is_reissuance)
+      ++asset_count;
+    else if (is_issuance)
+      asset_count += 2;
+
+    ++asset_count;
     ConfidentialTxIn::EstimateTxInSize(
         addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
         is_issuance, is_blind_issuance, &wit_size, &txin_size, is_reissuance,
         scriptsig_template, exponent, minimum_bits, &rangeproof_size_cache);
     size += txin_size;
     witness_size += wit_size;
+    if (wit_size == 0) ++not_witness_count;
   }
+  if ((not_witness_count != 0) &&
+      (not_witness_count < static_cast<uint32_t>(utxos.size()))) {
+    // append witness size for p2pkh or p2sh
+    witness_size += not_witness_count * 4;
+  }
+
   uint32_t utxo_vsize =
       AbstractTransaction::GetVsizeFromSize(size, witness_size);
+
+  uint32_t tx_vsize =
+      txc.GetVsizeIgnoreTxIn(is_blind, exponent, minimum_bits, asset_count);
 
   FeeCalculator fee_calc(effective_fee_rate);
   Amount tx_fee_amount = fee_calc.GetFee(tx_vsize);

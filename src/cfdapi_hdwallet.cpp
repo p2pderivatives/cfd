@@ -5,16 +5,16 @@
  * @brief \~english implementation of HDWallet API class that uses cfd-api
  *   \~japanese cfd-apiで利用するHDWallet APIクラスの実装
  */
+#include "cfd/cfdapi_hdwallet.h"
+
 #include <string>
 #include <vector>
 
+#include "cfd/cfd_common.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_logger.h"
-
-#include "cfd/cfd_common.h"
-#include "cfd/cfdapi_hdwallet.h"
 
 //////////////////////////////////
 /// HDWalletApi

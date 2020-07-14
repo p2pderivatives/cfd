@@ -163,6 +163,11 @@ class CFD_EXPORT SignParameter {
   /**
    * @brief コピーコンストラクタ.
    * @param[in] sign_parameter     Sign生成情報オブジェクト
+   */
+  SignParameter(const SignParameter& sign_parameter);
+  /**
+   * @brief コピーコンストラクタ.
+   * @param[in] sign_parameter     Sign生成情報オブジェクト
    * @return SignParameterオブジェクト
    */
   SignParameter& operator=(const SignParameter& sign_parameter);
