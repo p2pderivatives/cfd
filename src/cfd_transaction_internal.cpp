@@ -303,11 +303,26 @@ void TransactionContextUtil::Verify(
     return;  // OP_TRUE only.
   }
 
+  // Correspondence when addressType is extracted from address string.
+  UtxoData work_utxo = utxo;
+  if (work_utxo.address_type == AddressType::kP2shAddress) {
+    std::vector<ScriptElement> items;
+    items = txin->GetUnlockingScript().GetElementList();
+    if (items.size() == 1) {
+      Script script = Script(items[0].GetBinaryData());
+      if (script.IsP2wpkhScript()) {
+        work_utxo.address_type = AddressType::kP2shP2wpkhAddress;
+      } else if (script.IsP2wshScript()) {
+        work_utxo.address_type = AddressType::kP2shP2wshAddress;
+      }
+    }
+  }
+
   bool has_pubkey = false;
   WitnessVersion version = WitnessVersion::kVersionNone;
   std::vector<ByteData> signature_stack =
       TransactionContextUtil::GetVerifySignatureStack(
-          utxo, txin, &version, &has_pubkey);
+          work_utxo, txin, &version, &has_pubkey);
 
   if (has_pubkey) {
     SigHashType sighashtype;
@@ -315,7 +330,8 @@ void TransactionContextUtil::Verify(
         CryptoUtil::ConvertSignatureFromDer(signature_stack[0], &sighashtype);
     Pubkey pubkey(signature_stack[1]);
     auto sighash = create_sighash_func(
-        transaction, outpoint, utxo, sighashtype, pubkey, Script(), version);
+        transaction, outpoint, work_utxo, sighashtype, pubkey, Script(),
+        version);
     bool is_verify =
         SignatureUtil::VerifyEcSignature(sighash, pubkey, signature);
     if (!is_verify) {
@@ -330,7 +346,7 @@ void TransactionContextUtil::Verify(
           CfdError::kCfdIllegalStateError,
           "Unsupported script format. verify support is multisig only.");
     }
-    if (utxo.address_type == AddressType::kP2shAddress) {
+    if (work_utxo.address_type == AddressType::kP2shAddress) {
       if (signature_stack[0].GetHex() != "00") {
         throw CfdException(
             CfdError::kCfdIllegalStateError,
@@ -365,8 +381,8 @@ void TransactionContextUtil::Verify(
       auto signature = CryptoUtil::ConvertSignatureFromDer(
           signature_stack[index + 1], &sighashtype);
       auto sighash = create_sighash_func(
-          transaction, outpoint, utxo, sighashtype, Pubkey(), redeem_script,
-          version);
+          transaction, outpoint, work_utxo, sighashtype, Pubkey(),
+          redeem_script, version);
       for (size_t key_index = 0; key_index < pubkeys.size(); ++key_index) {
         const auto& pubkey = pubkeys[key_index];
         is_exist =

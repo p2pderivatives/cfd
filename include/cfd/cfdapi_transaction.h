@@ -233,9 +233,12 @@ class CFD_EXPORT TransactionApi {
    * @brief calculate fund transaction.
    * @param[in] tx_hex                   tx hex string
    * @param[in] utxos                    using utxo data
-   * @param[in] target_value             target value
+   * @param[in] target_value             target value.
+   *    Amount more than the specified amount is set in txout.
+   *    default is 0 (disable).
    * @param[in] selected_txin_utxos      selected txin utxo
-   * @param[in] reserve_txout_address    reserved address
+   * @param[in] reserve_txout_address    address for adding txout.
+   *    Also serves as a change address.
    * @param[in] effective_fee_rate       effective fee rate (minimum)
    * @param[out] estimate_fee            estimate fee
    * @param[in] filter                   utxo search filter
