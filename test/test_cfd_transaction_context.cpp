@@ -674,3 +674,32 @@ TEST(TransactionContext, VerifyErrorCheck)
     EXPECT_STREQ("Signature order is incorrect.", except.what());
   }
 }
+
+TEST(TransactionContext, VerifyP2shSegwit)
+{
+  const std::string signed_tx = "02000000000102a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a47304402205d038d82d3d7043f21b9b3d0e3ea85225ffcb78d02b8531cb1ddbec7e577e7460220367c0b985b1bb76de1f95ce4696ad9717f28ed6a356765cf31a894c42f3bb81201210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffff02706f9800000000001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac20bf02000000000016001445663e592ff613587f0fdd6e74034c5239710dca00024730440220572c4f56643d35a229bf632810ee947190414285b790e841f9e664dfd8e1f25d022021d8e4b01c08ad50bf3f1b6edfb25bb9dc8640b36dce1e26bff352097068d07f01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2700000000";
+  AddressFactory factory(NetType::kRegtest);
+
+  // Address2 (pattern-x1)
+  // pubkey: '0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27',
+  // privkey: 'cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP'
+  UtxoData utxo2;
+  utxo2.block_height = 0;
+  utxo2.binary_data = nullptr;
+  utxo2.txid = Txid("31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3");
+  utxo2.vout = 0;
+  utxo2.locking_script = Script("a9145d54db96a28f844a744e393fcd699d6f825b284187");
+  // utxo1.redeem_script = Script("");
+  utxo2.address = factory.GetAddress("2N1kiV9NkmZetZ3j7FuWGkBZxubBMPLxJ16");
+  utxo2.descriptor = "";
+  utxo2.amount = Amount(int64_t{180000});
+  utxo2.address_type = AddressType::kP2shAddress;
+
+  TransactionContext txc(signed_tx);
+  std::vector<cfd::UtxoData> utxos{utxo2};
+  EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
+
+  // sign1 -> fail -> ignore
+  OutPoint outpoint1(utxo2.txid, utxo2.vout);
+  EXPECT_NO_THROW(txc.Verify(outpoint1));
+}

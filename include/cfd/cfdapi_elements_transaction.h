@@ -556,9 +556,12 @@ class CFD_EXPORT ElementsTransactionApi {
    * @brief calculate fund transaction.
    * @param[in] tx_hex                   tx hex string
    * @param[in] utxos                    using utxo data
-   * @param[in] map_target_value         asset target value map
+   * @param[in] map_target_value         asset target value map.
+   *    Amount more than the specified amount is set in txout.
+   *    default is 0 (disable).
    * @param[in] selected_txin_utxos      selected txin utxo
-   * @param[in] reserve_txout_address    reserved address
+   * @param[in] reserve_txout_address    address for adding txout.
+   *    Also serves as a change address.
    * @param[in] fee_asset                using fee asset
    * @param[in] is_blind_estimate_fee    using tx blinding
    * @param[in] effective_fee_rate       effective fee rate (minimum)
