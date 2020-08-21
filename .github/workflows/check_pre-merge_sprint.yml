@@ -17,21 +17,18 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        generator: [vs2019, mingw]
+        generator: ['Visual Studio 16 2019', 'MSYS Makefiles']
+        shared: [on]
 
     steps:
     - uses: actions/checkout@v1
     - name: cmake_version
       run: cmake --version
-    - name: cmake-vs2019
-      if: matrix.generator == 'vs2019'
-      run: cmake -S . -B build -G "Visual Studio 16 2019"
-    - name: cmake-mingw
-      if: matrix.generator == 'mingw'
-      run: cmake -S . -B build -G "MSYS Makefiles"
+    - name: cmake_generage
+      run: cmake -S . -B build -G "${{ matrix.generator }}"
     - name: cmake_build
       run: |
-        cmake -DENABLE_SHARED=on -DENABLE_TESTS=on --build build
+        cmake -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=on --build build
         cmake --build build --config Release --parallel 4
     - name: ctest
       run: |
@@ -43,7 +40,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage-macos
@@ -59,26 +56,48 @@ jobs:
 
   cmake-ubuntu-coverage:
     name: cmake build-ubuntu
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        shared: [on]
+        elements: [on]
+        cmake_cache: [false]
+# Currently using cmake 3.17.0 by default
+#        exclude:
+#          - os: ubuntu-18.04
+#            cmake_cache: false
+#          - os: ubuntu-16.04
+#            cmake_cache: false
+#        include:
+#          - os: ubuntu-18.04
+#            cmake_cache: true
+#          - os: ubuntu-16.04
+#            cmake_cache: true
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+    - name: dump version
+      run: |
+        cmake --version
+        gcc --version
     - name: cmake-useCache-ubuntu
       uses: actions/cache@v1
-      id: cache
+      if: matrix.cmake_cache == 'true'
       with:
         path: cache/cmake
         key: ${{ runner.os }}-cmake-${{ env.CMAKE_VERSION }}-x64-0
         restore-keys: |
           ${{ runner.os }}-cmake-${{ env.CMAKE_VERSION }}-x64-
     - name: cmake-download-ubuntu
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: matrix.cmake_cache == 'true' && steps.cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p cache/cmake
         cd cache/cmake
         wget https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz
         cd ../..
     - name: cmake-setting-ubuntu
+      if: matrix.cmake_cache == 'true'
       run: |
         export cmake_file_name="cmake-$CMAKE_VERSION-Linux-x86_64"
         cd cache/cmake
@@ -93,7 +112,7 @@ jobs:
       run: |
         cmake --version
         cmake -S . -B build -G "Unix Makefiles"
-        cmake -DENABLE_SHARED=on -DENABLE_DEBUG=on -DENABLE_COVERAGE=on -DCMAKE_BUILD_TYPE=Debug -DTARGET_RPATH=./build/Debug --build build
+        cmake -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_ELEMENTS=${{ matrix.elements }} -DENABLE_DEBUG=on -DENABLE_COVERAGE=on -DCMAKE_BUILD_TYPE=Debug -DTARGET_RPATH=./build/Debug --build build
         cmake --build build --config Debug --parallel 4
     - name: lint_check
       run: ./tools/lint_quiet.sh
@@ -111,9 +130,10 @@ jobs:
     - name: upload coverage
       uses: actions/upload-artifact@v1
       with:
-        name: output-lcov-cfd
+        name: output-lcov-cfd-${{ matrix.os }}
         path: ./build/lcov_cfd_output.zip
     - name: ubuntu-after
+      if: matrix.cmake_cache == 'true'
       run: rm -rf cache/cmake/cmake-$CMAKE_VERSION-Linux-x86_64
 
   doxygen-ubuntu:
@@ -121,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: install_doxygen
       run: sudo apt install doxygen graphviz
     - name: doxygen_check

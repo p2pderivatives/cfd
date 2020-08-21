@@ -124,6 +124,18 @@ struct CfdCapiCreateTransactionData {
   std::vector<CfdCapiTxOutputData>* txout_list;  //!< txout list
 };
 
+//! prefix: TxData
+constexpr const char* const kPrefixTransactionData = "TransactionData";
+
+/**
+ * @brief cfd-capi TransactionData構造体.
+ */
+struct CfdCapiTransactionData {
+  char prefix[kPrefixLength];  //!< buffer prefix
+  int net_type;                //!< network type
+  void* tx_obj;                //!< transaction object
+};
+
 /**
  * @brief allocate buffer.
  * @param[in] prefix  prefix string (max: 15 char)

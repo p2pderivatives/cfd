@@ -13,8 +13,8 @@ matrix:
       env: BUILD_TYPE="Release"
 env:
   global:
-    - STATIC_ASSET_FILE_NAME="cfd-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-${TRAVIS_OSX_IMAGE}_x86_64-static"
-    - DYNAMIC_ASSET_FILE_NAME="cfd-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-${TRAVIS_OSX_IMAGE}_x86_64"
+    - STATIC_ASSET_FILE_NAME="cfd-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-${TRAVIS_OSX_IMAGE}-static-x86_64"
+    - DYNAMIC_ASSET_FILE_NAME="cfd-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-${TRAVIS_OSX_IMAGE}-x86_64"
 
 addons:
   homebrew:
@@ -72,6 +72,7 @@ deploy:
     - "${STATIC_ASSET_FILE_NAME}.zip"
     - "${DYNAMIC_ASSET_FILE_NAME}.zip"
   draft: false
+  prerelease: true
   on:
     tags: true
   skip_cleanup: true

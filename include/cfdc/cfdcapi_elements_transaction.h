@@ -1,8 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_elements_transaction.h
  *
- * @brief cfd-capiで利用するElements用Transaction操作のAPI定義
+ * @brief API definition file of Elements Transaction for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
@@ -12,8 +12,8 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -25,9 +25,12 @@ extern "C" {
  * @brief binding option.
  */
 enum CfdBlindOption {
-  kCfdBlindOptionMinimumRangeValue = 1,  //!< blind option: minRangeValue
-  kCfdBlindOptionExponent = 2,           //!< blind option: exponent
-  kCfdBlindOptionMinimumBits = 3,        //!< blind option: minBits
+  /** blind option: minRangeValue */
+  kCfdBlindOptionMinimumRangeValue = 1,
+  /** blind option: exponent */
+  kCfdBlindOptionExponent = 2,
+  /** blind option: minBits */
+  kCfdBlindOptionMinimumBits = 3,
 };
 
 /**
@@ -312,6 +315,121 @@ CFDC_API int CfdGetConfidentialTxInIndex(
 CFDC_API int CfdGetConfidentialTxOutIndex(
     void* handle, const char* tx_hex_string, const char* address,
     const char* direct_locking_script, uint32_t* index);
+
+/**
+ * @brief get elements transaction information.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[out] txid             transaction id.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wtxid            witness transaction id.
+ *   If no-witness transaction, return is txid.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wit_hash         witness hash.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] size             transaction size.
+ * @param[out] vsize            virtual transaction size.
+ * @param[out] weight           weight.
+ * @param[out] version          transaction version.
+ * @param[out] locktime         transaction locktime.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxInfoByHandle(
+    void* handle, void* tx_data_handle, char** txid, char** wtxid,
+    char** wit_hash, uint32_t* size, uint32_t* vsize, uint32_t* weight,
+    uint32_t* version, uint32_t* locktime);
+
+/**
+ * @brief get elements issuance information.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index             txin index.
+ * @param[out] entropy          entropy hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] nonce            nonce hex
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] asset_amount     asset amount value
+ * @param[out] asset_value      asset commitment value
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] token_amount     token amount value
+ * @param[out] token_value      token commitment value
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] asset_rangeproof  asset rangeproof
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] token_rangeproof  token rangeproof
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInIssuanceInfoByHandle(
+    void* handle, void* tx_data_handle, uint32_t index, char** entropy,
+    char** nonce, int64_t* asset_amount, char** asset_value,
+    int64_t* token_amount, char** token_value, char** asset_rangeproof,
+    char** token_rangeproof);
+
+/**
+ * @brief get elements transaction output simple.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index             txout index.
+ * @param[out] asset_string     asset hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] value_satoshi     satoshi value.
+ * @param[out] value_commitment  value commitment hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] nonce             nonce hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] locking_script    locking script
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxOutSimpleByHandle(
+    void* handle, void* tx_data_handle, uint32_t index, char** asset_string,
+    int64_t* value_satoshi, char** value_commitment, char** nonce,
+    char** locking_script);
+
+/**
+ * @brief get elements transaction output.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index             txout index.
+ * @param[out] asset_string     asset hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] value_satoshi     satoshi value.
+ * @param[out] value_commitment  value commitment hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] nonce             nonce hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] locking_script    locking script
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] surjection_proof  surjection proof
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] rangeproof        rangeproof
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetConfidentialTxOutByHandle(
+    void* handle, void* tx_data_handle, uint32_t index, char** asset_string,
+    int64_t* value_satoshi, char** value_commitment, char** nonce,
+    char** locking_script, char** surjection_proof, char** rangeproof);
 
 /**
  * @brief set reissue transaction data.
@@ -707,7 +825,7 @@ CFDC_API int CfdGetValueCommitment(
     void* handle, int64_t value_satoshi, const char* asset_commitment,
     const char* value_blind_vactor, char** value_commitment);
 
-/* 後回し
+/* 
 CFDC_API int CfdAddConfidentialTxPeginInput(
     void* handle, void* create_handle, const char* txid, uint32_t vout,
     uint32_t sequence);
@@ -722,16 +840,16 @@ CFDC_API int CfdAddPeginWitnessStack(
 
   * SetRawIssueAsset
     - SetIssueAsset
-      - Asset, Token, EntropyをOUTで。
-      - TxOutIndexも。
+      - Asset, Token, Entropy
+      - TxOutIndex
 */
 
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_DISABLE_ELEMENTS
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_
+#endif /* CFD_DISABLE_ELEMENTS */
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_TRANSACTION_H_ NOLINT */

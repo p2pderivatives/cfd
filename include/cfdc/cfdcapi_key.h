@@ -1,8 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_key.h
  *
- * @brief cfd-capiで利用する鍵関連のAPI定義
+ * @brief API definition file of Key function for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_
@@ -11,8 +11,8 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -23,8 +23,10 @@ extern "C" {
  * @brief extkey type.
  */
 enum CfdExtKeyType {
-  kCfdExtPrivkey = 0,  //!< extended privkey
-  kCfdExtPubkey        //!< extended pubkey
+  /** extended privkey */
+  kCfdExtPrivkey = 0,
+  /** extended pubkey */
+  kCfdExtPubkey
 };
 
 /**
@@ -616,8 +618,8 @@ CFDC_API int CfdConvertEntropyToMnemonic(
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_KEY_H_ NOLINT */
