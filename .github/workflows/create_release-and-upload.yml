@@ -29,7 +29,7 @@ jobs:
           - First Change
           - Second Change
         draft: false
-        prerelease: false
+        prerelease: true
 #      continue-on-error: true
     - name: write upload url
       env:
@@ -42,10 +42,26 @@ jobs:
         name: artifact-upload_url
         path: upload_url.txt
 
-  upload-object-windows-vs2019:
-    name: upload-object-win-vs2019
+  upload-object-windows:
+    name: upload-object-win
     needs: create-releases
     runs-on: windows-latest
+    strategy:
+      matrix:
+        bin: [vs2019, vs2019-static, gcc, gcc-static]
+        include:
+          - bin: vs2019
+            shared: on
+            generator: Visual Studio 16 2019
+          - bin: vs2019-static
+            shared: off
+            generator: Visual Studio 16 2019
+          - bin: gcc
+            shared: on
+            generator: MSYS Makefiles
+          - bin: gcc-static
+            shared: off
+            generator: MSYS Makefiles
 
     steps:
     - name: checkout
@@ -73,12 +89,10 @@ jobs:
     - name: create folder
       run: mkdir dist
     - name: cmake-build
-      id: cmake_build
       run: |
-        cmake -S . -B build
-        cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=on -DENABLE_CAPI=on -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off --build build
+        cmake -S . -B build -G "${{ matrix.generator }}"
+        cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_CAPI=on -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off --build build
         cmake --build build --parallel 2 --config Release
-        cd ../..
       timeout-minutes: 20
     - name: cmake-install
       run: |
@@ -106,16 +120,23 @@ jobs:
       with:
         upload_url: ${{ steps.get_url.outputs.upload_url }}
         asset_path: ./cfd.zip
-        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-win-vs2019-x86_64.zip
+        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-win-${{ matrix.bin }}-x86_64.zip
         asset_content_type: application/zip
 
   upload-object-ubuntu:
     name: upload-object-ubuntu
     needs: create-releases
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-${{ matrix.os_ver }}.04
     strategy:
       matrix:
-        os: [ubuntu-18.04, ubuntu-16.04]
+#        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os_ver: [20, 18, 16]
+        bin: [gcc, gcc-static]
+        include:
+          - bin: gcc
+            shared: on
+          - bin: gcc-static
+            shared: off
 
     steps:
     - name: checkout
@@ -123,41 +144,16 @@ jobs:
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-    - name: cmake-useCache-ubuntu
-      uses: actions/cache@v1
-      id: cache
-      with:
-        path: cache/cmake
-        key: ${{ runner.os }}-cmake-${{ env.CMAKE_VERSION }}-x64-0
-        restore-keys: |
-          ${{ runner.os }}-cmake-${{ env.CMAKE_VERSION }}-x64-
-    - name: cmake-download-ubuntu
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: |
-        mkdir -p cache/cmake
-        cd cache/cmake
-        wget https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz
-        cd ../..
-    - name: cmake-setting-ubuntu
-      run: |
-        export cmake_file_name="cmake-$CMAKE_VERSION-Linux-x86_64"
-        cd cache/cmake
-        tar zxvf $cmake_file_name.tar.gz
-        chmod +x $cmake_file_name/bin/cmake $cmake_file_name/bin/ctest
-        export CURRENT_DIR=$(pwd)
-        echo ::add-path::$CURRENT_DIR/$cmake_file_name/bin
-        cd ../..
     - name: cmake-build
-      id: cmake_build
       run: |
         mkdir dist
         mkdir build
-        cmake -S . -B build
-        cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=on -DENABLE_CAPI=on -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off -DTARGET_RPATH="/usr/local/lib" --build build
-        cmake --build build --parallel 2 --config Release
         cd build
+        cmake .. -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off -DCMAKE_BUILD_TYPE=Release -DTARGET_RPATH="/usr/local/lib"
+        make
         sudo make install DESTDIR=../dist
         cd ..
+      timeout-minutes: 20
     - name: create archive file
       run: |
         cd dist
@@ -173,31 +169,18 @@ jobs:
       run: |
         url=$(cat artifact-upload_url/upload_url.txt)
         echo ::set-output name=upload_url::$url
-    - name: Upload Release Asset Ubuntu-18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: Upload Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_url.outputs.upload_url }}
         asset_path: ./dist/cfd.zip
-        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-ubuntu1804-gcc-x86_64.zip
+        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-ubuntu${{ matrix.os_ver }}04-${{ matrix.bin }}-x86_64.zip
         asset_content_type: application/zip
-    - name: Upload Release Asset Ubuntu-16.04
-      if: matrix.os == 'ubuntu-16.04'
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.get_url.outputs.upload_url }}
-        asset_path: ./dist/cfd.zip
-        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-ubuntu1604-gcc-x86_64.zip
-        asset_content_type: application/zip
-    - name: ubuntu-after
-      run: rm -rf cache/cmake/cmake-$CMAKE_VERSION-Linux-x86_64
 
-  upload-object-alpine:
-    name: upload-object-alpine
+  upload-object-alpine-3-10:
+    name: upload-object-alpine-3.10
     needs: create-releases
     runs-on: ubuntu-latest
 
@@ -246,5 +229,117 @@ jobs:
       with:
         upload_url: ${{ steps.get_url.outputs.upload_url }}
         asset_path: /tmp/cfd/cfd.zip
-        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-alpine_x86_64.zip
+        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-alpine-3.10-x86_64.zip
+        asset_content_type: application/zip
+
+  upload-object-alpine-3-12:
+    name: upload-object-alpine-3.12
+    needs: create-releases
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    - name: list
+      run: ls -a $GITHUB_WORKSPACE
+    - name: docker setup
+      uses: docker://alpine:3.12
+      with:
+        entrypoint: /github/workspace/.github/workflows/docker/alpine_build_entrypoint.sh
+    - name: create archive file
+      run: |
+        echo "---- dump output data ----"
+        ls -l $GITHUB_WORKSPACE/dist/usr/local/*
+        mkdir -p /tmp/cfd
+        sudo chmod 777 /tmp/cfd
+        sudo chown runner /tmp/cfd
+        sudo cp -r $GITHUB_WORKSPACE/dist/usr /tmp/cfd
+        cd /tmp/cfd
+        sudo zip -r /tmp/cfd/cfd.zip usr
+        sudo chmod 777 /tmp/cfd/cfd.zip
+        sudo chown runner /tmp/cfd/cfd.zip
+        sudo cp -rp /tmp/cfd/cfd.zip $GITHUB_WORKSPACE/dist/cfd.zip
+        echo "---- dump zip file ----"
+        sudo ls -l /tmp/cfd
+    - name: download artifact
+      uses: actions/download-artifact@v1
+      with:
+        name: artifact-upload_url
+    - name: dump upload url
+      id: get_url
+      run: |
+        url=$(cat artifact-upload_url/upload_url.txt)
+        echo ::set-output name=upload_url::$url
+    - name: Upload Release Asset
+      id: upload-release-asset 
+#      if: success()
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_url.outputs.upload_url }}
+        asset_path: /tmp/cfd/cfd.zip
+        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-alpine-3.12-x86_64.zip
+        asset_content_type: application/zip
+
+  upload-object-macos:
+    name: upload-object-macos
+    needs: create-releases
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        xcode: [10.3, 11.6]
+        shared: [on, off]
+        include:
+          - shared: on
+            suffix:
+          - shared: off
+            suffix: -static
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v1
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    - name: Select Xcode version
+      run: sudo xcode-select -s '/Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer'
+    - name: Show Xcode version
+      run: xcodebuild -version
+    - name: cmake-build
+      run: |
+        mkdir dist
+        mkdir build
+        cd build
+        cmake .. -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off -DCMAKE_BUILD_TYPE=Release -DTARGET_RPATH="/usr/local/lib;@executable_path;./build/Release"
+        make
+        sudo make install DESTDIR=../dist
+        cd ..
+      timeout-minutes: 20
+    - name: create archive file
+      run: |
+        cd dist
+        zip -r cfd.zip usr
+        echo "---- dump zip file ----"
+        ls -l
+    - name: download artifact
+      uses: actions/download-artifact@v1
+      with:
+        name: artifact-upload_url
+    - name: dump upload url
+      id: get_url
+      run: |
+        url=$(cat artifact-upload_url/upload_url.txt)
+        echo ::set-output name=upload_url::$url
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_url.outputs.upload_url }}
+        asset_path: ./dist/cfd.zip
+        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-osx-xcode${{ matrix.xcode }}${{ matrix.suffix }}-x86_64.zip
         asset_content_type: application/zip

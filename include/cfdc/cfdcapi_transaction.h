@@ -1,10 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_transaction.h
  *
- * @brief cfd-capiで利用するTransaction作成のAPI定義
- *
- * C言語のAPIを提供する.
+ * @brief API definition file of Transaction for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_
@@ -13,33 +11,41 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
 
-//! txin sequence locktime
+/** txin sequence locktime */
 enum CfdSequenceLockTime {
-  /// disable locktime
+  /** disable locktime */
   kCfdSequenceLockTimeDisable = 0xffffffffU,
-  /// enable locktime (maximum time)
+  /** enable locktime (maximum time) */
   kCfdSequenceLockTimeEnableMax = 0xfffffffeU,
 };
 
-//! fundrawtransaction option
+/** tx witness stack type */
+enum CfdTxWitnessStackType {
+  /** witness stack: normal */
+  kCfdTxWitnessStackNormal = 0,
+  /** witness stack: pegin (elements) */
+  kCfdTxWitnessStackPegin = 1,
+};
+
+/** fundrawtransaction option */
 enum CfdFundTxOption {
-  /// use blind fee (bool)
+  /** use blind fee (bool) */
   kCfdFundTxIsBlind = 1,
-  /// dust fee rate (double)
+  /** dust fee rate (double) */
   kCfdFundTxDustFeeRate = 2,
-  /// longterm fee rate (double)
+  /** longterm fee rate (double) */
   kCfdFundTxLongTermFeeRate = 3,
-  /// knapsack min change (int64)
+  /** knapsack min change (int64) */
   kCfdFundTxKnapsackMinChange = 4,
-  /// blind option: exponent
+  /** blind option: exponent */
   kCfdFundTxBlindExponent = 5,
-  /// blind option: minBits
+  /** blind option: minBits */
   kCfdFundTxBlindMinimumBits = 6,
 };
 
@@ -484,6 +490,161 @@ CFDC_API int CfdGetTxOutIndex(
     const char* direct_locking_script, uint32_t* index);
 
 /**
+ * @brief Initialize handle for transaction data.
+ * @param[in] handle              cfd handle.
+ * @param[in] net_type            network type.
+ * @param[in] tx_hex_string       tx hex.
+ * @param[out] tx_data_handle     transaction data handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdInitializeTxDataHandle(
+    void* handle, int net_type, const char* tx_hex_string,
+    void** tx_data_handle);
+
+/**
+ * @brief free transaction data handle.
+ * @param[in] handle            handle pointer.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdFreeTxDataHandle(void* handle, void* tx_data_handle);
+
+/**
+ * @brief get transaction information.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[out] txid             transaction id.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] wtxid            witness transaction id.
+ *   If no-witness transaction, return is txid.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] size             transaction size.
+ * @param[out] vsize            virtual transaction size.
+ * @param[out] weight           weight.
+ * @param[out] version          transaction version.
+ * @param[out] locktime         transaction locktime.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInfoByHandle(
+    void* handle, void* tx_data_handle, char** txid, char** wtxid,
+    uint32_t* size, uint32_t* vsize, uint32_t* weight, uint32_t* version,
+    uint32_t* locktime);
+
+/**
+ * @brief get transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index             txin index.
+ * @param[out] txid             transaction id.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] vout             transaction vout
+ * @param[out] sequence         sequence number.
+ * @param[out] script_sig       unlocking script(script signature).
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInByHandle(
+    void* handle, void* tx_data_handle, uint32_t index, char** txid,
+    uint32_t* vout, uint32_t* sequence, char** script_sig);
+
+/**
+ * @brief get transaction input witness stack.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] stack_type        witness stack type.(see: CfdTxWitnessStackType)
+ * @param[in] txin_index        txin index.
+ * @param[in] stack_index       witness stack index.
+ * @param[out] stack_data       witness stack data.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInWitnessByHandle(
+    void* handle, void* tx_data_handle, int stack_type, uint32_t txin_index,
+    uint32_t stack_index, char** stack_data);
+
+/**
+ * @brief get transaction output.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index             txout index.
+ * @param[out] value_satoshi    satoshi value.
+ * @param[out] locking_script   locking script
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] asset            asset (elements only)
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxOutByHandle(
+    void* handle, void* tx_data_handle, uint32_t index, int64_t* value_satoshi,
+    char** locking_script, char** asset);
+
+/**
+ * @brief get transaction input count.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[out] count            txin count.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInCountByHandle(
+    void* handle, void* tx_data_handle, uint32_t* count);
+
+/**
+ * @brief get transaction input witness stack count.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] stack_type        witness stack type.(see: CfdTxWitnessStackType)
+ * @param[in] txin_index        txin index.
+ * @param[out] count            witness stack count.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInWitnessCountByHandle(
+    void* handle, void* tx_data_handle, int stack_type, uint32_t txin_index,
+    uint32_t* count);
+
+/**
+ * @brief get transaction output count.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[out] count            txout count.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxOutCountByHandle(
+    void* handle, void* tx_data_handle, uint32_t* count);
+
+/**
+ * @brief get tx-input index.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[out] index            txin index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxInIndexByHandle(
+    void* handle, void* tx_data_handle, const char* txid, uint32_t vout,
+    uint32_t* index);
+
+/**
+ * @brief get tx-output index.
+ * @param[in] handle                 cfd handle.
+ * @param[in] tx_data_handle         transaction data handle.
+ * @param[in] address                txout address.
+ * @param[in] direct_locking_script  txout locking script. (not use address)
+ * @param[out] index                 txout index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxOutIndexByHandle(
+    void* handle, void* tx_data_handle, const char* address,
+    const char* direct_locking_script, uint32_t* index);
+
+/**
  * @brief Initialize handle for fundrawtransaction.
  * @param[in] handle              cfd handle.
  * @param[in] network_type        network type.
@@ -645,8 +806,8 @@ CFDC_API int CfdFreeFundRawTxHandle(void* handle, void* fund_handle);
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_TRANSACTION_H_ NOLINT */

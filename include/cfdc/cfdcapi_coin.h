@@ -1,8 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_coin.h
  *
- * @brief cfd-capiで利用するCoin関連のAPI定義
+ * @brief API definition file of Coin functions for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_COIN_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_COIN_H_
@@ -11,27 +11,27 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "cfdc/cfdcapi_common.h"
 
-//! coin selection option
+/** coin selection option */
 enum CfdCoinSelectionOption {
-  /// blind option: exponent
+  /** blind option: exponent */
   kCfdCoinSelectionExponent = 1,
-  /// blind option: minBits
+  /** blind option: minBits */
   kCfdCoinSelectionMinimumBits = 2,
 };
 
-//! estimate fee option
+/** estimate fee option */
 enum CfdEstimateFeeOption {
-  /// blind option: exponent
+  /** blind option: exponent */
   kCfdEstimateFeeExponent = 1,
-  /// blind option: minBits
+  /** blind option: minBits */
   kCfdEstimateFeeMinimumBits = 2,
 };
 
@@ -55,7 +55,7 @@ CFDC_API int CfdInitializeCoinSelection(
     const char* fee_asset, int64_t tx_fee_amount, double effective_fee_rate,
     double long_term_fee_rate, double dust_fee_rate,
     int64_t knapsack_min_change, void** coin_select_handle);
-// other value is optional function
+/* other value is optional function */
 
 /**
  * @brief add coin selection's utxo.
@@ -259,8 +259,8 @@ CFDC_API int CfdFreeEstimateFeeHandle(void* handle, void* fee_handle);
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_COIN_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_COIN_H_ NOLINT */

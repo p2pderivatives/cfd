@@ -1,8 +1,8 @@
-// Copyright 2020 CryptoGarage
+/* Copyright 2020 CryptoGarage */
 /**
  * @file cfdcapi_ledger.h
  *
- * @brief ledger API for using cfd-capi.
+ * @brief API definition file of ledger function for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_LEDGER_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_LEDGER_H_
@@ -11,8 +11,8 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include "cfdc/cfdcapi_common.h"
 
@@ -85,43 +85,11 @@ CFDC_API int CfdFinalizeTxSerializeHashForLedger(
  */
 CFDC_API int CfdFreeTxSerializeForLedger(void* handle, void* serialize_handle);
 
-#if 0
-/**
- * @brief get transaction input serialized data for ledger.
- * @param[in] handle            cfd handle.
- * @param[in] net_type          network type.
- * @param[in] tx_hex_string     tx hex.
- * @param[in] index             txout index.
- * @param[out] output           output hex.
- *   If 'CfdFreeStringBuffer' is implemented,
- *   Call 'CfdFreeStringBuffer' after you are finished using it.
- * @return CfdErrorCode
- */
-CFDC_API int CfdGetSerializedTxInForLedger(
-    void* handle, int net_type, const char* tx_hex_string,
-    uint32_t index, char** output);
-
-/**
- * @brief get transaction output serialized data for ledger.
- * @param[in] handle            cfd handle.
- * @param[in] net_type          network type.
- * @param[in] tx_hex_string     tx hex.
- * @param[in] index             txout index.
- * @param[out] output           output hex.
- *   If 'CfdFreeStringBuffer' is implemented,
- *   Call 'CfdFreeStringBuffer' after you are finished using it.
- * @return CfdErrorCode
- */
-CFDC_API int CfdGetSerializedTxOutForLedger(
-    void* handle, int net_type, const char* tx_hex_string,
-    uint32_t index, char** output);
-#endif
-
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_LEDGER_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_LEDGER_H_ NOLINT */

@@ -1,7 +1,7 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_common.h
- * @brief cfd-capiの共通定義ファイル。
+ * @brief Common definition file of cfd-capi.
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_
@@ -10,15 +10,15 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 /**
- * @brief APIのDLLエクスポート定義
+ * @brief dll export definition on windows
  */
 #ifndef CFDC_API
 #if defined(_WIN32)
@@ -37,51 +37,64 @@ extern "C" {
 #endif
 
 /**
- * @brief エラーコード定義
+ * @brief error code for cfd
  */
 enum CfdErrorCode {
-  kCfdSuccess = 0,               //!< 正常終了
-  kCfdUnknownError = -1,         //!< 不明なエラー
-  kCfdInternalError = -2,        //!< 内部エラー
-  kCfdMemoryFullError = -3,      //!< メモリ確保エラー
-  kCfdIllegalArgumentError = 1,  //!< 引数不正
-  kCfdIllegalStateError = 2,     //!< 状態不正
-  kCfdOutOfRangeError = 3,       //!< 範囲外の値
-  kCfdInvalidSettingError = 4,   //!< 設定不正
-  kCfdConnectionError = 5,       //!< 接続エラー
-  kCfdDiskAccessError = 6,       //!< ディスクアクセスエラー
-  kCfdSignVerificationError = 7  //!< Signature Verification 失敗時のエラー
+  /** success */
+  kCfdSuccess = 0,
+  /** unknown error */
+  kCfdUnknownError = -1,
+  /** internal error */
+  kCfdInternalError = -2,
+  /** memory full error */
+  kCfdMemoryFullError = -3,
+  /** illegal argument */
+  kCfdIllegalArgumentError = 1,
+  /** illegal statement */
+  kCfdIllegalStateError = 2,
+  /** out of range */
+  kCfdOutOfRangeError = 3,
+  /** invalid setting */
+  kCfdInvalidSettingError = 4,
+  /** connection error */
+  kCfdConnectionError = 5,
+  /** disk access error */
+  kCfdDiskAccessError = 6,
+  /** Signature Verification Fail */
+  kCfdSignVerificationError = 7
 };
 
 /**
- * @brief ライブラリがサポートしている機能の定義値
+ * @brief Definition value of the function supported by the cfd library
  */
 enum CfdLibraryFunction {
-  kCfdEnableBitcoin = 0x0001,   //!< enable bitcoin function
-  kCfdEnableElements = 0x0002,  //!< enable elements function
+  /** enable bitcoin function */
+  kCfdEnableBitcoin = 0x0001,
+  /** enable elements function */
+  kCfdEnableElements = 0x0002,
 };
 
-// API
+/* API */
 /**
- * @brief ライブラリがサポートしている機能の値を取得する。
- * @param[out] support_flag   LibraryFunctionのビットフラグ
+ * @brief Get the value of the function supported by the library.
+ * @param[out] support_flag   bit flag on the library function.
  * @return CfdErrorCode
  */
 CFDC_API int CfdGetSupportedFunction(uint64_t* support_flag);
 /**
- * @brief cfdの初期化を行う。
+ * @brief Initialize for cfd.
  * @return CfdErrorCode
  */
 CFDC_API int CfdInitialize(void);
 /**
- * @brief cfdの終了処理を行う。
- * @param[in] is_finish_process   プロセス終了時かどうか
+ * @brief Finalize for cfd.
+ * @param[in] is_finish_process   stopped the process.
  * @return CfdErrorCode
  */
 CFDC_API int CfdFinalize(bool is_finish_process);
 
 /**
- * @brief cfdのハンドルを取得する。
+ * @brief Create cfd handle.
  * @param[out] handle   handle pointer.
  *   When you are finished using it, release it with 'CfdFreeHandle'.
  * @return CfdErrorCode
@@ -89,7 +102,7 @@ CFDC_API int CfdFinalize(bool is_finish_process);
 CFDC_API int CfdCreateHandle(void** handle);
 
 /**
- * @brief cfdの簡易ハンドル(管理外ハンドル)を取得する。
+ * @brief Create simple cfd handle.
  * @param[out] handle   handle pointer.
  *   When you are finished using it, release it with 'CfdFreeHandle'.
  * @return CfdErrorCode
@@ -114,14 +127,14 @@ CFDC_API int CfdCloneHandle(void* source, void** handle);
 CFDC_API int CfdCopyErrorState(void* source, void* destination);
 
 /**
- * @brief cfdのハンドルを解放する。
+ * @brief Free cfd handle.
  * @param[in] handle    handle pointer
  * @return CfdErrorCode
  */
 CFDC_API int CfdFreeHandle(void* handle);
 
 /**
- * @brief cfdが確保したバッファを解放する。
+ * @brief Free cfd native buffer.
  * @param[in] address   buffer pointer
  * @return CfdErrorCode
  */
@@ -129,23 +142,23 @@ CFDC_API int CfdFreeBuffer(void* address);
 
 #ifndef CFD_DISABLE_FREESTRING
 /**
- * @brief cfdが確保した文字列バッファを解放する。
+ * @brief Free cfd native string buffer.
  * @details CfdFreeBufferのalias.
  * @param[in] address   buffer pointer
  * @return CfdErrorCode
  */
 CFDC_API int CfdFreeStringBuffer(char* address);
-#endif  // CFD_DISABLE_FREESTRING
+#endif /* CFD_DISABLE_FREESTRING NOLINT */
 
 /**
- * @brief cfdで最後に発生したエラーコードを取得する。
+ * @brief Get last error code on cfd handle.
  * @param[in] handle    handle pointer.
  * @return last error code. (see CfdErrorCode)
  */
 CFDC_API int CfdGetLastErrorCode(void* handle);
 
 /**
- * @brief cfdで最後に発生したエラーのエラーメッセージを取得する。
+ * @brief Get last error message on cfd handle.
  * @param[in] handle    handle pointer.
  * @param[out] message  message string.
  *   If 'CfdFreeStringBuffer' is implemented,
@@ -186,8 +199,8 @@ CFDC_API int CfdSerializeByteData(
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_COMMON_H_ NOLINT */

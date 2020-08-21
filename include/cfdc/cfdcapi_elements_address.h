@@ -1,10 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_elements_address.h
  *
- * @brief cfd-capiで利用するElementsのAddress操作API定義
- *
- * C言語形式のAPIを提供する.
+ * @brief API definition file of Elements Address function for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
@@ -14,8 +12,8 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
@@ -61,9 +59,9 @@ class CFD_EXPORT ElementsAddressApi {
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_DISABLE_ELEMENTS
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_
+#endif /* CFD_DISABLE_ELEMENTS */
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_ELEMENTS_ADDRESS_H_ NOLINT */

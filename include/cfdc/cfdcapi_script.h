@@ -1,10 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_script.h
  *
- * @brief cfd-capiで利用するScript関連のAPI定義
- *
- * C言語のAPIを提供する.
+ * @brief API definition file of Script function for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_SCRIPT_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_SCRIPT_H_
@@ -13,8 +11,8 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include "cfdc/cfdcapi_common.h"
 
@@ -126,8 +124,8 @@ CFDC_API int CfdFreeMultisigScriptSigHandle(
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_SCRIPT_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_SCRIPT_H_ NOLINT */

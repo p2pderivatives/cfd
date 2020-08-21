@@ -1,10 +1,8 @@
-// Copyright 2019 CryptoGarage
+/* Copyright 2019 CryptoGarage */
 /**
  * @file cfdcapi_address.h
  *
- * @brief cfd-capiで利用するAddress操作のAPI定義
- *
- * C言語形式のAPIを提供する.
+ * @brief API definition file of Address function for used in cfd-capi
  */
 #ifndef CFD_INCLUDE_CFDC_CFDCAPI_ADDRESS_H_
 #define CFD_INCLUDE_CFDC_CFDCAPI_ADDRESS_H_
@@ -13,8 +11,8 @@
 extern "C" {
 #if 0
 }
-#endif  // 0
-#endif  // __cplusplus
+#endif
+#endif /* __cplusplus */
 
 #include "cfdc/cfdcapi_common.h"
 
@@ -22,96 +20,150 @@ extern "C" {
  * @brief network type
  */
 enum CfdNetworkType {
-  kCfdNetworkMainnet = 0,      //!< btc mainnet
-  kCfdNetworkTestnet,          //!< btc testnet
-  kCfdNetworkRegtest,          //!< btc regtest
-  kCfdNetworkLiquidv1 = 10,    //!< liquidv1
-  kCfdNetworkElementsRegtest,  //!< elements regtest
-  kCfdNetworkCustomChain,      //!< elements custom chain
+  /** btc mainnet */
+  kCfdNetworkMainnet = 0,
+  /** btc testnet */
+  kCfdNetworkTestnet,
+  /** btc regtest */
+  kCfdNetworkRegtest,
+  /** liquidv1 */
+  kCfdNetworkLiquidv1 = 10,
+  /** elements regtest */
+  kCfdNetworkElementsRegtest,
+  /** elements custom chain */
+  kCfdNetworkCustomChain,
 };
 
 /**
  * @brief address type
  */
 enum CfdAddressType {
-  kCfdP2shAddress = 1,   //!< Legacy address (Script Hash)
-  kCfdP2pkhAddress,      //!< Legacy address (PublicKey Hash)
-  kCfdP2wshAddress,      //!< Native segwit address (Script Hash)
-  kCfdP2wpkhAddress,     //!< Native segwit address (PublicKey Hash)
-  kCfdP2shP2wshAddress,  //!< P2sh wrapped address (Script Hash)
-  kCfdP2shP2wpkhAddress  //!< P2sh wrapped address (Pubkey Hash)
+  /** Legacy address (Script Hash) */
+  kCfdP2shAddress = 1,
+  /** Legacy address (PublicKey Hash) */
+  kCfdP2pkhAddress,
+  /** Native segwit address (Script Hash) */
+  kCfdP2wshAddress,
+  /** Native segwit address (PublicKey Hash) */
+  kCfdP2wpkhAddress,
+  /** P2sh wrapped segwit address (Script Hash) */
+  kCfdP2shP2wshAddress,
+  /** P2sh wrapped segwit address (Pubkey Hash) */
+  kCfdP2shP2wpkhAddress
 };
 
 /**
  * @brief hash type
  */
 enum CfdHashType {
-  kCfdP2sh = 1,   //!< Script Hash
-  kCfdP2pkh,      //!< PublicKey Hash
-  kCfdP2wsh,      //!< Native segwit Script Hash
-  kCfdP2wpkh,     //!< Native segwit PublicKey Hash
-  kCfdP2shP2wsh,  //!< P2sh wrapped segwit Script Hash
-  kCfdP2shP2wpkh  //!< P2sh wrapped segwit Pubkey Hash
+  /** Script Hash */
+  kCfdP2sh = 1,
+  /** PublicKey Hash */
+  kCfdP2pkh,
+  /** Native segwit Script Hash */
+  kCfdP2wsh,
+  /** Native segwit PublicKey Hash */
+  kCfdP2wpkh,
+  /** P2sh wrapped segwit Script Hash */
+  kCfdP2shP2wsh,
+  /** P2sh wrapped segwit Pubkey Hash */
+  kCfdP2shP2wpkh
 };
 
 /**
  * @brief witness version
  */
 enum CfdWitnessVersion {
-  kCfdWitnessVersionNone = -1,  //!< Missing WitnessVersion
-  kCfdWitnessVersion0 = 0,      //!< version 0
-  kCfdWitnessVersion1,          //!< version 1 (for future use)
-  kCfdWitnessVersion2,          //!< version 2 (for future use)
-  kCfdWitnessVersion3,          //!< version 3 (for future use)
-  kCfdWitnessVersion4,          //!< version 4 (for future use)
-  kCfdWitnessVersion5,          //!< version 5 (for future use)
-  kCfdWitnessVersion6,          //!< version 6 (for future use)
-  kCfdWitnessVersion7,          //!< version 7 (for future use)
-  kCfdWitnessVersion8,          //!< version 8 (for future use)
-  kCfdWitnessVersion9,          //!< version 9 (for future use)
-  kCfdWitnessVersion10,         //!< version 10 (for future use)
-  kCfdWitnessVersion11,         //!< version 11 (for future use)
-  kCfdWitnessVersion12,         //!< version 12 (for future use)
-  kCfdWitnessVersion13,         //!< version 13 (for future use)
-  kCfdWitnessVersion14,         //!< version 14 (for future use)
-  kCfdWitnessVersion15,         //!< version 15 (for future use)
-  kCfdWitnessVersion16          //!< version 16 (for future use)
+  /** Missing WitnessVersion */
+  kCfdWitnessVersionNone = -1,
+  /** version 0 */
+  kCfdWitnessVersion0 = 0,
+  /** version 1 (for future use) */
+  kCfdWitnessVersion1,
+  /** version 2 (for future use) */
+  kCfdWitnessVersion2,
+  /** version 3 (for future use) */
+  kCfdWitnessVersion3,
+  /** version 4 (for future use) */
+  kCfdWitnessVersion4,
+  /** version 5 (for future use) */
+  kCfdWitnessVersion5,
+  /** version 6 (for future use) */
+  kCfdWitnessVersion6,
+  /** version 7 (for future use) */
+  kCfdWitnessVersion7,
+  /** version 8 (for future use) */
+  kCfdWitnessVersion8,
+  /** version 9 (for future use) */
+  kCfdWitnessVersion9,
+  /** version 10 (for future use) */
+  kCfdWitnessVersion10,
+  /** version 11 (for future use) */
+  kCfdWitnessVersion11,
+  /** version 12 (for future use) */
+  kCfdWitnessVersion12,
+  /** version 13 (for future use) */
+  kCfdWitnessVersion13,
+  /** version 14 (for future use) */
+  kCfdWitnessVersion14,
+  /** version 15 (for future use) */
+  kCfdWitnessVersion15,
+  /** version 16 (for future use) */
+  kCfdWitnessVersion16
 };
 
 /**
  * @brief sighash type
  */
 enum CfdSighashType {
-  kCfdSigHashAll = 0x01,    //!< SIGHASH_ALL
-  kCfdSigHashNone = 0x02,   //!< SIGHASH_NONE
-  kCfdSigHashSingle = 0x03  //!< SIGHASH_SINGLE
+  /** SIGHASH_ALL */
+  kCfdSigHashAll = 0x01,
+  /** SIGHASH_NONE */
+  kCfdSigHashNone = 0x02,
+  /** SIGHASH_SINGLE */
+  kCfdSigHashSingle = 0x03
 };
 
 /**
  * @brief descriptor script type.
  */
 enum CfdDescriptorScriptType {
-  kCfdDescriptorScriptNull,         //!< null
-  kCfdDescriptorScriptSh,           //!< script hash
-  kCfdDescriptorScriptWsh,          //!< segwit script hash
-  kCfdDescriptorScriptPk,           //!< pubkey
-  kCfdDescriptorScriptPkh,          //!< pubkey hash
-  kCfdDescriptorScriptWpkh,         //!< segwit pubkey hash
-  kCfdDescriptorScriptCombo,        //!< combo
-  kCfdDescriptorScriptMulti,        //!< multisig
-  kCfdDescriptorScriptSortedMulti,  //!< sorted multisig
-  kCfdDescriptorScriptAddr,         //!< address
-  kCfdDescriptorScriptRaw           //!< raw script
+  /** null */
+  kCfdDescriptorScriptNull,
+  /** script hash */
+  kCfdDescriptorScriptSh,
+  /** segwit script hash */
+  kCfdDescriptorScriptWsh,
+  /** pubkey */
+  kCfdDescriptorScriptPk,
+  /** pubkey hash */
+  kCfdDescriptorScriptPkh,
+  /** segwit pubkey hash */
+  kCfdDescriptorScriptWpkh,
+  /** combo */
+  kCfdDescriptorScriptCombo,
+  /** multisig */
+  kCfdDescriptorScriptMulti,
+  /** sorted multisig */
+  kCfdDescriptorScriptSortedMulti,
+  /** address */
+  kCfdDescriptorScriptAddr,
+  /** raw script */
+  kCfdDescriptorScriptRaw
 };
 
 /**
  * @brief descriptor key type.
  */
 enum CfdDescriptorKeyType {
-  kCfdDescriptorKeyNull,      //!< null
-  kCfdDescriptorKeyPublic,    //!< pubkey
-  kCfdDescriptorKeyBip32,     //!< bip32 extpubkey
-  kCfdDescriptorKeyBip32Priv  //!< bip32 extprivkey
+  /** null */
+  kCfdDescriptorKeyNull,
+  /** pubkey */
+  kCfdDescriptorKeyPublic,
+  /** bip32 extpubkey */
+  kCfdDescriptorKeyBip32,
+  /** bip32 extprivkey */
+  kCfdDescriptorKeyBip32Priv
 };
 
 /**
@@ -375,8 +427,8 @@ CFDC_API int CfdGetAddressInfo(
 #ifdef __cplusplus
 #if 0
 {
-#endif  // 0
+#endif
 }
-#endif  // __cplusplus
+#endif /* __cplusplus */
 
-#endif  // CFD_INCLUDE_CFDC_CFDCAPI_ADDRESS_H_
+#endif /* CFD_INCLUDE_CFDC_CFDCAPI_ADDRESS_H_ NOLINT */
