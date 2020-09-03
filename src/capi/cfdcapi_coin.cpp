@@ -755,18 +755,18 @@ int CfdSetOptionEstimateFee(
 
 int CfdFinalizeEstimateFee(
     void* handle, void* fee_handle, const char* tx_hex, const char* fee_asset,
-    int64_t* tx_fee, int64_t* utxo_fee, bool is_blind,
+    int64_t* txout_fee, int64_t* utxo_fee, bool is_blind,
     double effective_fee_rate) {
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
     CfdCapiEstimateFeeData* buffer =
         static_cast<CfdCapiEstimateFeeData*>(fee_handle);
-    if (tx_fee == nullptr) {
-      warn(CFD_LOG_SOURCE, "tx fee is null.");
+    if (txout_fee == nullptr) {
+      warn(CFD_LOG_SOURCE, "txout fee is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx fee is null.");
+          "Failed to parameter. txout fee is null.");
     }
     if (utxo_fee == nullptr) {
       warn(CFD_LOG_SOURCE, "utxo fee is null.");
@@ -800,7 +800,7 @@ int CfdFinalizeEstimateFee(
           std::string(tx_hex), *(buffer->input_utxos), &tx_fee_amt,
           &utxo_fee_amt, effective_fee_rate);
     }
-    *tx_fee = tx_fee_amt.GetSatoshiValue();
+    *txout_fee = tx_fee_amt.GetSatoshiValue();
     *utxo_fee = utxo_fee_amt.GetSatoshiValue();
 
     return CfdErrorCode::kCfdSuccess;

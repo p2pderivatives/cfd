@@ -50,7 +50,7 @@ enum CfdFundTxOption {
 };
 
 /**
- * @brief create initialized elements transaction.
+ * @brief create initialized transaction.
  * @param[in] handle          cfd handle.
  * @param[in] net_type        network type.
  * @param[in] version         transaction version.
@@ -72,6 +72,7 @@ CFDC_API int CfdInitializeTransaction(
  * @param[in] vout            utxo vout.
  * @param[in] sequence        sequence number.
  * @return CfdErrorCode
+ * @see CfdInitializeTransaction
  */
 CFDC_API int CfdAddTransactionInput(
     void* handle, void* create_handle, const char* txid, uint32_t vout,
@@ -87,6 +88,7 @@ CFDC_API int CfdAddTransactionInput(
  *                                  (Specify null if disabled.)
  * @param[in] asset_string      value asset.(Specify null if disabled)
  * @return CfdErrorCode
+ * @see CfdInitializeTransaction
  */
 CFDC_API int CfdAddTransactionOutput(
     void* handle, void* create_handle, int64_t value_satoshi,
@@ -101,6 +103,7 @@ CFDC_API int CfdAddTransactionOutput(
  *   If 'CfdFreeStringBuffer' is implemented,
  *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
+ * @see CfdInitializeTransaction
  */
 CFDC_API int CfdFinalizeTransaction(
     void* handle, void* create_handle, char** tx_hex_string);
@@ -110,6 +113,7 @@ CFDC_API int CfdFinalizeTransaction(
  * @param[in] handle          handle pointer.
  * @param[in] create_handle   create transaction handle.
  * @return CfdErrorCode
+ * @see CfdInitializeTransaction
  */
 CFDC_API int CfdFreeTransactionHandle(void* handle, void* create_handle);
 
@@ -508,6 +512,18 @@ CFDC_API int CfdInitializeTxDataHandle(
  * @return CfdErrorCode
  */
 CFDC_API int CfdFreeTxDataHandle(void* handle, void* tx_data_handle);
+
+/**
+ * @brief free transaction data handle.
+ * @param[in] handle            handle pointer.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[out] tx_hex_string    transaction hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetModifiedTxByHandle(
+    void* handle, void* tx_data_handle, char** tx_hex_string);
 
 /**
  * @brief get transaction information.

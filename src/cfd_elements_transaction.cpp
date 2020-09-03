@@ -113,7 +113,7 @@ static ByteData256 CreateConfidentialTxSighash(
 */
 
 // -----------------------------------------------------------------------------
-// TransactionController
+// ConfidentialTransactionContext
 // -----------------------------------------------------------------------------
 ConfidentialTransactionContext::ConfidentialTransactionContext() {}
 

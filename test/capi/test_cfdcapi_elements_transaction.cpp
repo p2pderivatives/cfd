@@ -263,11 +263,19 @@ TEST(cfdcapi_elements_transaction, CreateRawTransactionRefine) {
   }
 
   if (ret == kCfdSuccess) {
-    satoshi = 1900500000;
+    satoshi = 1900000000;
     ret = CfdAddTransactionOutput(
       handle, create_handle, satoshi,
       "2dxZw5iVZ6Pmqoc5Vn8gkUWDGB5dXuMBCmM", "",
       "6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3");
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    satoshi = 500000;
+    ret = CfdAddConfidentialTxOutput(
+      handle, create_handle, satoshi, "", "6a",
+      "6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3", "");
     EXPECT_EQ(kCfdSuccess, ret);
   }
 
@@ -288,7 +296,7 @@ TEST(cfdcapi_elements_transaction, CreateRawTransactionRefine) {
   CfdFreeTransactionHandle(handle, create_handle);
 
   if (ret == kCfdSuccess) {
-    EXPECT_STREQ("020000000003bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140200000000ffffffff030151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000071475420001976a914fdd725970db682de970e7669646ed7afb8348ea188ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000", tx_string);
+    EXPECT_STREQ("020000000003bdebed9413554bb95fffbdf436112c923c334a6850509ae7794d410524b061740000000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140100000000ffffffffc16d35d26589dfd54634181aa4a290cb9e06a716ea68620be05fbc46f1e197140200000000ffffffff040151f799a22a9375b31c2f20edce025f0df5231306e81222a0061bde342dc447ef010000000005f5e10003a630456ab6d50b57981e085abced70e2816289ae2b49a44c2f471b205134c12b1976a914d08f5ba8874d36cf97d19379b370f1f23ba36d5888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f0100000000713fb300001976a914fdd725970db682de970e7669646ed7afb8348ea188ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a12000016a01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f01000000000007a120000000000000", tx_string);
   }
 
   if (ret == kCfdSuccess) {
@@ -334,7 +342,7 @@ TEST(cfdcapi_elements_transaction, CreateRawTransactionRefine) {
     ret = CfdGetTxOutIndex(
       handle, kCfdNetworkLiquidv1, tx_string, NULL, NULL, &index);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_EQ(2, index);
+    EXPECT_EQ(3, index);
   }
 
   ret = CfdGetLastErrorCode(handle);

@@ -88,42 +88,6 @@ struct CfdCapiMultisigSignData {
   uint32_t current_index;  //!< current index
 };
 
-//! prefix: CreateTx
-constexpr const char* const kPrefixCreateTxData = "CreateTx";
-
-/**
- * @brief cfd-capi transaction input data
- */
-struct CfdCapiTxInputData {
-  Txid txid;          //!< txid
-  uint32_t vout;      //!< vout
-  uint32_t sequence;  //!< sequence
-};
-
-/**
- * @brief cfd-capi transaction output data
- */
-struct CfdCapiTxOutputData {
-  int64_t amount;           //!< amount
-  ByteData locking_script;  //!< locking script (under 520)
-#ifndef CFD_DISABLE_ELEMENTS
-  ConfidentialValue value;    //!< value
-  ConfidentialAssetId asset;  //!< asset
-  ConfidentialNonce nonce;    //!< nonce
-#endif                        // CFD_DISABLE_ELEMENTS
-};
-
-/**
- * @brief cfd-capi CreateTransaction構造体.
- */
-struct CfdCapiCreateTransactionData {
-  char prefix[kPrefixLength];                    //!< buffer prefix
-  int net_type;                                  //!< network type
-  char* base_tx_hex;                             //!< base tx hex
-  std::vector<CfdCapiTxInputData>* txin_list;    //!< txin list
-  std::vector<CfdCapiTxOutputData>* txout_list;  //!< txout list
-};
-
 //! prefix: TxData
 constexpr const char* const kPrefixTransactionData = "TransactionData";
 

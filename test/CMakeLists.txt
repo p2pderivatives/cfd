@@ -51,7 +51,9 @@ else()
 set(CFD_JSONAPI_USE   "")
 endif()
 
-find_package(cfdcore  QUIET)
+find_package(univalue QUIET CONFIG)
+find_package(wally  QUIET CONFIG)
+find_package(cfdcore  QUIET CONFIG)
 
 set(LIBWALLY_LIBRARY wally)
 set(UNIVALUE_LIBRARY univalue)
@@ -106,6 +108,7 @@ endif()
 if((NOT cfdcore_FOUND) OR (NOT ${cfdcore_FOUND}))
 target_include_directories(${PROJECT_NAME}
   PRIVATE
+    ../include
     .
     ../src
     ${CFD_SRC_ROOT_DIR}/external/cfd-core/src/include
@@ -117,6 +120,7 @@ target_link_directories(${PROJECT_NAME}
 else()
 target_include_directories(${PROJECT_NAME}
   PRIVATE
+    ../include
     .
     ../src
     ${cfdcore_DIR}/../include
