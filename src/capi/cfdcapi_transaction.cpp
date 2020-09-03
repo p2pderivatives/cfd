@@ -180,60 +180,17 @@ void GetTxInfo(
   }
 }
 
-/**
- * @brief Add data to transaction.
- * @param[in,out] tx      transaction context
- * @param[in] txin_list   tx input list
- * @param[in] txout_list  tx output list
- */
-void AddTxData(
-    TransactionContext* tx, const std::vector<CfdCapiTxInputData>& txin_list,
-    const std::vector<CfdCapiTxOutputData>& txout_list) {
-  for (const auto& txin : txin_list) {
-    tx->AddTxIn(txin.txid, txin.vout, txin.sequence);
-  }
-  for (const auto& txout : txout_list) {
-    tx->AddTxOut(Amount(txout.amount), Script(txout.locking_script));
-  }
-}
-
-#ifndef CFD_DISABLE_ELEMENTS
-/**
- * @brief Add data to confidential transaction.
- * @param[in,out] tx      transaction context
- * @param[in] txin_list   tx input list
- * @param[in] txout_list  tx output list
- */
-void AddConfidentialTxData(
-    ConfidentialTransactionContext* tx,
-    const std::vector<CfdCapiTxInputData>& txin_list,
-    const std::vector<CfdCapiTxOutputData>& txout_list) {
-  for (const auto& txin : txin_list) {
-    tx->AddTxIn(txin.txid, txin.vout, txin.sequence);
-  }
-  for (const auto& txout : txout_list) {
-    tx->AddTxOut(
-        Amount(txout.amount), txout.asset, Script(txout.locking_script),
-        txout.nonce);
-  }
-}
-#endif  // CFD_DISABLE_ELEMENTS
-
 }  // namespace capi
 }  // namespace cfd
 
 // =============================================================================
 // extern c-api
 // =============================================================================
-using cfd::capi::AddTxData;
 using cfd::capi::AllocBuffer;
-using cfd::capi::CfdCapiCreateTransactionData;
 using cfd::capi::CfdCapiFundRawTxData;
 using cfd::capi::CfdCapiFundTargetAmount;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CfdCapiTransactionData;
-using cfd::capi::CfdCapiTxInputData;
-using cfd::capi::CfdCapiTxOutputData;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertAddressType;
 using cfd::capi::ConvertHashToAddressType;
@@ -247,7 +204,6 @@ using cfd::capi::IsElementsNetType;
 using cfd::capi::IsEmptyString;
 using cfd::capi::kAssetSize;
 using cfd::capi::kMultisigMaxKeyNum;
-using cfd::capi::kPrefixCreateTxData;
 using cfd::capi::kPrefixFundRawTxData;
 using cfd::capi::kPrefixMultisigSignData;
 using cfd::capi::kPrefixTransactionData;
@@ -256,17 +212,12 @@ using cfd::capi::kSignatureHexSize;
 using cfd::capi::SetLastError;
 using cfd::capi::SetLastFatalError;
 
-#ifndef CFD_DISABLE_ELEMENTS
-using cfd::capi::AddConfidentialTxData;
-#endif  // CFD_DISABLE_ELEMENTS
-
 // API
 extern "C" {
 
 int CfdInitializeTransaction(
     void* handle, int net_type, uint32_t version, uint32_t locktime,
     const char* tx_hex_string, void** create_handle) {
-  CfdCapiCreateTransactionData* buffer = nullptr;
   int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
@@ -303,14 +254,8 @@ int CfdInitializeTransaction(
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
-    buffer = static_cast<CfdCapiCreateTransactionData*>(AllocBuffer(
-        kPrefixCreateTxData, sizeof(CfdCapiCreateTransactionData)));
-    buffer->net_type = net_type;
-    buffer->base_tx_hex = CreateString(base_tx);
-    buffer->txin_list = new std::vector<CfdCapiTxInputData>();
-    buffer->txout_list = new std::vector<CfdCapiTxOutputData>();
-    *create_handle = buffer;
-    return CfdErrorCode::kCfdSuccess;
+    return CfdInitializeTxDataHandle(
+        handle, net_type, base_tx.c_str(), create_handle);
   } catch (const CfdException& except) {
     result = SetLastError(handle, except);
   } catch (const std::exception& std_except) {
@@ -318,7 +263,6 @@ int CfdInitializeTransaction(
   } catch (...) {
     SetLastFatalError(handle, "unknown error.");
   }
-  CfdFreeTransactionHandle(handle, buffer);
   return result;
 }
 
@@ -327,16 +271,9 @@ int CfdAddTransactionInput(
     uint32_t sequence) {
   try {
     cfd::Initialize();
-    CheckBuffer(create_handle, kPrefixCreateTxData);
-
-    CfdCapiCreateTransactionData* buffer =
-        static_cast<CfdCapiCreateTransactionData*>(create_handle);
-    if (buffer->txin_list == nullptr) {
-      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
-      throw CfdException(
-          CfdError::kCfdOutOfRangeError,
-          "Failed to parameter. buffer state is illegal.");
-    }
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
     if (IsEmptyString(txid)) {
       warn(CFD_LOG_SOURCE, "txid is null or empty.");
       throw CfdException(
@@ -344,122 +281,20 @@ int CfdAddTransactionInput(
           "Failed to parameter. txid is null or empty.");
     }
 
-    CfdCapiTxInputData data = {Txid(txid), vout, sequence};
-    buffer->txin_list->push_back(data);
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdAddTransactionOutput(
-    void* handle, void* create_handle, int64_t value_satoshi,
-    const char* address, const char* direct_locking_script,
-    const char* asset_string) {
-  try {
-    cfd::Initialize();
-    CheckBuffer(create_handle, kPrefixCreateTxData);
-
-    CfdCapiCreateTransactionData* buffer =
-        static_cast<CfdCapiCreateTransactionData*>(create_handle);
-    if (buffer->txout_list == nullptr) {
-      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
-      throw CfdException(
-          CfdError::kCfdOutOfRangeError,
-          "Failed to parameter. buffer state is illegal.");
-    }
-
-    CfdCapiTxOutputData data;
-    bool is_elements = false;
-#ifndef CFD_DISABLE_ELEMENTS
-    is_elements = IsElementsNetType(buffer->net_type);
-    if (is_elements) {
-      if (IsEmptyString(asset_string)) {
-        warn(CFD_LOG_SOURCE, "asset is null or empty.");
-        throw CfdException(
-            CfdError::kCfdIllegalArgumentError,
-            "Failed to parameter. asset is null or empty.");
-      }
-      data.asset = ConfidentialAssetId(asset_string);
-    }
-#endif  // CFD_DISABLE_ELEMENTS
-
-    data.amount = value_satoshi;
-    if (!IsEmptyString(address)) {
-      Address addr;
-      if (!is_elements) {
-        addr = Address(address);
-      } else {
-#ifndef CFD_DISABLE_ELEMENTS
-        ElementsAddressFactory address_factory;
-        // const std::string addr(address);
-        if (ElementsConfidentialAddress::IsConfidentialAddress(address)) {
-          ElementsConfidentialAddress confidential_addr(address);
-          addr = confidential_addr.GetUnblindedAddress();
-          data.nonce =
-              ConfidentialNonce(confidential_addr.GetConfidentialKey());
-        } else {
-          addr = address_factory.GetAddress(address);
-        }
-#endif  // CFD_DISABLE_ELEMENTS
-      }
-      data.locking_script = addr.GetLockingScript().GetData();
-    } else if (!IsEmptyString(direct_locking_script)) {
-      Script script(direct_locking_script);
-      data.locking_script = script.GetData();
-    }
-
-    buffer->txout_list->push_back(data);
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdFinalizeTransaction(
-    void* handle, void* create_handle, char** tx_hex_string) {
-  try {
-    cfd::Initialize();
-    CheckBuffer(create_handle, kPrefixCreateTxData);
-
-    CfdCapiCreateTransactionData* buffer =
-        static_cast<CfdCapiCreateTransactionData*>(create_handle);
-    if ((buffer->txin_list == nullptr) || (buffer->txout_list == nullptr)) {
-      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
-      throw CfdException(
-          CfdError::kCfdOutOfRangeError,
-          "Failed to parameter. buffer state is illegal.");
-    }
-    if (tx_hex_string == nullptr) {
-      warn(CFD_LOG_SOURCE, "tx_hex_string is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tx_hex_string is null.");
-    }
-
     bool is_bitcoin = false;
-    ConvertNetType(buffer->net_type, &is_bitcoin);
-    if (is_bitcoin) {
-      TransactionContext tx(std::string(buffer->base_tx_hex));
-      AddTxData(&tx, *buffer->txin_list, *buffer->txout_list);
-      *tx_hex_string = CreateString(tx.GetHex());
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->AddTxIn(Txid(std::string(txid)), vout, sequence);
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
-      ConfidentialTransactionContext tx(std::string(buffer->base_tx_hex));
-      AddConfidentialTxData(&tx, *buffer->txin_list, *buffer->txout_list);
-      *tx_hex_string = CreateString(tx.GetHex());
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      tx->AddTxIn(Txid(std::string(txid)), vout, sequence);
 #else
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
@@ -478,28 +313,62 @@ int CfdFinalizeTransaction(
   }
 }
 
-int CfdFreeTransactionHandle(void* handle, void* create_handle) {
+int CfdAddTransactionOutput(
+    void* handle, void* create_handle, int64_t value_satoshi,
+    const char* address, const char* direct_locking_script,
+    const char* asset_string) {
   try {
     cfd::Initialize();
-    if (create_handle != nullptr) {
-      CfdCapiCreateTransactionData* create_tx_struct =
-          static_cast<CfdCapiCreateTransactionData*>(create_handle);
-      if (create_tx_struct->txin_list != nullptr) {
-        delete create_tx_struct->txin_list;
-        create_tx_struct->txin_list = nullptr;
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    Amount amount = Amount(value_satoshi);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      if (!IsEmptyString(address)) {
+        tx->AddTxOut(Address(address), amount);
+      } else if (!IsEmptyString(direct_locking_script)) {
+        tx->AddTxOut(amount, Script(direct_locking_script));
       }
-      if (create_tx_struct->txout_list != nullptr) {
-        delete create_tx_struct->txout_list;
-        create_tx_struct->txout_list = nullptr;
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      if (IsEmptyString(asset_string)) {
+        warn(CFD_LOG_SOURCE, "asset is null or empty.");
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Failed to parameter. asset is null or empty.");
       }
-      if (create_tx_struct->base_tx_hex != nullptr) {
-        free(create_tx_struct->base_tx_hex);
-        create_tx_struct->base_tx_hex = nullptr;
+      ConfidentialAssetId asset = ConfidentialAssetId(asset_string);
+
+      if (!IsEmptyString(address)) {
+        ElementsAddressFactory address_factory;
+        if (ElementsConfidentialAddress::IsConfidentialAddress(address)) {
+          ElementsConfidentialAddress confidential_addr(address);
+          tx->AddTxOut(confidential_addr, amount, asset, false);
+        } else {
+          tx->AddTxOut(address_factory.GetAddress(address), amount, asset);
+        }
+      } else if (!IsEmptyString(direct_locking_script)) {
+        ConfidentialNonce nonce;
+        tx->AddTxOut(amount, asset, Script(direct_locking_script), nonce);
+      } else {
+        tx->UpdateFeeAmount(amount, asset);
       }
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
     }
-    FreeBuffer(
-        create_handle, kPrefixCreateTxData,
-        sizeof(CfdCapiCreateTransactionData));
+
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
@@ -510,6 +379,15 @@ int CfdFreeTransactionHandle(void* handle, void* create_handle) {
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdFinalizeTransaction(
+    void* handle, void* create_handle, char** tx_hex_string) {
+  return CfdGetModifiedTxByHandle(handle, create_handle, tx_hex_string);
+}
+
+int CfdFreeTransactionHandle(void* handle, void* create_handle) {
+  return CfdFreeTxDataHandle(handle, create_handle);
 }
 
 int CfdUpdateTxOutAmount(
@@ -2496,6 +2374,53 @@ int CfdFreeTxDataHandle(void* handle, void* tx_data_handle) {
   return result;
 }
 
+int CfdGetModifiedTxByHandle(
+    void* handle, void* tx_data_handle, char** tx_hex_string) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(tx_data_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(tx_data_handle);
+    if (tx_hex_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "tx hex string is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tx hex string is null.");
+    }
+
+    std::string base_tx;
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      *tx_hex_string = CreateString(tx->GetHex());
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      *tx_hex_string = CreateString(tx->GetHex());
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
 int CfdGetTxInfoByHandle(
     void* handle, void* tx_data_handle, char** txid, char** wtxid,
     uint32_t* size, uint32_t* vsize, uint32_t* weight, uint32_t* version,
@@ -2509,6 +2434,13 @@ int CfdGetTxInfoByHandle(
     CfdCapiTransactionData* tx_data =
         static_cast<CfdCapiTransactionData*>(tx_data_handle);
 
+    uint32_t temp_size = 0;
+    uint32_t temp_vsize = 0;
+    uint32_t temp_weight = 0;
+    uint32_t temp_version = 0;
+    uint32_t temp_locktime = 0;
+    std::string temp_txid;
+    std::string temp_wtxid;
     bool is_bitcoin = false;
     ConvertNetType(tx_data->net_type, &is_bitcoin);
     if (tx_data->tx_obj == nullptr) {
@@ -2517,19 +2449,36 @@ int CfdGetTxInfoByHandle(
     } else if (is_bitcoin) {
       TransactionContext* tx =
           static_cast<TransactionContext*>(tx_data->tx_obj);
-      GetTxInfo(
-          tx, &work_txid, &work_wtxid, size, vsize, weight, version, locktime);
+      temp_txid = tx->GetTxid().GetHex();
+      temp_wtxid = Txid(tx->GetWitnessHash()).GetHex();
+      temp_size = tx->GetTotalSize();
+      temp_vsize = tx->GetVsize();
+      temp_weight = tx->GetWeight();
+      temp_version = tx->GetVersion();
+      temp_locktime = tx->GetLockTime();
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
       ConfidentialTransactionContext* tx =
           static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
-      GetTxInfo(
-          tx, &work_txid, &work_wtxid, size, vsize, weight, version, locktime);
+      temp_txid = tx->GetTxid().GetHex();
+      temp_wtxid = Txid(tx->GetWitnessHash()).GetHex();
+      temp_size = tx->GetTotalSize();
+      temp_vsize = tx->GetVsize();
+      temp_weight = tx->GetWeight();
+      temp_version = tx->GetVersion();
+      temp_locktime = tx->GetLockTime();
 #else
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
 #endif  // CFD_DISABLE_ELEMENTS
     }
+    if (txid != nullptr) work_txid = CreateString(temp_txid);
+    if (wtxid != nullptr) work_wtxid = CreateString(temp_wtxid);
+    if (size != nullptr) *size = temp_size;
+    if (vsize != nullptr) *vsize = temp_vsize;
+    if (weight != nullptr) *weight = temp_weight;
+    if (version != nullptr) *version = temp_version;
+    if (locktime != nullptr) *locktime = temp_locktime;
 
     if (work_txid != nullptr) *txid = work_txid;
     if (work_wtxid != nullptr) *wtxid = work_wtxid;

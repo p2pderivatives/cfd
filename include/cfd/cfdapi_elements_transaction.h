@@ -511,7 +511,7 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[in] tx_hex              tx hex string
    * @param[in] utxos               using utxo data
    * @param[in] fee_asset           using fee asset
-   * @param[in] tx_fee              tx fee amount (ignore utxo)
+   * @param[in] txout_fee           tx fee amount (ignore utxo)
    * @param[in] utxo_fee            utxo fee amount
    * @param[in] is_blind            using tx blinding
    * @param[in] effective_fee_rate  effective fee rate (minimum)
@@ -524,7 +524,7 @@ class CFD_EXPORT ElementsTransactionApi {
   Amount EstimateFee(
       const std::string& tx_hex,
       const std::vector<ElementsUtxoAndOption>& utxos,
-      const ConfidentialAssetId& fee_asset, Amount* tx_fee = nullptr,
+      const ConfidentialAssetId& fee_asset, Amount* txout_fee = nullptr,
       Amount* utxo_fee = nullptr, bool is_blind = true,
       double effective_fee_rate = 1, int exponent = 0,
       int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
@@ -534,7 +534,7 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[in] tx_hex              tx hex string
    * @param[in] utxos               using utxo data
    * @param[in] fee_asset           using fee asset
-   * @param[in] tx_fee              tx fee amount (ignore utxo)
+   * @param[in] txout_fee           tx fee amount (ignore utxo)
    * @param[in] utxo_fee            utxo fee amount
    * @param[in] is_blind            using tx blinding
    * @param[in] effective_fee_rate  effective fee rate (minimum)
@@ -547,7 +547,7 @@ class CFD_EXPORT ElementsTransactionApi {
   Amount EstimateFee(
       const std::string& tx_hex,
       const std::vector<ElementsUtxoAndOption>& utxos,
-      const ConfidentialAssetId& fee_asset, Amount* tx_fee = nullptr,
+      const ConfidentialAssetId& fee_asset, Amount* txout_fee = nullptr,
       Amount* utxo_fee = nullptr, bool is_blind = true,
       uint64_t effective_fee_rate = 1000, int exponent = 0,
       int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;

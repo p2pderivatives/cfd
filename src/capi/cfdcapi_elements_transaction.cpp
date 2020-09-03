@@ -228,7 +228,7 @@ int CfdAddConfidentialTxOut(
           "Failed to parameter. asset is null or empty.");
     }
 
-    ConfidentialTransactionController ctxc(tx_hex_string);
+    ConfidentialTransactionContext ctxc(tx_hex_string);
 
     Amount amount;
     if (IsEmptyString(value_commitment)) {
@@ -252,14 +252,15 @@ int CfdAddConfidentialTxOut(
         ElementsConfidentialAddress confidential_addr(address);
         ctxc.AddTxOut(confidential_addr, amount, asset_obj, false);
       } else {
-        ctxc.AddTxOut(address_factory.GetAddress(address), amount, asset_obj);
+        Address addr = address_factory.GetAddress(address);
+        ctxc.AddTxOut(amount, asset_obj, addr.GetLockingScript(), nonce_obj);
       }
     } else if (!IsEmptyString(direct_locking_script)) {
       Script script(direct_locking_script);
-      ctxc.AddTxOut(script, amount, asset_obj, nonce_obj);
+      ctxc.AddTxOut(amount, asset_obj, script, nonce_obj);
     } else if (amount > 0) {
       // fee
-      ctxc.AddTxOutFee(amount, asset_obj);
+      ctxc.UpdateFeeAmount(amount, asset_obj);
     }
 
     *tx_string = CreateString(ctxc.GetHex());
@@ -1127,7 +1128,7 @@ int CfdInitializeBlindTx(void* handle, void** blind_handle) {
 int CfdAddBlindTxInData(
     void* handle, void* blind_handle, const char* txid, uint32_t vout,
     const char* asset_string, const char* asset_blind_factor,
-    const char* value_blind_vactor, int64_t value_satoshi,
+    const char* value_blind_factor, int64_t value_satoshi,
     const char* asset_key, const char* token_key) {
   try {
     cfd::Initialize();
@@ -1165,10 +1166,10 @@ int CfdAddBlindTxInData(
     } else {
       params.blind_param.abf = BlindFactor(asset_blind_factor);
     }
-    if (IsEmptyString(value_blind_vactor)) {
+    if (IsEmptyString(value_blind_factor)) {
       params.blind_param.vbf = BlindFactor(kEmpty32Bytes);
     } else {
-      params.blind_param.vbf = BlindFactor(value_blind_vactor);
+      params.blind_param.vbf = BlindFactor(value_blind_factor);
     }
 
     params.is_issuance = false;
@@ -1286,7 +1287,7 @@ int CfdSetBlindTxOption(
         buffer->exponent = static_cast<int>(value);
         break;
       case CfdBlindOption::kCfdBlindOptionMinimumBits:
-        buffer->minimum_bits = static_cast<int>(value);
+        if (value >= 0) buffer->minimum_bits = static_cast<int>(value);
         break;
       default:
         warn(CFD_LOG_SOURCE, "illegal option key. [{}]", key);
@@ -2177,7 +2178,7 @@ int CfdGetAssetCommitment(
 
 int CfdGetValueCommitment(
     void* handle, int64_t value_satoshi, const char* asset_commitment,
-    const char* value_blind_vactor, char** value_commitment) {
+    const char* value_blind_factor, char** value_commitment) {
   int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
@@ -2193,7 +2194,7 @@ int CfdGetValueCommitment(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. asset commitment is null or empty.");
     }
-    if (IsEmptyString(value_blind_vactor)) {
+    if (IsEmptyString(value_blind_factor)) {
       warn(CFD_LOG_SOURCE, "value blind vactor is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -2201,7 +2202,7 @@ int CfdGetValueCommitment(
     }
     Amount amount(value_satoshi);
     ConfidentialAssetId asset(asset_commitment);
-    BlindFactor vbf(value_blind_vactor);
+    BlindFactor vbf(value_blind_factor);
     ConfidentialValue commitment =
         ConfidentialValue::GetCommitment(amount, asset, vbf);
     *value_commitment = CreateString(commitment.GetHex());
@@ -2462,6 +2463,68 @@ int CfdGetConfidentialTxOutByHandle(
     FreeBufferOnError(
         &work_asset_string, &work_value_commitment, &work_nonce,
         &work_locking_script, &work_surjection_proof, &work_rangeproof);
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddConfidentialTxOutput(
+    void* handle, void* create_handle, int64_t value_satoshi,
+    const char* address, const char* direct_locking_script,
+    const char* asset_string, const char* nonce) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+    Amount amount = Amount(value_satoshi);
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    if (IsEmptyString(asset_string)) {
+      warn(CFD_LOG_SOURCE, "asset is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset is null or empty.");
+    }
+    ConfidentialAssetId asset = ConfidentialAssetId(asset_string);
+    ConfidentialNonce nonce_obj;
+    if (!IsEmptyString(nonce)) {
+      nonce_obj = ConfidentialNonce(std::string(nonce));
+    }
+
+    if (!IsEmptyString(address)) {
+      ElementsAddressFactory address_factory;
+      if (ElementsConfidentialAddress::IsConfidentialAddress(address)) {
+        ElementsConfidentialAddress confidential_addr(address);
+        tx->AddTxOut(confidential_addr, amount, asset, false);
+      } else {
+        Address addr = address_factory.GetAddress(address);
+        tx->AddTxOut(amount, asset, addr.GetLockingScript(), nonce_obj);
+      }
+    } else if (!IsEmptyString(direct_locking_script)) {
+      tx->AddTxOut(amount, asset, Script(direct_locking_script), nonce_obj);
+    } else {
+      tx->UpdateFeeAmount(amount, asset);
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }

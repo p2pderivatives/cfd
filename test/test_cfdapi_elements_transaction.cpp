@@ -199,6 +199,88 @@ TEST(ElementsTransactionApi, EstimateFee_CheckRealValue)
 }
 
 
+TEST(ElementsTransactionApi, EstimateFee_MinimumValue)
+{
+  ElementsAddressFactory factory(NetType::kElementsRegtest);
+  std::string tx_hex = "02000000000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000005f5e100036a2e218bb512a3e65c80b59fec57aee428b7512276bcfa366c154dd7262994c817a914363273e2f851bda01e24cda41ba748b8d1f54cfe870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000c8000000000000";
+
+  // Address1
+  // pubkey: '0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b',
+  // privkey: 'cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5'
+  UtxoData utxo1;
+  utxo1.block_height = 0;
+  utxo1.binary_data = nullptr;
+  utxo1.txid = Txid("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+  utxo1.vout = 0;
+  utxo1.locking_script = Script("0014eb3c0d55b7098a4aef4a18ee1eebcb1ed924a82b");
+  // utxo1.redeem_script = Script("");
+  utxo1.address = factory.GetAddress("ert1qav7q64dhpx9y4m62rrhpa67trmvjf2ptxfddld");
+  utxo1.descriptor = "wpkh(03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6)";
+  utxo1.amount = Amount(int64_t{2000000000});
+  utxo1.address_type = AddressType::kP2wpkhAddress;
+  utxo1.asset = ConfidentialAssetId("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+  utxo1.asset_blind_factor = BlindFactor("ebfecaae1665f32a3843ce65c42fb6e3f51136fa9d37274b810887923ae89339");
+  utxo1.amount_blind_factor = BlindFactor("80af7bd339db43ad22c1fa9109eea6d617c8b87b91c4bde2b5fafcbb1902211a");
+  utxo1.value_commitment = ConfidentialValue("085e6338f9da8a7f754b8e2726894e04bee997c8ada526f3215de8bc151aa063d3");
+  ElementsUtxoAndOption eutxo1;
+  eutxo1.utxo = utxo1;
+  std::vector<cfd::api::ElementsUtxoAndOption> utxos_and_options{
+      eutxo1
+  };
+
+  ConfidentialTransactionContext txc(tx_hex);
+
+  std::vector<cfd::UtxoData> utxos{utxo1};
+  EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
+
+  // check estimateFee
+  double effective_fee_rate = 0.1;
+  uint64_t effective_fee_rate2 = 100;
+  Amount calc_fee;
+  Amount utxo_fee;
+  Amount tx_fee;
+  ElementsTransactionApi api;
+  calc_fee = api.EstimateFee(txc.GetHex(), utxos_and_options, utxo1.asset,
+      &tx_fee, &utxo_fee, true, effective_fee_rate, 0, 36);
+  EXPECT_EQ(calc_fee.GetSatoshiValue(), 99);
+  EXPECT_EQ(tx_fee.GetSatoshiValue(), 92);
+  EXPECT_EQ(utxo_fee.GetSatoshiValue(), 7);
+
+  std::vector<cfd::core::ElementsConfidentialAddress> ct_addrs;
+  EXPECT_NO_THROW(txc.Blind(&ct_addrs, 1, 0, 36));
+  std::vector<ConfidentialTxOutReference> txouts = txc.GetTxOutList();
+  EXPECT_EQ(txouts.size(), 2);
+  if (txouts.size() == 2) {
+    EXPECT_TRUE(txouts[0].GetConfidentialValue().HasBlinding());
+    EXPECT_FALSE(txouts[1].GetConfidentialValue().HasBlinding());
+  }
+
+  ByteData tx;
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo1.txid, utxo1.vout),
+      Pubkey("03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6"),
+      Privkey::FromWif(
+          "cU4KjNUT7GjHm7CkjRjG46SzLrXHXoH3ekXmqa2jTCFPMkQ64sw1", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo1.txid, utxo1.vout)));
+
+  EXPECT_NO_THROW(tx = txc.Finalize());
+
+  if ((tx.GetDataSize() != 3295) && (tx.GetDataSize() != 3294) && (tx.GetDataSize() != 3296)) {
+    EXPECT_EQ(tx.GetDataSize(), 0);
+  }
+
+  if ((txc.GetVsize() != 988) && (txc.GetVsize() != 987)) {
+    EXPECT_EQ(txc.GetVsize(), 988);
+  }
+
+  uint32_t minimum_fee = txc.GetVsize() * static_cast<uint32_t>(effective_fee_rate2) / 1000;
+  if ((minimum_fee != 98) && (minimum_fee != 97)) {
+    EXPECT_EQ(minimum_fee, 98);
+  }
+  // EXPECT_STREQ(tx.GetHex().c_str(), "");
+}
+
+
 struct TestFundElementsUtxoVector {
   std::string txid;
   uint32_t vout;
@@ -298,10 +380,8 @@ static const std::vector<TestFundElementsUtxoVector> kFundCoinSelectElementsTest
 };
 
 
-
-
 TEST(ElementsTransactionApi, FundRawTransaction_Reissueasset) {
-  static const char* const kExpTxData = "0200000000030f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c34600000bfa8774c5f753ce2f801a8106413b470af94edbff5b4242ed4c5a26d20e72b90000000000ffffffff040b0000000000000000000000000000000000000000000000000000000000000000000000ffffffff07010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b92700001976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac01cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c34600001976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac0100000000000000000000000000000000000000000000000000000000000000aa010000000000989680001600144352a1a6e86311f22274f7ebb2746de21b09b15d0100000000000000000000000000000000000000000000000000000000000000bb01000000000007a120001600148beaaac4654cf4ebd8e46ca5062b0e7fb3e7470c0100000000000000000000000000000000000000000000000000000000000000aa01000000000000037000000100000000000000000000000000000000000000000000000000000000000000bb010000000001124c1e00160014a53be40113bb50f2b8b2d0bfea1e823e75632b5f0100000000000000000000000000000000000000000000000000000000000000aa0100000000004b57ee0016001478eb9fc2c9e1cdf633ecb646858ba862b21384ab00000000";
+  static const char* const kExpTxData = "0200000000030f231181a6d8fa2c5f7020948464110fbcc925f94d673d5752ce66d00250a1570100008000ffffffffd8bbe31bc590cbb6a47d2e53a956ec25d8890aefd60dcfc93efd34727554890b0683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000023c34600000bfa8774c5f753ce2f801a8106413b470af94edbff5b4242ed4c5a26d20e72b90000000000ffffffff040b0000000000000000000000000000000000000000000000000000000000000000000000ffffffff07010bad521bafdac767421d45b71b29a349c7b2ca2a06b5d8e3b5898c91df2769ed010000000029b92700001976a9146c22e209d36612e0d9d2a20b814d7d8648cc7a7788ac01cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000023c34600001976a9149bdcb18911fa9faad6632ca43b81739082b0a19588ac0100000000000000000000000000000000000000000000000000000000000000aa010000000000989680001600144352a1a6e86311f22274f7ebb2746de21b09b15d0100000000000000000000000000000000000000000000000000000000000000bb01000000000007a120001600148beaaac4654cf4ebd8e46ca5062b0e7fb3e7470c0100000000000000000000000000000000000000000000000000000000000000aa01000000000000037300000100000000000000000000000000000000000000000000000000000000000000bb010000000001124c1e00160014a53be40113bb50f2b8b2d0bfea1e823e75632b5f0100000000000000000000000000000000000000000000000000000000000000aa0100000000004b57eb0016001478eb9fc2c9e1cdf633ecb646858ba862b21384ab00000000";
 
   ElementsUtxoAndOption input_utxo;
   ConfidentialTransactionContext tx(uint32_t{2}, uint32_t{0});
@@ -388,7 +468,7 @@ TEST(ElementsTransactionApi, FundRawTransaction_Reissueasset) {
         &filter, &option, &append_txout_addresses, NetType::kElementsRegtest);
 
     EXPECT_STREQ(kExpTxData, ctx.GetHex().c_str());
-    EXPECT_EQ(880, estimate_fee.GetSatoshiValue());
+    EXPECT_EQ(883, estimate_fee.GetSatoshiValue());
     EXPECT_EQ(size_t{2}, append_txout_addresses.size());
     if (append_txout_addresses.size() == size_t{2})
     {

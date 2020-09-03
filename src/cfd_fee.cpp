@@ -48,7 +48,12 @@ FeeCalculator::FeeCalculator(uint64_t baserate) : baserate_(baserate) {}
 
 Amount FeeCalculator::GetFee(uint32_t size) const {
   int64_t byte_size = static_cast<int64_t>(size);
-  int64_t fee = baserate_ * byte_size / 1000;
+  int64_t temp_fee = baserate_ * byte_size;
+  int64_t fee = temp_fee / 1000;
+
+  // Round up
+  if ((temp_fee % 1000) != 0) ++fee;
+
   if ((fee == 0) && (byte_size != 0) && (baserate_ != 0)) {
     fee = 1;
   }

@@ -33,7 +33,7 @@ jobs:
     - name: ctest
       run: |
         cd build
-        ctest -C Release --output-on-failure
+        ctest -C Release --output-on-failure -R cfd
 
   cmake-mac:
     name: cmake build-mac
@@ -52,7 +52,7 @@ jobs:
     - name: ctest
       run: |
         cd build
-        ctest -C Release --output-on-failure
+        ctest -C Release --output-on-failure -R cfd_test
 
   cmake-ubuntu-coverage:
     name: cmake build-ubuntu
@@ -119,7 +119,7 @@ jobs:
     - name: test
       run: |
         cd build
-        ctest -C Debug --output-on-failure
+        ctest -C Debug --output-on-failure -R cfd
         cd ..
     - name: collect coverage
       run: |

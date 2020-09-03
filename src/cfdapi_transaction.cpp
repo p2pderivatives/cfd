@@ -210,7 +210,7 @@ TransactionController TransactionApi::AddMultisigSign(
 
 Amount TransactionApi::EstimateFee(
     const std::string& tx_hex, const std::vector<UtxoData>& utxos,
-    Amount* tx_fee, Amount* utxo_fee, double effective_fee_rate) const {
+    Amount* txout_fee, Amount* utxo_fee, double effective_fee_rate) const {
   TransactionController txc(tx_hex);
 
   uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn();
@@ -272,7 +272,7 @@ Amount TransactionApi::EstimateFee(
   Amount utxo_fee_amount = fee_calc.GetFee(utxo_vsize);
   Amount fee = tx_fee_amount + utxo_fee_amount;
 
-  if (tx_fee) *tx_fee = tx_fee_amount;
+  if (txout_fee) *txout_fee = tx_fee_amount;
   if (utxo_fee) *utxo_fee = utxo_fee_amount;
 
   info(

@@ -219,14 +219,14 @@ class CFD_EXPORT TransactionApi {
    * @brief estimate a fee amount from transaction.
    * @param[in] tx_hex              tx hex string
    * @param[in] utxos               using utxo data
-   * @param[in] tx_fee              tx fee amount (ignore utxo)
+   * @param[in] txout_fee           tx fee amount (ignore utxo)
    * @param[in] utxo_fee            utxo fee amount
    * @param[in] effective_fee_rate  effective fee rate (minimum)
    * @return tx fee (contains utxo)
    */
   Amount EstimateFee(
       const std::string& tx_hex, const std::vector<UtxoData>& utxos,
-      Amount* tx_fee = nullptr, Amount* utxo_fee = nullptr,
+      Amount* txout_fee = nullptr, Amount* utxo_fee = nullptr,
       double effective_fee_rate = 1) const;
 
   /**
