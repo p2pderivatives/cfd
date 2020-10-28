@@ -9,6 +9,7 @@ set(PACKAGE_VERSION   1.0.0)
 include(./cmake/CfdCommonOption.cmake)
 include(./cmake/CfdWallyOption.cmake)
 
+option(CFD_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
 option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
 option(ENABLE_JSONAPI  "enable json-api (ON or OFF. default:ON)" ON)
 

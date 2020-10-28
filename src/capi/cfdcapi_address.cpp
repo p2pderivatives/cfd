@@ -717,7 +717,7 @@ int CfdGetDescriptorChecksum(
     cfd::capi::ConvertNetType(network_type, &is_bitcoin);
     std::string output_descriptor;
     if (is_bitcoin) {
-      output_descriptor = Descriptor::Parse(descriptor, nullptr).ToString();
+      output_descriptor = Descriptor::Parse(descriptor).ToString();
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
       output_descriptor = Descriptor::ParseElements(descriptor).ToString();

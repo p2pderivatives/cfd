@@ -844,15 +844,15 @@ CFDC_API int CfdAddConfidentialTxOutput(
     const char* asset_string, const char* nonce);
 
 /* 
-CFDC_API int CfdAddConfidentialTxPeginInput(
+int CfdAddConfidentialTxPeginInput(
     void* handle, void* create_handle, const char* txid, uint32_t vout,
     uint32_t sequence);
-CFDC_API int CfdAddConfidentialTxPegoutOutput(
+int CfdAddConfidentialTxPegoutOutput(
     void* handle, void* create_handle, const char* asset_string,
     int64_t value_satoshi, const char* value_commitment, const char* address,
     const char* direct_locking_script);
 
-CFDC_API int CfdAddPeginWitnessStack(
+int CfdAddPeginWitnessStack(
     void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
     const char* hex_data, char** tx_string);
 
