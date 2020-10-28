@@ -804,11 +804,11 @@ int CfdAddMultisigSignData(
   try {
     cfd::Initialize();
     CheckBuffer(multisign_handle, kPrefixMultisigSignData);
-    if (IsEmptyString(signature)) {
-      warn(CFD_LOG_SOURCE, "signature is null or empty.");
+    if (signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null or empty.");
+          "Failed to parameter. signature is null.");
     }
 
     CfdCapiMultisigSignData* data =
@@ -822,9 +822,11 @@ int CfdAddMultisigSignData(
           "The number of signature has reached the upper limit.");
     }
 
-    ByteData signature_bytes = ByteData(std::string(signature));
-    std::string sig_str = signature_bytes.GetHex();
-    sig_str.copy(data->signatures[data->current_index], kSignatureHexSize);
+    if (!IsEmptyString(signature)) {
+      ByteData signature_bytes = ByteData(std::string(signature));
+      std::string sig_str = signature_bytes.GetHex();
+      sig_str.copy(data->signatures[data->current_index], kSignatureHexSize);
+    }
 
     if (!IsEmptyString(related_pubkey)) {
       Pubkey key = Pubkey(std::string(related_pubkey));

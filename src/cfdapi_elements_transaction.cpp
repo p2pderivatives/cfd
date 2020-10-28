@@ -579,6 +579,8 @@ Amount ElementsTransactionApi::EstimateFee(
   ElementsAddressApi address_api;
   for (const auto& utxo : utxos) {
     uint32_t pegin_btc_tx_size = 0;
+    txin_size = 0;
+    wit_size = 0;
     Script fedpeg_script;
     if (utxo.is_pegin) {
       pegin_btc_tx_size = utxo.pegin_btc_tx_size;
@@ -636,6 +638,15 @@ Amount ElementsTransactionApi::EstimateFee(
             static_cast<uint32_t>(pegin_stack[4].GetSerializeSize());
         fedpeg_script = Script(pegin_stack[3]);
       }
+
+      if (utxo.is_issuance && ref.GetAssetEntropy().IsEmpty()) {
+        // unmatch pattern. (using utxo data)
+      } else {
+        ref.EstimateTxInSize(
+            addr_type, redeem_script, is_blind_issuance, exponent,
+            minimum_bits, fedpeg_script, scriptsig_template, &wit_size,
+            &txin_size);
+      }
     } catch (const CfdException& except) {
       info(CFD_LOG_SOURCE, "Error:{}", std::string(except.what()));
     }
@@ -646,10 +657,12 @@ Amount ElementsTransactionApi::EstimateFee(
       asset_count += 2;
 
     ++asset_count;
-    ConfidentialTxIn::EstimateTxInSize(
-        addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
-        is_issuance, is_blind_issuance, &wit_size, &txin_size, is_reissuance,
-        scriptsig_template, exponent, minimum_bits, &rangeproof_size_cache);
+    if (txin_size == 0) {
+      ConfidentialTxIn::EstimateTxInSize(
+          addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script,
+          is_issuance, is_blind_issuance, &wit_size, &txin_size, is_reissuance,
+          scriptsig_template, exponent, minimum_bits, &rangeproof_size_cache);
+    }
     size += txin_size;
     witness_size += wit_size;
     if (wit_size == 0) ++not_witness_count;
@@ -832,6 +845,8 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
       asset_list.push_back(asset);
     }
   }
+  std::map<std::string, Amount> input_amount_map;
+  std::map<std::string, Amount> input_max_map;
   std::vector<UtxoData> utxodata_list;
   utxodata_list.reserve(utxos.size());
   for (const auto& utxo : utxos) {
@@ -845,6 +860,16 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
     }
     if (!isFind) {
       utxodata_list.push_back(utxo);
+    }
+    std::string asset = utxo.asset.GetHex();
+    if (input_amount_map.find(asset) == input_amount_map.end()) {
+      Amount amount;
+      input_amount_map.emplace(asset, amount);
+      input_max_map.emplace(asset, amount);
+    }
+    input_amount_map[asset] += utxo.amount;
+    if (input_max_map[asset] < utxo.amount) {
+      input_max_map[asset] = utxo.amount;
     }
   }
 
@@ -1072,13 +1097,32 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
           "Input address and network is unmatch.");
     }
 
-    Amount min_fee;
+    Amount txin_amount, tx_amount, target_value, utxo_value, max_utxo_value;
     {
-      // dummyのtx作成
-      ConfidentialTransactionContext txc_dummy(ctxc.GetHex());
+      if (txin_amount_map.find(fee_asset_str) != txin_amount_map.end()) {
+        txin_amount = txin_amount_map[fee_asset_str];
+      }
+      if (tx_amount_map.find(fee_asset_str) != tx_amount_map.end()) {
+        tx_amount = tx_amount_map[fee_asset_str];
+      }
+      if (target_values.find(fee_asset_str) != target_values.end()) {
+        target_value = target_values[fee_asset_str];
+      }
+      if (input_amount_map.find(fee_asset_str) != input_amount_map.end()) {
+        utxo_value = input_amount_map[fee_asset_str];
+      }
+      if (input_max_map.find(fee_asset_str) != input_max_map.end()) {
+        max_utxo_value = input_max_map[fee_asset_str];
+      }
+    }
+
+    Amount min_fee;
+    ConfidentialTransactionContext txc_dummy(ctxc.GetHex());
+    uint32_t dummy_txout_index = 0;
+    std::vector<ElementsUtxoAndOption> new_selected_utxos;
+    {
       // fee再計算用に選択済みUTXO情報をElements用Utxoに再設定
-      std::vector<ElementsUtxoAndOption> new_selected_utxos =
-          selected_txin_utxos;
+      new_selected_utxos = selected_txin_utxos;
       Txid txid;
       for (const auto& coin : selected_coins) {
         memcpy(txid_bytes.data(), coin.txid, txid_bytes.size());
@@ -1097,8 +1141,22 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
           is_blind_estimate_fee, option.GetEffectiveFeeBaserate(), exponent,
           minimum_bits);
       // add dummy txout（余剰額のTxOut追加考慮）
+      Amount dummy_amount;
+      if (txin_amount < tx_amount) {
+        dummy_amount = tx_amount - txin_amount;
+      }
+      dummy_amount += target_value + min_fee * 2;
+      if (max_utxo_value > dummy_amount) {
+        dummy_amount = max_utxo_value * 2;
+      } else {
+        dummy_amount *= 2;
+      }
+      warn(
+          CFD_LOG_SOURCE, "Set dummy_amount={}",
+          dummy_amount.GetSatoshiValue());
+      dummy_txout_index = txc_dummy.GetTxOutCount();
       txc_dummy.AddTxOut(
-          address, Amount(1), ConfidentialAssetId(fee_asset_str));
+          address, dummy_amount, ConfidentialAssetId(fee_asset_str));
       fee = ElementsTransactionApi::EstimateFee(
           txc_dummy.GetHex(), new_selected_utxos, fee_asset, nullptr, nullptr,
           is_blind_estimate_fee, option.GetEffectiveFeeBaserate(), exponent,
@@ -1107,43 +1165,28 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
 
     Amount dust_amount = option.GetConfidentialDustFeeAmount(address);
 
-    Amount fee_asset_target_value;
-    Amount txin_amount;
-    Amount tx_amount;
-    Amount target_value;
-    {
-      if (txin_amount_map.find(fee_asset_str) != txin_amount_map.end()) {
-        txin_amount = txin_amount_map[fee_asset_str];
+    Amount fee_asset_target_value = target_value + fee;
+    Amount diff_amount;
+    if (txin_amount > tx_amount) {
+      Amount check_min_fee = dust_amount + min_fee;
+      diff_amount = txin_amount - tx_amount;
+      if ((target_value == 0) && (diff_amount > min_fee) &&
+          (diff_amount < check_min_fee)) {
+        // 既存UTXOで満たされる場合、coinselection不要かつTxOut追加も不要
+        fee_asset_target_value = Amount();
+        fee = min_fee;
+        info(CFD_LOG_SOURCE, "use minimum fee[{}]", fee.GetSatoshiValue());
+      } else if (diff_amount >= fee_asset_target_value) {
+        fee_asset_target_value = Amount();
+      } else {
+        // txinの余剰分でtarget分が満たされない場合、不足分をコインセレクト
+        fee_asset_target_value -= diff_amount;
       }
-      if (tx_amount_map.find(fee_asset_str) != tx_amount_map.end()) {
-        tx_amount = tx_amount_map[fee_asset_str];
-      }
-      if (target_values.find(fee_asset_str) != target_values.end()) {
-        target_value = target_values[fee_asset_str];
-      }
-      fee_asset_target_value = target_value + fee;
-      Amount diff_amount;
-      if (txin_amount > tx_amount) {
-        Amount check_min_fee = dust_amount + min_fee;
-        diff_amount = txin_amount - tx_amount;
-        if ((target_value == 0) && (diff_amount > min_fee) &&
-            (diff_amount < check_min_fee)) {
-          // 既存UTXOで満たされる場合、coinselection不要かつTxOut追加も不要
-          fee_asset_target_value = Amount();
-          fee = min_fee;
-          info(CFD_LOG_SOURCE, "use minimum fee[{}]", fee.GetSatoshiValue());
-        } else if (diff_amount >= fee_asset_target_value) {
-          fee_asset_target_value = Amount();
-        } else {
-          // txinの余剰分でtarget分が満たされない場合、不足分をコインセレクト
-          fee_asset_target_value -= diff_amount;
-        }
-      } else if (txin_amount < tx_amount) {
-        // txoutの不足分を計算
-        diff_amount = tx_amount - txin_amount;
-        // txoutの不足分を合わせてコインセレクト
-        fee_asset_target_value += diff_amount;
-      }
+    } else if (txin_amount < tx_amount) {
+      // txoutの不足分を計算
+      diff_amount = tx_amount - txin_amount;
+      // txoutの不足分を合わせてコインセレクト
+      fee_asset_target_value += diff_amount;
     }
 
     std::vector<Utxo> fee_selected_coins;
@@ -1158,7 +1201,6 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
       fee_selected_coins = coin_select.SelectCoins(
           new_target_values, utxo_list, utxo_filter, option, fee,
           &new_amount_map, &utxo_fee, nullptr);
-      fee += utxo_fee;
       // append txout for fee asset
       for (auto itr = new_amount_map.begin(); itr != new_amount_map.end();
            ++itr) {
@@ -1167,6 +1209,15 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
           break;
         }
       }
+      // estimate fee after coinselection (new fee < old fee)
+      Amount dummy_amount = fee_selected_value + txin_amount - tx_amount - fee;
+      txc_dummy.SetTxOutValue(dummy_txout_index, dummy_amount);
+      Amount new_fee = ElementsTransactionApi::EstimateFee(
+          txc_dummy.GetHex(), new_selected_utxos, fee_asset, nullptr, nullptr,
+          is_blind_estimate_fee, option.GetEffectiveFeeBaserate(), exponent,
+          minimum_bits);
+      if (new_fee < fee) fee = new_fee;
+      fee += utxo_fee;
     }
     if ((fee_selected_value + txin_amount) < (tx_amount + fee)) {
       warn(CFD_LOG_SOURCE, "Failed to FundRawTransaction. low fee asset.");

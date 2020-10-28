@@ -43,8 +43,10 @@ endif()
 
 if(NOT ENABLE_CAPI)
 set(CFD_CAPI_USE   CFD_DISABLE_CAPI)
+message(STATUS "[cfd] disable CAPI")
 else()
 set(CFD_CAPI_USE   "")
+message(STATUS "[cfd] enable CAPI")
 endif()
 
 if(NOT ENABLE_JSONAPI)

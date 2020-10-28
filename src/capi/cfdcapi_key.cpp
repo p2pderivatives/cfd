@@ -17,15 +17,21 @@
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_descriptor.h"
+#include "cfdcore/cfdcore_ecdsa_adaptor.h"
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 
 using cfd::api::ExtKeyType;
 using cfd::api::HDWalletApi;
 using cfd::api::KeyApi;
+using cfd::core::AdaptorPair;
+using cfd::core::AdaptorProof;
+using cfd::core::AdaptorSignature;
+using cfd::core::AdaptorUtil;
 using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
@@ -38,6 +44,9 @@ using cfd::core::HDWallet;
 using cfd::core::NetType;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
+using cfd::core::SchnorrSignature;
+using cfd::core::SchnorrUtil;
 using cfd::core::Script;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
@@ -191,28 +200,82 @@ int CfdVerifyEcSignature(
   }
 }
 
-int CfdCalculateSchnorrSignature(
-    void* handle, const char* oracle_privkey, const char* k_value,
-    const char* message, char** signature) {
+int CfdSignEcdsaAdaptor(
+    void* handle, const char* msg, const char* sk, const char* adaptor,
+    char** adaptor_signature, char** adaptor_proof) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_signature = nullptr;
+  char* work_proof = nullptr;
   try {
     cfd::Initialize();
-    if (IsEmptyString(oracle_privkey)) {
-      warn(CFD_LOG_SOURCE, "oracle_privkey is null or empty.");
+    if (IsEmptyString(msg)) {
+      warn(CFD_LOG_SOURCE, "msg is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. oracle_privkey is null or empty.");
+          "Failed to parameter. msg is null or empty.");
     }
-    if (IsEmptyString(k_value)) {
-      warn(CFD_LOG_SOURCE, "k_value is null or empty.");
+    if (IsEmptyString(sk)) {
+      warn(CFD_LOG_SOURCE, "sk is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. k_value is null or empty.");
+          "Failed to parameter. sk is null or empty.");
     }
-    if (IsEmptyString(message)) {
-      warn(CFD_LOG_SOURCE, "message is null or empty.");
+    if (IsEmptyString(adaptor)) {
+      warn(CFD_LOG_SOURCE, "adaptor is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. message is null or empty.");
+          "Failed to parameter. adaptor is null or empty.");
+    }
+    if (adaptor_signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "adaptor signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor signature is null.");
+    }
+    if (adaptor_proof == nullptr) {
+      warn(CFD_LOG_SOURCE, "adaptor proof is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor proof is null.");
+    }
+
+    AdaptorPair pair =
+        AdaptorUtil::Sign(ByteData256(msg), Privkey(sk), Pubkey(adaptor));
+
+    work_signature = CreateString(pair.signature.GetData().GetHex());
+    work_proof = CreateString(pair.proof.GetData().GetHex());
+
+    *adaptor_signature = work_signature;
+    *adaptor_proof = work_proof;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_signature, &work_proof);
+  return result;
+}
+
+int CfdAdaptEcdsaAdaptor(
+    void* handle, const char* adaptor_signature, const char* adaptor_secret,
+    char** signature) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(adaptor_signature)) {
+      warn(CFD_LOG_SOURCE, "adaptor_signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor_signature is null or empty.");
+    }
+    if (IsEmptyString(adaptor_secret)) {
+      warn(CFD_LOG_SOURCE, "adaptor_secret is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor_secret is null or empty.");
     }
     if (signature == nullptr) {
       warn(CFD_LOG_SOURCE, "signature is null.");
@@ -221,116 +284,32 @@ int CfdCalculateSchnorrSignature(
           "Failed to parameter. signature is null.");
     }
 
-    Privkey oracle_privkey_obj;
-    std::string oracle_privkey_str(oracle_privkey);
-    if (oracle_privkey_str.size() == Privkey::kPrivkeySize * 2) {
-      oracle_privkey_obj = Privkey(oracle_privkey_str);
-    } else {
-      KeyApi api;
-      oracle_privkey_obj =
-          api.GetPrivkeyFromWif(oracle_privkey_str, nullptr, nullptr);
-    }
+    ByteData sig = AdaptorUtil::Adapt(
+        AdaptorSignature(adaptor_signature), Privkey(adaptor_secret));
 
-    Privkey k_value_obj;
-    std::string k_value_str(k_value);
-    if (k_value_str.size() == Privkey::kPrivkeySize * 2) {
-      k_value_obj = Privkey(k_value_str);
-    } else {
-      KeyApi api;
-      k_value_obj = api.GetPrivkeyFromWif(k_value_str, nullptr, nullptr);
-    }
-
-    ByteData sig = SignatureUtil::CalculateSchnorrSignature(
-        oracle_privkey_obj, k_value_obj, ByteData256(message));
     *signature = CreateString(sig.GetHex());
-
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    return SetLastError(handle, except);
+    result = SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
   }
+  return result;
 }
 
-int CfdCalculateSchnorrSignatureWithNonce(
-    void* handle, const char* oracle_privkey, const char* k_value,
-    const char* message, char** signature) {
+int CfdExtractEcdsaAdaptorSecret(
+    void* handle, const char* adaptor_signature, const char* signature,
+    const char* adaptor, char** adaptor_secret) {
+  int result = CfdErrorCode::kCfdUnknownError;
   try {
     cfd::Initialize();
-    if (IsEmptyString(oracle_privkey)) {
-      warn(CFD_LOG_SOURCE, "oracle_privkey is null or empty.");
+    if (IsEmptyString(adaptor_signature)) {
+      warn(CFD_LOG_SOURCE, "adaptor_signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. oracle_privkey is null or empty.");
-    }
-    if (IsEmptyString(k_value)) {
-      warn(CFD_LOG_SOURCE, "k_value is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. k_value is null or empty.");
-    }
-    if (IsEmptyString(message)) {
-      warn(CFD_LOG_SOURCE, "message is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. message is null or empty.");
-    }
-    if (signature == nullptr) {
-      warn(CFD_LOG_SOURCE, "signature is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. signature is null.");
-    }
-
-    Privkey oracle_privkey_obj;
-    std::string oracle_privkey_str(oracle_privkey);
-    if (oracle_privkey_str.size() == Privkey::kPrivkeySize * 2) {
-      oracle_privkey_obj = Privkey(oracle_privkey_str);
-    } else {
-      KeyApi api;
-      oracle_privkey_obj =
-          api.GetPrivkeyFromWif(oracle_privkey_str, nullptr, nullptr);
-    }
-
-    Privkey k_value_obj;
-    std::string k_value_str(k_value);
-    if (k_value_str.size() == Privkey::kPrivkeySize * 2) {
-      k_value_obj = Privkey(k_value_str);
-    } else {
-      KeyApi api;
-      k_value_obj = api.GetPrivkeyFromWif(k_value_str, nullptr, nullptr);
-    }
-
-    ByteData256 sig = SignatureUtil::CalculateSchnorrSignatureWithNonce(
-        oracle_privkey_obj, k_value_obj, ByteData256(message));
-    *signature = CreateString(sig.GetHex());
-
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdVerifySchnorrSignature(
-    void* handle, const char* pubkey, const char* signature,
-    const char* message) {
-  try {
-    cfd::Initialize();
-    if (IsEmptyString(pubkey)) {
-      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. pubkey is null or empty.");
+          "Failed to parameter. adaptor_signature is null or empty.");
     }
     if (IsEmptyString(signature)) {
       warn(CFD_LOG_SOURCE, "signature is null or empty.");
@@ -338,18 +317,111 @@ int CfdVerifySchnorrSignature(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. signature is null or empty.");
     }
-    if (IsEmptyString(message)) {
-      warn(CFD_LOG_SOURCE, "message is null or empty.");
+    if (IsEmptyString(adaptor)) {
+      warn(CFD_LOG_SOURCE, "adaptor is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. message is null or empty.");
+          "Failed to parameter. adaptor is null or empty.");
+    }
+    if (adaptor_secret == nullptr) {
+      warn(CFD_LOG_SOURCE, "adaptor_secret is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor_secret is null.");
     }
 
-    bool is_verify = SignatureUtil::VerifySchnorrSignature(
-        Pubkey(pubkey), ByteData(signature), ByteData256(message));
+    Privkey secret = AdaptorUtil::ExtractSecret(
+        AdaptorSignature(adaptor_signature), ByteData(signature),
+        Pubkey(adaptor));
+
+    *adaptor_secret = CreateString(secret.GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdVerifyEcdsaAdaptor(
+    void* handle, const char* adaptor_signature, const char* proof,
+    const char* adaptor, const char* msg, const char* pubkey) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(adaptor_signature)) {
+      warn(CFD_LOG_SOURCE, "adaptor_signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor_signature is null or empty.");
+    }
+    if (IsEmptyString(proof)) {
+      warn(CFD_LOG_SOURCE, "proof is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. proof is null or empty.");
+    }
+    if (IsEmptyString(adaptor)) {
+      warn(CFD_LOG_SOURCE, "adaptor is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. adaptor is null or empty.");
+    }
+    if (IsEmptyString(msg)) {
+      warn(CFD_LOG_SOURCE, "msg is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. msg is null or empty.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+
+    bool is_verify = AdaptorUtil::Verify(
+        AdaptorSignature(adaptor_signature), AdaptorProof(proof),
+        Pubkey(adaptor), ByteData256(msg), Pubkey(pubkey));
     if (!is_verify) {
       return CfdErrorCode::kCfdSignVerificationError;
     }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdGetSchnorrPubkeyFromPrivkey(
+    void* handle, const char* privkey, char** pubkey, bool* parity) {
+  try {
+    cfd::Initialize();
+    if (pubkey == nullptr) {
+      warn(CFD_LOG_SOURCE, "pubkey is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null.");
+    }
+    if (IsEmptyString(privkey)) {
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey is null or empty.");
+    }
+
+    Privkey privkey_obj = Privkey(std::string(privkey));
+    SchnorrPubkey schnorr_pubkey =
+        SchnorrPubkey::FromPrivkey(privkey_obj, parity);
+    *pubkey = CreateString(schnorr_pubkey.GetHex());
+
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     return SetLastError(handle, except);
@@ -362,16 +434,231 @@ int CfdVerifySchnorrSignature(
   }
 }
 
-int CfdVerifySchnorrSignatureWithNonce(
-    void* handle, const char* pubkey, const char* nonce, const char* signature,
-    const char* message) {
+int CfdGetSchnorrPubkeyFromPubkey(
+    void* handle, const char* pubkey, char** schnorr_pubkey, bool* parity) {
   try {
     cfd::Initialize();
+    if (schnorr_pubkey == nullptr) {
+      warn(CFD_LOG_SOURCE, "schnorr pubkey is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. schnorr pubkey is null.");
+    }
     if (IsEmptyString(pubkey)) {
       warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. pubkey is null or empty.");
+    }
+
+    Pubkey pubkey_obj = Pubkey(std::string(pubkey));
+    SchnorrPubkey schnorr_pubkey_obj =
+        SchnorrPubkey::FromPubkey(pubkey_obj, parity);
+    *schnorr_pubkey = CreateString(schnorr_pubkey_obj.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdSchnorrPubkeyTweakAdd(
+    void* handle, const char* pubkey, const char* tweak, char** output,
+    bool* parity) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (output == nullptr) {
+      warn(CFD_LOG_SOURCE, "tweak pubkey is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tweak pubkey is null.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+    if (IsEmptyString(tweak)) {
+      warn(CFD_LOG_SOURCE, "tweak is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tweak is null or empty.");
+    }
+
+    ByteData256 tweak_obj = ByteData256(std::string(tweak));
+    SchnorrPubkey pubkey_obj = SchnorrPubkey(std::string(pubkey));
+    SchnorrPubkey schnorr_pubkey =
+        pubkey_obj.CreateTweakAdd(tweak_obj, parity);
+    *output = CreateString(schnorr_pubkey.GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdSchnorrKeyPairTweakAdd(
+    void* handle, const char* privkey, const char* tweak,
+    char** tweaked_pubkey, bool* tweaked_parity, char** tweaked_privkey) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_pubkey = nullptr;
+  char* work_privkey = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(privkey)) {
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey is null or empty.");
+    }
+    if (IsEmptyString(tweak)) {
+      warn(CFD_LOG_SOURCE, "tweak is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tweak is null or empty.");
+    }
+
+    ByteData256 tweak_obj = ByteData256(std::string(tweak));
+    Privkey privkey_obj = Privkey(std::string(privkey));
+    Privkey tweaked_privkey_obj;
+    SchnorrPubkey schnorr_pubkey = SchnorrPubkey::CreateTweakAddFromPrivkey(
+        privkey_obj, tweak_obj, &tweaked_privkey_obj, tweaked_parity);
+    if (tweaked_pubkey != nullptr) {
+      work_pubkey = CreateString(schnorr_pubkey.GetHex());
+    }
+    if (tweaked_privkey != nullptr) {
+      work_privkey = CreateString(tweaked_privkey_obj.GetHex());
+    }
+
+    if (tweaked_pubkey != nullptr) *tweaked_pubkey = work_pubkey;
+    if (tweaked_privkey != nullptr) *tweaked_privkey = work_privkey;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_pubkey, &work_privkey);
+  return result;
+}
+
+int CfdCheckTweakAddFromSchnorrPubkey(
+    void* handle, const char* tweaked_pubkey, bool tweaked_parity,
+    const char* base_pubkey, const char* tweak) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(tweaked_pubkey)) {
+      warn(CFD_LOG_SOURCE, "tweak pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tweak pubkey is null or empty.");
+    }
+    if (IsEmptyString(base_pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+    if (IsEmptyString(tweak)) {
+      warn(CFD_LOG_SOURCE, "tweak is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tweak is null or empty.");
+    }
+
+    ByteData256 tweak_obj = ByteData256(std::string(tweak));
+    SchnorrPubkey pubkey_obj = SchnorrPubkey(std::string(tweaked_pubkey));
+    SchnorrPubkey base_pubkey_obj = SchnorrPubkey(std::string(base_pubkey));
+    bool is_tweaked =
+        pubkey_obj.IsTweaked(base_pubkey_obj, tweak_obj, tweaked_parity);
+    if (!is_tweaked) {
+      return CfdErrorCode::kCfdSignVerificationError;
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdSignSchnorr(
+    void* handle, const char* msg, const char* sk, const char* aux_rand,
+    char** signature) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(msg)) {
+      warn(CFD_LOG_SOURCE, "msg is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. msg is null or empty.");
+    }
+    if (IsEmptyString(aux_rand)) {
+      warn(CFD_LOG_SOURCE, "aux_rand is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. aux_rand is null or empty.");
+    }
+    if (IsEmptyString(sk)) {
+      warn(CFD_LOG_SOURCE, "sk is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sk is null or empty.");
+    }
+    if (signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null.");
+    }
+
+    SchnorrSignature schnorr_sig = SchnorrUtil::Sign(
+        ByteData256(msg), Privkey(sk), ByteData256(aux_rand));
+
+    *signature = CreateString(schnorr_sig.GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdSignSchnorrWithNonce(
+    void* handle, const char* msg, const char* sk, const char* nonce,
+    char** signature) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(msg)) {
+      warn(CFD_LOG_SOURCE, "msg is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. msg is null or empty.");
     }
     if (IsEmptyString(nonce)) {
       warn(CFD_LOG_SOURCE, "nonce is null or empty.");
@@ -379,35 +666,162 @@ int CfdVerifySchnorrSignatureWithNonce(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. nonce is null or empty.");
     }
+    if (IsEmptyString(sk)) {
+      warn(CFD_LOG_SOURCE, "sk is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sk is null or empty.");
+    }
+    if (signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "signature is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null.");
+    }
+
+    SchnorrSignature schnorr_sig = SchnorrUtil::SignWithNonce(
+        ByteData256(msg), Privkey(sk), Privkey(nonce));
+
+    *signature = CreateString(schnorr_sig.GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdComputeSchnorrSigPoint(
+    void* handle, const char* msg, const char* nonce, const char* pubkey,
+    char** sigpoint) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(msg)) {
+      warn(CFD_LOG_SOURCE, "msg is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. msg is null or empty.");
+    }
+    if (IsEmptyString(nonce)) {
+      warn(CFD_LOG_SOURCE, "nonce is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. nonce is null or empty.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+    if (sigpoint == nullptr) {
+      warn(CFD_LOG_SOURCE, "sigpoint is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sigpoint is null.");
+    }
+
+    Pubkey sig_point = SchnorrUtil::ComputeSigPoint(
+        ByteData256(msg), SchnorrPubkey(nonce), SchnorrPubkey(pubkey));
+
+    *sigpoint = CreateString(sig_point.GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdVerifySchnorr(
+    void* handle, const char* signature, const char* msg, const char* pubkey) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
     if (IsEmptyString(signature)) {
       warn(CFD_LOG_SOURCE, "signature is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. signature is null or empty.");
     }
-    if (IsEmptyString(message)) {
-      warn(CFD_LOG_SOURCE, "message is null or empty.");
+    if (IsEmptyString(msg)) {
+      warn(CFD_LOG_SOURCE, "msg is null or empty.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. message is null or empty.");
+          "Failed to parameter. msg is null or empty.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
     }
 
-    bool is_verify = SignatureUtil::VerifySchnorrSignatureWithNonce(
-        Pubkey(pubkey), Pubkey(nonce), ByteData256(signature),
-        ByteData256(message));
+    bool is_verify = SchnorrUtil::Verify(
+        SchnorrSignature(signature), ByteData256(msg), SchnorrPubkey(pubkey));
     if (!is_verify) {
       return CfdErrorCode::kCfdSignVerificationError;
     }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    return SetLastError(handle, except);
+    result = SetLastError(handle, except);
   } catch (const std::exception& std_except) {
     SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
     SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
   }
+  return result;
+}
+
+int CfdSplitSchnorrSignature(
+    void* handle, const char* signature, char** nonce, char** key) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_nonce = nullptr;
+  char* work_key = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null or empty.");
+    }
+    if (nonce == nullptr) {
+      warn(CFD_LOG_SOURCE, "nonce is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. nonce is null.");
+    }
+    if (key == nullptr) {
+      warn(CFD_LOG_SOURCE, "key is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. key is null.");
+    }
+
+    SchnorrSignature sig = SchnorrSignature(std::string(signature));
+    work_nonce = CreateString(sig.GetNonce().GetHex());
+    work_key = CreateString(sig.GetPrivkey().GetHex());
+
+    *nonce = work_nonce;
+    *key = work_key;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_nonce, &work_key);
+  return result;
 }
 
 int CfdEncodeSignatureByDer(
@@ -1104,94 +1518,6 @@ int CfdNegatePrivkey(void* handle, const char* privkey, char** output) {
     KeyApi api;
     Privkey key = api.GetPrivkey(std::string(privkey), nullptr, nullptr);
     *output = CreateString(key.CreateNegate().GetHex());
-
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdGetSchnorrPubkey(
-    void* handle, const char* oracle_pubkey, const char* oracle_r_point,
-    const char* message, char** output) {
-  try {
-    cfd::Initialize();
-    if (output == nullptr) {
-      warn(CFD_LOG_SOURCE, "output is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. output is null.");
-    }
-    if (IsEmptyString(oracle_pubkey)) {
-      warn(CFD_LOG_SOURCE, "oracle_pubkey is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. oracle_pubkey is null or empty.");
-    }
-    if (IsEmptyString(oracle_r_point)) {
-      warn(CFD_LOG_SOURCE, "oracle_r_point is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. oracle_r_point is null or empty.");
-    }
-    if (IsEmptyString(message)) {
-      warn(CFD_LOG_SOURCE, "message is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. message is null or empty.");
-    }
-
-    Pubkey oracle_pubkey_obj(oracle_pubkey);
-    Pubkey r_point(oracle_r_point);
-    std::string message_str(message);  // for ignore optimisation
-    ByteData256 message_obj(message_str);
-    Pubkey pubkey =
-        Pubkey::GetSchnorrPubkey(oracle_pubkey_obj, r_point, message_obj);
-    *output = CreateString(pubkey.GetHex());
-
-    return CfdErrorCode::kCfdSuccess;
-  } catch (const CfdException& except) {
-    return SetLastError(handle, except);
-  } catch (const std::exception& std_except) {
-    SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
-  } catch (...) {
-    SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
-  }
-}
-
-int CfdGetSchnorrPublicNonce(void* handle, const char* privkey, char** nonce) {
-  try {
-    cfd::Initialize();
-    if (nonce == nullptr) {
-      warn(CFD_LOG_SOURCE, "nonce is null.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. nonce is null.");
-    }
-    if (IsEmptyString(privkey)) {
-      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. privkey is null or empty.");
-    }
-
-    Privkey key;
-    std::string privkey_str(privkey);
-    if (privkey_str.size() == Privkey::kPrivkeySize * 2) {
-      key = Privkey(privkey_str);
-    } else {
-      KeyApi api;
-      key = api.GetPrivkeyFromWif(privkey_str, nullptr, nullptr);
-    }
-    *nonce = CreateString(key.GetSchnorrPublicNonce().GetHex());
 
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
