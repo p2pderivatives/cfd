@@ -1140,20 +1140,20 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
           txc_dummy.GetHex(), new_selected_utxos, fee_asset, nullptr, nullptr,
           is_blind_estimate_fee, option.GetEffectiveFeeBaserate(), exponent,
           minimum_bits);
-      // add dummy txout（余剰額のTxOut追加考慮）
-      Amount dummy_amount;
-      if (txin_amount < tx_amount) {
-        dummy_amount = tx_amount - txin_amount;
-      }
-      dummy_amount += target_value + min_fee * 2;
-      if (max_utxo_value > dummy_amount) {
-        dummy_amount = max_utxo_value * 2;
-      } else {
-        dummy_amount *= 2;
-      }
-      warn(
-          CFD_LOG_SOURCE, "Set dummy_amount={}",
-          dummy_amount.GetSatoshiValue());
+      // add dummy txout（Consider adding a surplus TxOut.）
+      int64_t dummy_sat =
+          (txin_amount < tx_amount)
+              ? tx_amount.GetSatoshiValue() - txin_amount.GetSatoshiValue()
+              : 0;
+      dummy_sat +=
+          target_value.GetSatoshiValue() + (min_fee.GetSatoshiValue() * 2);
+      dummy_sat =
+          2 * ((max_utxo_value > dummy_sat) ? max_utxo_value.GetSatoshiValue()
+                                            : dummy_sat);
+      if ((dummy_sat <= 0) || (dummy_sat > cfd::core::kMaxAmount))
+        dummy_sat = cfd::core::kMaxAmount;
+      Amount dummy_amount(dummy_sat);
+      warn(CFD_LOG_SOURCE, "Set dummy_amount={}", dummy_sat);
       dummy_txout_index = txc_dummy.GetTxOutCount();
       txc_dummy.AddTxOut(
           address, dummy_amount, ConfidentialAssetId(fee_asset_str));
@@ -1164,34 +1164,31 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
     }
 
     Amount dust_amount = option.GetConfidentialDustFeeAmount(address);
-
     Amount fee_asset_target_value = target_value + fee;
-    Amount diff_amount;
     if (txin_amount > tx_amount) {
       Amount check_min_fee = dust_amount + min_fee;
-      diff_amount = txin_amount - tx_amount;
+      Amount diff_amount = txin_amount - tx_amount;
       if ((target_value == 0) && (diff_amount > min_fee) &&
           (diff_amount < check_min_fee)) {
-        // 既存UTXOで満たされる場合、coinselection不要かつTxOut追加も不要
+        // If the existing UTXO is filled,
+        // there is no need to select coin and add TxOut.
         fee_asset_target_value = Amount();
         fee = min_fee;
         info(CFD_LOG_SOURCE, "use minimum fee[{}]", fee.GetSatoshiValue());
       } else if (diff_amount >= fee_asset_target_value) {
         fee_asset_target_value = Amount();
       } else {
-        // txinの余剰分でtarget分が満たされない場合、不足分をコインセレクト
+        // If the surplus of txin does not meet the target,
+        // coin select the shortfall.
         fee_asset_target_value -= diff_amount;
       }
     } else if (txin_amount < tx_amount) {
-      // txoutの不足分を計算
-      diff_amount = tx_amount - txin_amount;
-      // txoutの不足分を合わせてコインセレクト
-      fee_asset_target_value += diff_amount;
+      // Select coins according to the shortage of txout.
+      fee_asset_target_value += tx_amount - txin_amount;
     }
 
     std::vector<Utxo> fee_selected_coins;
-    // re-select coin (fee asset only)
-    // collect amount is using large-fee.
+    // re-select coin (fee asset only). collect amount is using large-fee.
     std::map<std::string, Amount> new_amount_map;
     Amount fee_selected_value;
     Amount append_fee_asset_txout_value;
@@ -1245,7 +1242,6 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
         append_txout_addresses->push_back(address_str);
     }
 
-    // fee更新
     ctxc.UpdateTxOutFeeAmount(fee_index, fee, fee_asset);
 
     // Selectしたfee UTXOをTxInに設定

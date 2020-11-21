@@ -830,4 +830,269 @@ TEST(ElementsTransactionApi, FundRawTransaction_MinBits36) {
   }
 }
 
+
+TEST(ElementsTransactionApi, FundRawTransaction_MillionAmountValue) {
+  ElementsAddressFactory factory(NetType::kElementsRegtest);
+  // Address1
+  // pubkey: '0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b',
+  // privkey: 'cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5'
+  UtxoData utxo1;
+  utxo1.block_height = 0;
+  utxo1.binary_data = nullptr;
+  utxo1.txid = Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3");
+  utxo1.vout = 0;
+  utxo1.locking_script = Script("76a914f330ed8383f8afdc977dd88600eb8ff120ba15e488ac");
+  // utxo1.redeem_script = Script("");
+  utxo1.address = factory.GetAddress("2dwbdChKUXiSWECFEzLdmegbRtGAAHTC2ph");
+  utxo1.descriptor = "pkh(0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b)";
+  utxo1.amount = Amount(int64_t{300000000000000});
+  utxo1.address_type = AddressType::kP2pkhAddress;
+  utxo1.asset = exp_dummy_asset_a;
+
+  // Address2 (pattern-x1)
+  // pubkey: '0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27',
+  // privkey: 'cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP'
+  UtxoData utxo2;
+  utxo2.block_height = 0;
+  utxo2.binary_data = nullptr;
+  utxo2.txid = Txid("31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3");
+  utxo2.vout = 0;
+  utxo2.locking_script = Script("a9145d54db96a28f844a744e393fcd699d6f825b284187");
+  // utxo1.redeem_script = Script("");
+  utxo2.address = factory.GetAddress("XKrjM1JtrjasbbrdJ9Ci51dmkZ1DMxzPJE");
+  utxo2.descriptor = "sh(wpkh(0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27))";
+  utxo2.amount = Amount(int64_t{400000000000000});
+  utxo2.address_type = AddressType::kP2shP2wpkhAddress;
+  utxo2.asset = exp_dummy_asset_a;
+
+  // Address3
+  // pubkey: '0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b',
+  // privkey: 'cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5'
+  UtxoData utxo3;
+  utxo3.block_height = 0;
+  utxo3.binary_data = nullptr;
+  utxo3.txid = Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3");
+  utxo3.vout = 1;
+  utxo3.locking_script = Script("0014f330ed8383f8afdc977dd88600eb8ff120ba15e4");
+  // utxo1.redeem_script = Script("");
+  utxo3.address = factory.GetAddress("ert1q7vcwmqurlzhae9mamzrqp6u07yst590yvg8j0w");
+  utxo3.descriptor = "wpkh(0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b)";
+  utxo3.amount = Amount(int64_t{300000000000000});
+  utxo3.address_type = AddressType::kP2wpkhAddress;
+  utxo3.asset = exp_dummy_asset_a;
+
+  // "2dngFLukCWCjXVusBspjAuGsCRwW4eyAtg6";
+  Address address1 = factory.GetAddress("2dwbdChKUXiSWECFEzLdmegbRtGAAHTC2ph");
+  // "0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27"
+  Address address2 = factory.GetAddress("ert1qg4nrukf07cf4slc0m4h8gq6v2guhzrw2ayudpu");
+  Address address3 = factory.GetAddress("ert1q7vcwmqurlzhae9mamzrqp6u07yst590yvg8j0w");
+
+  ExtPubkey key = ExtPubkey("xpub661MyMwAqRbcGB88KaFbLGiYAat55APKhtWg4uYMkXAmfuSTbq2QYsn9sKJCj1YqZPafsboef4h4YbXXhNhPwMbkHTpkf3zLhx7HvFw1NDy");
+
+  std::vector<cfd::UtxoData> utxos{utxo1, utxo2, utxo3};
+
+  ElementsConfidentialAddress reserve_ct_addr1 = ElementsConfidentialAddress(
+      address1, key.DerivePubkey(91).GetPubkey());
+  ElementsConfidentialAddress reserve_ct_addr2 = ElementsConfidentialAddress(
+      address2, key.DerivePubkey(92).GetPubkey());
+  ElementsConfidentialAddress reserve_ct_addr3 = ElementsConfidentialAddress(
+      address3, key.DerivePubkey(93).GetPubkey());
+
+  double fee_rate = 0.11;
+  ConfidentialAssetId fee_asset = exp_dummy_asset_a;
+  std::map<std::string, Amount> map_target_value;
+  map_target_value.emplace(exp_dummy_asset_a.GetHex(), Amount(int64_t{0}));
+  std::map<std::string, std::string> reserve_txout_address;
+  reserve_txout_address.emplace(exp_dummy_asset_a.GetHex(), reserve_ct_addr3.GetAddress());
+  std::vector<ElementsUtxoAndOption> selected_txin_utxos;
+  Amount estimate_fee;
+  UtxoFilter filter;
+  std::vector<std::string> append_txout_addresses;
+  CoinSelectionOption option;
+  option.InitializeConfidentialTxSizeInfo();
+  option.SetEffectiveFeeBaserate(fee_rate);
+  option.SetLongTermFeeBaserate(fee_rate);
+  option.SetFeeAsset(fee_asset);
+  option.SetBlindInfo(0, 52);
+
+  Amount fee(int64_t{10000});
+  ConfidentialTransactionContext txc(2, 0);
+  txc.AddTxOut(reserve_ct_addr1, utxo1.amount + utxo3.amount - fee, exp_dummy_asset_a);
+  txc.AddTxOut(reserve_ct_addr2, utxo2.amount, exp_dummy_asset_a);
+
+  ElementsTransactionApi api;
+  ConfidentialTransactionController ctx = api.FundRawTransaction(
+      txc.GetHex(), utxos, map_target_value, selected_txin_utxos,
+      reserve_txout_address, fee_asset, true, fee_rate, &estimate_fee,
+      &filter, &option, &append_txout_addresses, NetType::kElementsRegtest);
+
+  txc = ConfidentialTransactionContext(ctx.GetHex());
+  EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
+
+  ByteData tx;
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo1.txid, utxo1.vout),
+      Pubkey("0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b"),
+      Privkey::FromWif(
+          "cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo1.txid, utxo1.vout)));
+  EXPECT_THROW((tx = txc.Finalize()), CfdException);
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo2.txid, utxo2.vout),
+      Pubkey("0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27"),
+      Privkey::FromWif(
+          "cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo2.txid, utxo2.vout)));
+  EXPECT_THROW((tx = txc.Finalize()), CfdException);
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo3.txid, utxo3.vout),
+      Pubkey("0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b"),
+      Privkey::FromWif(
+          "cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo3.txid, utxo3.vout)));
+
+  EXPECT_NO_THROW(tx = txc.Finalize());
+  EXPECT_EQ(txc.GetFeeAmount().GetSatoshiValue(), estimate_fee.GetSatoshiValue());
+  EXPECT_STREQ(tx.GetHex().c_str(), "020000000103e3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a4730440220767c6f9a83ea898b84385875615c7383f43ab2b7634123b870e63f399708647b022041d0331db0c5feef5780350358e3d0086a8d871972bd7f8fae3be3cc339d5cd601210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffff040100000000000000000000000000000000000000000000000000000000000000aa01000221b262dd58f00308f34c0c7de1a49ec53acb73aeb94306a90987759c2c012492e877a0dde821d91976a914f330ed8383f8afdc977dd88600eb8ff120ba15e488ac0100000000000000000000000000000000000000000000000000000000000000aa0100016bcc41e9000002761f92316d668b7ad54ea7da8f4bfd1b266d677e9786b98274f647cc74ae306e16001445663e592ff613587f0fdd6e74034c5239710dca0100000000000000000000000000000000000000000000000000000000000000aa0100000000000001c200000100000000000000000000000000000000000000000000000000000000000000aa01000000000000254e029e1f4cd73bb6d29257ca37a3882cd09661783c90cdd92b57264a13bdab822905160014f330ed8383f8afdc977dd88600eb8ff120ba15e40000000000000247304402201ce591d9f01461db910530e15defa047c99915f12b14012ff5faf27f5fa3ab8202204823faa9f4567135057274a9ec6a25b549aa4eda504c73f770bf83fa19d155fd01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a270000000247304402201973ebe5dae51bf6e2e642f7375cec057b2ed18b427ebf49bc9754f0369b6ce302206e07c9a91706b5dfa05778ed3b4f7be5f7c655d861f28b4d54a375704dba155a01210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b00000000000000000000000000");
+  EXPECT_EQ(txc.GetVsize(), 662);
+
+  uint32_t minimum_fee = txc.GetVsize() * static_cast<uint32_t>(fee_rate * 100) / 100;
+  EXPECT_EQ(minimum_fee, 72);
+}
+
+
+TEST(ElementsTransactionApi, FundRawTransaction_LimitAmountValue) {
+  ElementsAddressFactory factory(NetType::kElementsRegtest);
+  // Address1
+  // pubkey: '0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b',
+  // privkey: 'cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5'
+  UtxoData utxo1;
+  utxo1.block_height = 0;
+  utxo1.binary_data = nullptr;
+  utxo1.txid = Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3");
+  utxo1.vout = 0;
+  utxo1.locking_script = Script("76a914f330ed8383f8afdc977dd88600eb8ff120ba15e488ac");
+  // utxo1.redeem_script = Script("");
+  utxo1.address = factory.GetAddress("2dwbdChKUXiSWECFEzLdmegbRtGAAHTC2ph");
+  utxo1.descriptor = "pkh(0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b)";
+  utxo1.amount = Amount(int64_t{50000000000000});
+  utxo1.address_type = AddressType::kP2pkhAddress;
+  utxo1.asset = exp_dummy_asset_a;
+
+  // Address2 (pattern-x1)
+  // pubkey: '0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27',
+  // privkey: 'cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP'
+  UtxoData utxo2;
+  utxo2.block_height = 0;
+  utxo2.binary_data = nullptr;
+  utxo2.txid = Txid("31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3");
+  utxo2.vout = 0;
+  utxo2.locking_script = Script("a9145d54db96a28f844a744e393fcd699d6f825b284187");
+  // utxo1.redeem_script = Script("");
+  utxo2.address = factory.GetAddress("XKrjM1JtrjasbbrdJ9Ci51dmkZ1DMxzPJE");
+  utxo2.descriptor = "sh(wpkh(0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27))";
+  utxo2.amount = Amount(int64_t{2000000000000000});
+  utxo2.address_type = AddressType::kP2shP2wpkhAddress;
+  utxo2.asset = exp_dummy_asset_a;
+
+  // Address3
+  // pubkey: '0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b',
+  // privkey: 'cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5'
+  UtxoData utxo3;
+  utxo3.block_height = 0;
+  utxo3.binary_data = nullptr;
+  utxo3.txid = Txid("4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3");
+  utxo3.vout = 1;
+  utxo3.locking_script = Script("0014f330ed8383f8afdc977dd88600eb8ff120ba15e4");
+  // utxo1.redeem_script = Script("");
+  utxo3.address = factory.GetAddress("ert1q7vcwmqurlzhae9mamzrqp6u07yst590yvg8j0w");
+  utxo3.descriptor = "wpkh(0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b)";
+  utxo3.amount = Amount(int64_t{50000000000000});
+  utxo3.address_type = AddressType::kP2wpkhAddress;
+  utxo3.asset = exp_dummy_asset_a;
+
+  // "2dngFLukCWCjXVusBspjAuGsCRwW4eyAtg6";
+  Address address1 = factory.GetAddress("2dwbdChKUXiSWECFEzLdmegbRtGAAHTC2ph");
+  // "0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27"
+  Address address2 = factory.GetAddress("ert1qg4nrukf07cf4slc0m4h8gq6v2guhzrw2ayudpu");
+  Address address3 = factory.GetAddress("ert1q7vcwmqurlzhae9mamzrqp6u07yst590yvg8j0w");
+
+  ExtPubkey key = ExtPubkey("xpub661MyMwAqRbcGB88KaFbLGiYAat55APKhtWg4uYMkXAmfuSTbq2QYsn9sKJCj1YqZPafsboef4h4YbXXhNhPwMbkHTpkf3zLhx7HvFw1NDy");
+
+  std::vector<cfd::UtxoData> utxos{utxo1, utxo2, utxo3};
+
+  ElementsConfidentialAddress reserve_ct_addr1 = ElementsConfidentialAddress(
+      address1, key.DerivePubkey(91).GetPubkey());
+  ElementsConfidentialAddress reserve_ct_addr2 = ElementsConfidentialAddress(
+      address2, key.DerivePubkey(92).GetPubkey());
+  ElementsConfidentialAddress reserve_ct_addr3 = ElementsConfidentialAddress(
+      address3, key.DerivePubkey(93).GetPubkey());
+
+  double fee_rate = 0.11;
+  ConfidentialAssetId fee_asset = exp_dummy_asset_a;
+  std::map<std::string, Amount> map_target_value;
+  map_target_value.emplace(exp_dummy_asset_a.GetHex(), Amount(int64_t{0}));
+  std::map<std::string, std::string> reserve_txout_address;
+  reserve_txout_address.emplace(exp_dummy_asset_a.GetHex(), reserve_ct_addr3.GetAddress());
+  std::vector<ElementsUtxoAndOption> selected_txin_utxos;
+  Amount estimate_fee;
+  UtxoFilter filter;
+  std::vector<std::string> append_txout_addresses;
+  CoinSelectionOption option;
+  option.InitializeConfidentialTxSizeInfo();
+  option.SetEffectiveFeeBaserate(fee_rate);
+  option.SetLongTermFeeBaserate(fee_rate);
+  option.SetFeeAsset(fee_asset);
+  option.SetBlindInfo(0, 52);
+
+  Amount fee(int64_t{10000});
+  ConfidentialTransactionContext txc(2, 0);
+  txc.AddTxOut(reserve_ct_addr1, utxo1.amount + utxo3.amount - fee, exp_dummy_asset_a);
+  txc.AddTxOut(reserve_ct_addr2, utxo2.amount, exp_dummy_asset_a);
+
+  try {
+    ElementsTransactionApi api;
+    ConfidentialTransactionController ctx = api.FundRawTransaction(
+        txc.GetHex(), utxos, map_target_value, selected_txin_utxos,
+        reserve_txout_address, fee_asset, true, fee_rate, &estimate_fee,
+        &filter, &option, &append_txout_addresses, NetType::kElementsRegtest);
+    txc = ConfidentialTransactionContext(ctx.GetHex());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+    throw except;
+  }
+
+  EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
+
+  ByteData tx;
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo1.txid, utxo1.vout),
+      Pubkey("0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b"),
+      Privkey::FromWif(
+          "cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo1.txid, utxo1.vout)));
+  EXPECT_THROW((tx = txc.Finalize()), CfdException);
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo2.txid, utxo2.vout),
+      Pubkey("0206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27"),
+      Privkey::FromWif(
+          "cVtoSAzA814NCpEjz1Gumv2c5jCQ1f8Axcd58NDeds8Wxrn9dMVP", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo2.txid, utxo2.vout)));
+  EXPECT_THROW((tx = txc.Finalize()), CfdException);
+
+  EXPECT_NO_THROW(txc.SignWithKey(OutPoint(utxo3.txid, utxo3.vout),
+      Pubkey("0359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b"),
+      Privkey::FromWif(
+          "cQSo3DLRNg4G57hRkbo2d2pY3QSuRM9eact7LroG46XyZbZByxi5", NetType::kTestnet)));
+  EXPECT_NO_THROW(txc.Verify(OutPoint(utxo3.txid, utxo3.vout)));
+
+  EXPECT_NO_THROW(tx = txc.Finalize());
+  EXPECT_EQ(txc.GetFeeAmount().GetSatoshiValue(), estimate_fee.GetSatoshiValue());
+  EXPECT_STREQ(tx.GetHex().c_str(), "020000000103e3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a4730440220658ec298d039a988b5d5a8a450821324c58264d28ec6c25c37750db21bca28220220599f5c2c780b76940a23ba46d1ae029c58785e43fb20929920cce175532876f801210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffff040100000000000000000000000000000000000000000000000000000000000000aa0100005af3107a18f00308f34c0c7de1a49ec53acb73aeb94306a90987759c2c012492e877a0dde821d91976a914f330ed8383f8afdc977dd88600eb8ff120ba15e488ac0100000000000000000000000000000000000000000000000000000000000000aa0100071afd498d000002761f92316d668b7ad54ea7da8f4bfd1b266d677e9786b98274f647cc74ae306e16001445663e592ff613587f0fdd6e74034c5239710dca0100000000000000000000000000000000000000000000000000000000000000aa0100000000000001c200000100000000000000000000000000000000000000000000000000000000000000aa01000000000000254e029e1f4cd73bb6d29257ca37a3882cd09661783c90cdd92b57264a13bdab822905160014f330ed8383f8afdc977dd88600eb8ff120ba15e40000000000000247304402204b18c6012c0e3026df2d5d1b30e5ba284871567593c348e51ada20842e25822902207af1a537be4a506e1f3fbb0cb4f6125302af6da0a29d1ab8f1c11a5b68bd72a101210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a270000000247304402202fda15abdd560632a517d122cc9414b31c1b67e05c05c0d510630731750a1350022075b85c7faa46f6ea0cef8f9ded53d427e8292d8d6200da06da18789cd684e1c101210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b00000000000000000000000000");
+  EXPECT_EQ(txc.GetVsize(), 662);
+
+  uint32_t minimum_fee = txc.GetVsize() * static_cast<uint32_t>(fee_rate * 100) / 100;
+  EXPECT_EQ(minimum_fee, 72);
+}
+
 #endif  // CFD_DISABLE_ELEMENTS

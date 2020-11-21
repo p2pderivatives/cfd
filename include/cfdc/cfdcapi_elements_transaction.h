@@ -31,6 +31,8 @@ enum CfdBlindOption {
   kCfdBlindOptionExponent = 2,
   /** blind option: minBits */
   kCfdBlindOptionMinimumBits = 3,
+  /** blind option: collect blinder */
+  kCfdBlindOptionCollectBlinder = 4,
 };
 
 /**
@@ -557,11 +559,43 @@ CFDC_API int CfdAddBlindTxOutByAddress(
  * @param[in] blind_handle    blinding handle.
  * @param[in] tx_hex_string   transaction hex.
  * @param[out] tx_string      blinding transaction hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
  * @return CfdErrorCode
  */
 CFDC_API int CfdFinalizeBlindTx(
     void* handle, void* blind_handle, const char* tx_hex_string,
     char** tx_string);
+
+/**
+ * @brief get blinding data.
+ * @param[in] handle                cfd handle.
+ * @param[in] blind_handle          blinding handle.
+ * @param[in] index                 index.
+ * @param[out] vout                 txout vout.
+ * @param[out] asset                asset.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] value_satoshi        satoshi amount.
+ * @param[out] asset_blind_factor   asset blinder.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] value_blind_factor   amount blinder.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] issuance_txid        issuance utxo txid.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] issuance_vout        issuance utxo vount.
+ * @param[out] is_issuance_asset    issuance asset.
+ * @param[out] is_issuance_token    issuance token.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetBlindTxBlindData(
+    void* handle, void* blind_handle, uint32_t index, uint32_t* vout,
+    char** asset, int64_t* value_satoshi, char** asset_blind_factor,
+    char** value_blind_factor, char** issuance_txid, uint32_t* issuance_vout,
+    bool* is_issuance_asset, bool* is_issuance_token);
 
 /**
  * @brief free blinding handle.

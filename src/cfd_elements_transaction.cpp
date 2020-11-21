@@ -33,6 +33,7 @@ namespace cfd {
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
+using cfd::core::BlindData;
 using cfd::core::BlindFactor;
 using cfd::core::BlindParameter;
 using cfd::core::BlockHash;
@@ -561,11 +562,13 @@ void ConfidentialTransactionContext::BlindTransaction(
     const std::map<OutPoint, BlindParameter>& utxo_info_map,
     const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
     const std::vector<ElementsConfidentialAddress>& confidential_address_list,
-    int64_t minimum_range_value, int exponent, int minimum_bits) {
+    int64_t minimum_range_value, int exponent, int minimum_bits,
+    std::vector<BlindData>* blinder_list) {
   std::vector<ConfidentialKeyBlindParameter> confidential_key_list;
   BlindTransactionWithDirectKey(
       utxo_info_map, issuance_key_map, confidential_address_list,
-      confidential_key_list, minimum_range_value, exponent, minimum_bits);
+      confidential_key_list, minimum_range_value, exponent, minimum_bits,
+      blinder_list);
 }
 
 void ConfidentialTransactionContext::BlindTransactionWithDirectKey(
@@ -573,7 +576,8 @@ void ConfidentialTransactionContext::BlindTransactionWithDirectKey(
     const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
     const std::vector<ElementsConfidentialAddress>& confidential_address_list,
     const std::vector<ConfidentialKeyBlindParameter>& confidential_key_list,
-    int64_t minimum_range_value, int exponent, int minimum_bits) {
+    int64_t minimum_range_value, int exponent, int minimum_bits,
+    std::vector<BlindData>* blinder_list) {
   uint32_t index = 0;
   std::vector<BlindParameter> txin_info_list;
   if (!utxo_info_map.empty()) {
@@ -626,7 +630,7 @@ void ConfidentialTransactionContext::BlindTransactionWithDirectKey(
 
   BlindTransaction(
       txin_info_list, issuance_blinding_keys, confidential_keys,
-      minimum_range_value, exponent, minimum_bits);
+      minimum_range_value, exponent, minimum_bits, blinder_list);
 }
 
 std::vector<UnblindParameter> ConfidentialTransactionContext::UnblindIssuance(
@@ -687,16 +691,18 @@ void ConfidentialTransactionContext::CollectInputUtxo(
 
 void ConfidentialTransactionContext::Blind(
     const std::vector<ElementsConfidentialAddress>* confidential_addresses,
-    int64_t minimum_range_value, int exponent, int minimum_bits) {
+    int64_t minimum_range_value, int exponent, int minimum_bits,
+    std::vector<BlindData>* blinder_list) {
   BlindIssuance(
       std::map<OutPoint, IssuanceBlindingKeyPair>(), confidential_addresses,
-      minimum_range_value, exponent, minimum_bits);
+      minimum_range_value, exponent, minimum_bits, blinder_list);
 }
 
 void ConfidentialTransactionContext::BlindIssuance(
     const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
     const std::vector<ElementsConfidentialAddress>* confidential_addresses,
-    int64_t minimum_range_value, int exponent, int minimum_bits) {
+    int64_t minimum_range_value, int exponent, int minimum_bits,
+    std::vector<BlindData>* blinder_list) {
   std::map<OutPoint, BlindParameter> utxo_info_map;
   for (const auto& txin_ref : vin_) {
     OutPoint outpoint = txin_ref.GetOutPoint();
@@ -721,7 +727,7 @@ void ConfidentialTransactionContext::BlindIssuance(
   }
   BlindTransaction(
       utxo_info_map, issuance_key_map, confidential_addrs, minimum_range_value,
-      exponent, minimum_bits);
+      exponent, minimum_bits, blinder_list);
 }
 
 void ConfidentialTransactionContext::SignWithKey(

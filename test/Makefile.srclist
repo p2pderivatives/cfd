@@ -10,6 +10,7 @@ TEST_CFD_SOURCES= \
     test_cfd_transaction_context.cpp \
     test_cfd_coin_selection.cpp \
     test_cfd_utxoutil.cpp \
+    test_cfdapi_address.cpp \
     test_cfdapi_elements_transaction.cpp \
     test_cfdapi_transaction.cpp \
     test_cfdapi_ledger.cpp

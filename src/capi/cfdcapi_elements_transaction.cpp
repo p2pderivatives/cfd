@@ -49,6 +49,7 @@ using cfd::api::TxOutBlindKeys;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
+using cfd::core::BlindData;
 using cfd::core::BlindFactor;
 using cfd::core::BlindParameter;
 using cfd::core::BlockHash;
@@ -104,6 +105,9 @@ struct CfdCapiBlindTxData {
   int64_t minimum_range_value;  //!< min range value. (default:1)
   int exponent;                 //!< exponent. (default:0)
   int minimum_bits;             //!< min bits. (default:36(old),52(new))
+  bool has_collect_blinder;     //!< collect blinder (default: false)
+  //! blinder list
+  std::vector<BlindData>* blinder_list;
 };
 
 }  // namespace capi
@@ -1105,9 +1109,11 @@ int CfdInitializeBlindTx(void* handle, void** blind_handle) {
         AllocBuffer(kPrefixBlindTxData, sizeof(CfdCapiBlindTxData)));
     buffer->txin_blind_keys = new std::vector<TxInBlindParameters>();
     buffer->txout_blind_keys = new std::vector<TxOutBlindKeys>();
+    buffer->blinder_list = new std::vector<BlindData>();
     buffer->minimum_range_value = 1;                 // = 1,
     buffer->exponent = 0;                            // = 0
     buffer->minimum_bits = cfd::capi::kMinimumBits;  // = 36(old)
+    buffer->has_collect_blinder = false;
 
     *blind_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
@@ -1289,6 +1295,9 @@ int CfdSetBlindTxOption(
       case CfdBlindOption::kCfdBlindOptionMinimumBits:
         if (value >= 0) buffer->minimum_bits = static_cast<int>(value);
         break;
+      case CfdBlindOption::kCfdBlindOptionCollectBlinder:
+        if (value != 0) buffer->has_collect_blinder = true;
+        break;
       default:
         warn(CFD_LOG_SOURCE, "illegal option key. [{}]", key);
         throw CfdException(
@@ -1328,7 +1337,8 @@ int CfdFinalizeBlindTx(
     CfdCapiBlindTxData* buffer =
         static_cast<CfdCapiBlindTxData*>(blind_handle);
     if ((buffer->txin_blind_keys == nullptr) ||
-        (buffer->txout_blind_keys == nullptr)) {
+        (buffer->txout_blind_keys == nullptr) ||
+        (buffer->blinder_list == nullptr)) {
       warn(CFD_LOG_SOURCE, "buffer state is illegal.");
       throw CfdException(
           CfdError::kCfdOutOfRangeError,
@@ -1375,10 +1385,14 @@ int CfdFinalizeBlindTx(
       }
     }
 
+    std::vector<BlindData>* blinder_list_ptr = nullptr;
+    if (buffer->has_collect_blinder) {
+      blinder_list_ptr = buffer->blinder_list;
+    }
     ctxc.BlindTransactionWithDirectKey(
         utxo_info_map, issuance_key_map, confidential_key_list,
         direct_key_list, buffer->minimum_range_value, buffer->exponent,
-        buffer->minimum_bits);
+        buffer->minimum_bits, blinder_list_ptr);
     *tx_string = CreateString(ctxc.GetHex());
 
     return CfdErrorCode::kCfdSuccess;
@@ -1391,6 +1405,83 @@ int CfdFinalizeBlindTx(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdGetBlindTxBlindData(
+    void* handle, void* blind_handle, uint32_t index, uint32_t* vout,
+    char** asset, int64_t* value_satoshi, char** asset_blind_factor,
+    char** value_blind_factor, char** issuance_txid, uint32_t* issuance_vout,
+    bool* is_issuance_asset, bool* is_issuance_token) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_asset = nullptr;
+  char* work_asset_blind_factor = nullptr;
+  char* work_value_blind_factor = nullptr;
+  char* work_txid = nullptr;
+  try {
+    cfd::Initialize();
+    CheckBuffer(blind_handle, kPrefixBlindTxData);
+
+    CfdCapiBlindTxData* buffer =
+        static_cast<CfdCapiBlindTxData*>(blind_handle);
+    if (buffer->blinder_list == nullptr) {
+      warn(CFD_LOG_SOURCE, "buffer state is illegal.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. buffer state is illegal.");
+    }
+    if (!buffer->has_collect_blinder) {
+      warn(CFD_LOG_SOURCE, "unused collect blinder.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to collect state. unused collect blinder.");
+    }
+    if (index >= buffer->blinder_list->size()) {
+      warn(CFD_LOG_SOURCE, "index out of range.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. index out of range.");
+    }
+
+    auto& data = (*buffer->blinder_list)[index];
+    if (vout != nullptr) *vout = data.vout;
+    if (asset != nullptr) {
+      work_asset = CreateString(data.asset.GetHex());
+    }
+    if (value_satoshi != nullptr) {
+      *value_satoshi = data.value.GetAmount().GetSatoshiValue();
+    }
+    if (asset_blind_factor != nullptr) {
+      work_asset_blind_factor = CreateString(data.abf.GetHex());
+    }
+    if (value_blind_factor != nullptr) {
+      work_value_blind_factor = CreateString(data.vbf.GetHex());
+    }
+    if ((issuance_txid != nullptr) && (issuance_vout != nullptr)) {
+      *issuance_vout = data.issuance_outpoint.GetVout();
+      work_txid = CreateString(data.issuance_outpoint.GetTxid().GetHex());
+    }
+    if (is_issuance_asset != nullptr) *is_issuance_asset = data.is_issuance;
+    if (is_issuance_token != nullptr) {
+      *is_issuance_token = data.is_issuance_token;
+    }
+
+    if (work_asset != nullptr) *asset = work_asset;
+    if (work_asset_blind_factor != nullptr)
+      *asset_blind_factor = work_asset_blind_factor;
+    if (work_value_blind_factor != nullptr)
+      *value_blind_factor = work_value_blind_factor;
+    if (work_txid != nullptr) *issuance_txid = work_txid;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_asset, &work_asset_blind_factor);
+  FreeBufferOnError(&work_value_blind_factor, &work_txid);
+  return result;
 }
 
 int CfdFreeBlindHandle(void* handle, void* blind_handle) {
@@ -1406,6 +1497,10 @@ int CfdFreeBlindHandle(void* handle, void* blind_handle) {
       if (blind_tx_struct->txout_blind_keys != nullptr) {
         delete blind_tx_struct->txout_blind_keys;
         blind_tx_struct->txout_blind_keys = nullptr;
+      }
+      if (blind_tx_struct->blinder_list != nullptr) {
+        delete blind_tx_struct->blinder_list;
+        blind_tx_struct->blinder_list = nullptr;
       }
     }
     FreeBuffer(blind_handle, kPrefixBlindTxData, sizeof(CfdCapiBlindTxData));

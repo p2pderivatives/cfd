@@ -259,6 +259,7 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
   DescriptorScriptData result;
   result.key_type = DescriptorKeyType::kDescriptorKeyNull;  // dummy init
   result.address_type = AddressType::kP2shAddress;          // dummy init
+  result.multisig_req_sig_num = 0;
   Descriptor desc = Descriptor::Parse(descriptor, &addr_prefixes);
   std::vector<std::string> args;
   for (uint32_t index = 0; index < desc.GetNeedArgumentNum(); ++index) {
@@ -286,28 +287,30 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
   DescriptorKeyReference key_ref;
   switch (result.type) {
     case DescriptorScriptType::kDescriptorScriptCombo:
-      if (script_list) {
-        for (const auto& ref : script_refs) {
-          DescriptorScriptData ref_data;
-          ref_data.type = ref.GetScriptType();
-          ref_data.depth = 0;
-          ref_data.locking_script = ref.GetLockingScript();
-          if (ref.HasAddress()) {
-            ref_data.address = ref.GenerateAddress(net_type);
-            ref_data.address_type = ref.GetAddressType();
-          } else {
-            ref_data.address_type = AddressType::kP2shAddress;  // dummy init
-          }
-          if (ref.HasRedeemScript()) {
-            ref_data.redeem_script = ref.GetRedeemScript();
-            ref_data.key_type = DescriptorKeyType::kDescriptorKeyNull;
-          } else {
-            key_ref = ref.GetKeyList()[0];
-            ref_data.key_type = key_ref.GetKeyType();
-            ref_data.key = get_keystr_function(key_ref);
-          }
-          script_list->push_back(ref_data);
+      for (const auto& ref : script_refs) {
+        DescriptorScriptData ref_data;
+        ref_data.type = ref.GetScriptType();
+        ref_data.depth = 0;
+        ref_data.locking_script = ref.GetLockingScript();
+        if (ref.HasAddress()) {
+          ref_data.address = ref.GenerateAddress(net_type);
+          ref_data.address_type = ref.GetAddressType();
+        } else {
+          ref_data.address_type = AddressType::kP2shAddress;  // dummy init
         }
+        if (ref.HasRedeemScript()) {
+          ref_data.redeem_script = ref.GetRedeemScript();
+          ref_data.key_type = DescriptorKeyType::kDescriptorKeyNull;
+        } else {
+          key_ref = ref.GetKeyList()[0];
+          ref_data.key_type = key_ref.GetKeyType();
+          ref_data.key = get_keystr_function(key_ref);
+          if (result.key_type == DescriptorKeyType::kDescriptorKeyNull) {
+            result.key_type = ref_data.key_type;
+            result.key = ref_data.key;
+          }
+        }
+        if (script_list != nullptr) script_list->push_back(ref_data);
       }
       break;
     case DescriptorScriptType::kDescriptorScriptSh:
@@ -332,31 +335,38 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
       break;
   }
 
-  if (use_script_list && script_list) {
+  if (use_script_list) {
     DescriptorScriptReference script_ref = script_refs[0];
     bool is_loop = script_ref.HasChild();
     uint32_t depth = 0;
+    result.redeem_script = (is_loop) ? Script() : script_ref.GetRedeemScript();
     while (is_loop) {
       DescriptorScriptReference child;
-      if (script_ref.HasChild()) {
-        child = script_ref.GetChild();
-      }
       DescriptorScriptData data;
       switch (script_ref.GetScriptType()) {
         case DescriptorScriptType::kDescriptorScriptSh:
         case DescriptorScriptType::kDescriptorScriptWsh:
-          child = script_ref.GetChild();
-          if ((child.GetScriptType() ==
-               DescriptorScriptType::kDescriptorScriptMulti) ||
-              (child.GetScriptType() ==
-               DescriptorScriptType::kDescriptorScriptSortedMulti)) {
-            multisig_keys = child.GetKeyList();
-            multisig_req_num = child.GetReqNum();
-            is_loop = false;
-          } else if (
-              child.GetScriptType() ==
-              DescriptorScriptType::kDescriptorScriptMiniscript) {
-            is_loop = false;
+          if (!script_ref.HasChild()) {
+            result.redeem_script = script_ref.GetRedeemScript();
+          } else {
+            child = script_ref.GetChild();
+            if ((child.GetScriptType() ==
+                 DescriptorScriptType::kDescriptorScriptMulti) ||
+                (child.GetScriptType() ==
+                 DescriptorScriptType::kDescriptorScriptSortedMulti)) {
+              multisig_keys = child.GetKeyList();
+              multisig_req_num = child.GetReqNum();
+              result.multisig_req_sig_num = multisig_req_num;
+              is_loop = false;
+            } else if (
+                child.GetScriptType() ==
+                DescriptorScriptType::kDescriptorScriptMiniscript) {
+              is_loop = false;
+            }
+            if (child.GetScriptType() !=
+                DescriptorScriptType::kDescriptorScriptWpkh) {
+              result.redeem_script = script_ref.GetRedeemScript();
+            }
           }
           break;
         // case DescriptorScriptType::kDescriptorScriptPk:
@@ -378,12 +388,14 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
         key_ref = script_ref.GetKeyList()[0];
         data.key_type = key_ref.GetKeyType();
         data.key = get_keystr_function(key_ref);
+        result.key_type = key_ref.GetKeyType();
+        result.key = get_keystr_function(key_ref);
       } else {
         data.key_type = DescriptorKeyType::kDescriptorKeyNull;
       }
       data.multisig_req_sig_num = multisig_req_num;
 
-      script_list->push_back(data);
+      if (script_list != nullptr) script_list->push_back(data);
       if (is_loop && script_ref.HasChild()) {
         child = script_ref.GetChild();
         script_ref = child;
