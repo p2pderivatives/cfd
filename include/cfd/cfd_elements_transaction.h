@@ -34,6 +34,7 @@ using cfd::core::AbstractTransaction;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
+using cfd::core::BlindData;
 using cfd::core::BlindFactor;
 using cfd::core::BlindParameter;
 using cfd::core::BlockHash;
@@ -428,6 +429,7 @@ class CFD_EXPORT ConfidentialTransactionContext
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits               rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[out] blinder_list             blinder list. (default is null)
    */
   void BlindTransaction(
       const std::map<OutPoint, BlindParameter>& utxo_info_map,
@@ -435,7 +437,8 @@ class CFD_EXPORT ConfidentialTransactionContext
       const std::vector<ElementsConfidentialAddress>&
           confidential_address_list,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits);
+      int minimum_bits = kDefaultBlindMinimumBits,
+      std::vector<BlindData>* blinder_list = nullptr);
   /**
    * @brief Blind Trasnsaction.
    * @param[in] utxo_info_map              txin utxo information map.
@@ -448,6 +451,7 @@ class CFD_EXPORT ConfidentialTransactionContext
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits               rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[out] blinder_list             blinder list. (default is null)
    */
   void BlindTransactionWithDirectKey(
       const std::map<OutPoint, BlindParameter>& utxo_info_map,
@@ -456,7 +460,8 @@ class CFD_EXPORT ConfidentialTransactionContext
           confidential_address_list,
       const std::vector<ConfidentialKeyBlindParameter>& confidential_key_list,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits);
+      int minimum_bits = kDefaultBlindMinimumBits,
+      std::vector<BlindData>* blinder_list = nullptr);
 
   /**
    * @brief Unblind issuance data.
@@ -502,12 +507,14 @@ class CFD_EXPORT ConfidentialTransactionContext
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits               rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[out] blinder_list             blinder list. (default is null)
    */
   void Blind(
       const std::vector<ElementsConfidentialAddress>* confidential_addresses =
           nullptr,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits);
+      int minimum_bits = kDefaultBlindMinimumBits,
+      std::vector<BlindData>* blinder_list = nullptr);
   /**
    * @brief Execute blinding issuance & txout using utxo data.
    * @param[in] issuance_key_map           issue blinding key map.
@@ -519,13 +526,15 @@ class CFD_EXPORT ConfidentialTransactionContext
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits               rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[out] blinder_list             blinder list. (default is null)
    */
   void BlindIssuance(
       const std::map<OutPoint, IssuanceBlindingKeyPair>& issuance_key_map,
       const std::vector<ElementsConfidentialAddress>* confidential_addresses =
           nullptr,
       int64_t minimum_range_value = 1, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits);
+      int minimum_bits = kDefaultBlindMinimumBits,
+      std::vector<BlindData>* blinder_list = nullptr);
 
   /**
    * @brief sign with privkey.

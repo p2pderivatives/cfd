@@ -856,13 +856,92 @@ TEST(cfdcapi_elements_transaction, BlindTransaction) {
   }
 
   if (ret == kCfdSuccess) {
-    ret = CfdFinalizeBlindTx(handle, blind_handle, base_tx, &tx_string);
+    ret = CfdSetBlindTxOption(
+        handle, blind_handle, kCfdBlindOptionCollectBlinder, 1);
     EXPECT_EQ(kCfdSuccess, ret);
   }
 
   if (ret == kCfdSuccess) {
+    ret = CfdFinalizeBlindTx(handle, blind_handle, base_tx, &tx_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  uint32_t vout = 0;
+  int64_t value = 0;
+  char* asset = nullptr;
+  char* asset_blind_factor = nullptr;
+  char* value_blind_factor = nullptr;
+  char* issuance_txid = nullptr;
+  uint32_t issuance_vout = 0;
+  bool is_issuance_asset = false;
+  bool is_issuance_token = false;
+  const char* empty_factor = "0000000000000000000000000000000000000000000000000000000000000000";
+  if (ret == kCfdSuccess) {
     // blind is contains random value.
     // EXPECT_STREQ("", tx_string);
+    ret = CfdGetBlindTxBlindData(handle, blind_handle, 0,
+        &vout, &asset, &value, &asset_blind_factor,
+        &value_blind_factor, &issuance_txid, &issuance_vout,
+        &is_issuance_asset, &is_issuance_token);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      // reissuance: 600000000
+      EXPECT_EQ(1, vout);
+      EXPECT_STREQ("accb7354c07974e00b32e4e5eef55078490141675592ac3610e6101831edb0cd", asset);
+      EXPECT_EQ(600000000, value);
+      EXPECT_STREQ(empty_factor, asset_blind_factor);
+      EXPECT_STRNE(empty_factor, value_blind_factor);
+      EXPECT_STREQ("57a15002d066ce52573d674df925c9bc0f1164849420705f2cfad8a68111230f",
+          issuance_txid);
+      EXPECT_EQ(1, issuance_vout);
+      EXPECT_TRUE(is_issuance_asset);
+      EXPECT_FALSE(is_issuance_token);
+      CfdFreeStringBuffer(asset);
+      CfdFreeStringBuffer(asset_blind_factor);
+      CfdFreeStringBuffer(value_blind_factor);
+      CfdFreeStringBuffer(issuance_txid);
+      asset = nullptr;
+      asset_blind_factor = nullptr;
+      value_blind_factor = nullptr;
+      issuance_txid = nullptr;
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetBlindTxBlindData(handle, blind_handle, 2,
+        &vout, &asset, &value, &asset_blind_factor,
+        &value_blind_factor, &issuance_txid, &issuance_vout,
+        &is_issuance_asset, &is_issuance_token);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      // txout[1]: 700000000
+      EXPECT_EQ(1, vout);
+      EXPECT_STREQ("ed6927df918c89b5e3d8b5062acab2c749a3291bb7451d4267c7daaf1b52ad0b", asset);
+      EXPECT_EQ(700000000, value);
+      EXPECT_STRNE(empty_factor, asset_blind_factor);
+      EXPECT_STRNE(empty_factor, value_blind_factor);
+      EXPECT_STREQ("", issuance_txid);
+      EXPECT_EQ(0, issuance_vout);
+      EXPECT_FALSE(is_issuance_asset);
+      EXPECT_FALSE(is_issuance_token);
+      CfdFreeStringBuffer(asset);
+      CfdFreeStringBuffer(asset_blind_factor);
+      CfdFreeStringBuffer(value_blind_factor);
+      CfdFreeStringBuffer(issuance_txid);
+      asset = nullptr;
+      asset_blind_factor = nullptr;
+      value_blind_factor = nullptr;
+      issuance_txid = nullptr;
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdGetBlindTxBlindData(handle, blind_handle, 4,
+        &vout, &asset, &value, &asset_blind_factor,
+        &value_blind_factor, &issuance_txid, &issuance_vout,
+        &is_issuance_asset, &is_issuance_token);
+    EXPECT_EQ(kCfdOutOfRangeError, ret);
+    if (ret == kCfdOutOfRangeError) ret = kCfdSuccess;
   }
 
   if (blind_handle != nullptr) {
@@ -870,8 +949,6 @@ TEST(cfdcapi_elements_transaction, BlindTransaction) {
   }
 
   // unblind test
-  char* asset = nullptr;
-  char* asset_blind_factor = nullptr;
   if (ret == kCfdSuccess) {
     int64_t asset_value;
     char* asset_value_blind_factor = nullptr;
@@ -907,8 +984,6 @@ TEST(cfdcapi_elements_transaction, BlindTransaction) {
     }
   }
 
-  int64_t value = 0;
-  char* value_blind_factor = nullptr;
   if (ret == kCfdSuccess) {
     asset = nullptr;
     asset_blind_factor = nullptr;
@@ -972,16 +1047,6 @@ TEST(cfdcapi_elements_transaction, BlindTransaction) {
   }
 
   CfdFreeStringBuffer(tx_string);
-
-  ret = CfdGetLastErrorCode(handle);
-  if (ret != kCfdSuccess) {
-    char* str_buffer = NULL;
-    ret = CfdGetLastErrorMessage(handle, &str_buffer);
-    EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_STREQ("", str_buffer);
-    CfdFreeStringBuffer(str_buffer);
-    str_buffer = NULL;
-  }
 
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);
