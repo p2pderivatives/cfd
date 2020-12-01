@@ -432,8 +432,7 @@ int CfdFinalizeCoinSelection(
       AmountMap map_target_value;
       for (const auto& target : *(buffer->targets)) {
         map_target_value.emplace(
-            convert_to_asset(target.asset).GetHex(),
-            Amount::CreateBySatoshiAmount(target.amount));
+            convert_to_asset(target.asset).GetHex(), target.amount);
       }
 
       AmountMap map_select_value;
@@ -445,7 +444,7 @@ int CfdFinalizeCoinSelection(
       for (auto& target : *(buffer->targets)) {
         std::string asset = convert_to_asset(target.asset).GetHex();
         if (map_select_value.find(asset) != map_select_value.end()) {
-          target.selected_amount = map_select_value[asset].GetSatoshiValue();
+          target.selected_amount = map_select_value[asset];
         }
       }
 
