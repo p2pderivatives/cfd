@@ -31,7 +31,7 @@ using cfd::core::Txid;
 using cfd::core::ConfidentialAssetId;
 #endif  // CFD_DISABLE_ELEMENTS
 //! Asset Amountマップへのエイリアス (key: asset(str), value: amount)
-using AmountMap = std::map<std::string, Amount>;
+using AmountMap = std::map<std::string, int64_t>;
 
 /**
  * @brief 最小のデータのみを保持するUTXO構造体。
@@ -362,10 +362,10 @@ class CFD_EXPORT CoinSelection {
    * @return UTXO一覧。空の場合はエラー終了。
    */
   std::vector<Utxo> SelectCoinsMinConf(
-      const Amount& target_value, const std::vector<Utxo*>& utxos,
+      const int64_t& target_value, const std::vector<Utxo*>& utxos,
       const UtxoFilter& filter, const CoinSelectionOption& option_params,
       const Amount& tx_fee_value, const bool consider_fee,
-      Amount* select_value, Amount* utxo_fee_value = nullptr,
+      int64_t* select_value, Amount* utxo_fee_value = nullptr,
       bool* searched_bnb = nullptr);
 
   /**
@@ -380,9 +380,9 @@ class CFD_EXPORT CoinSelection {
    * @return UTXO一覧。空の場合はエラー終了。
    */
   std::vector<Utxo> SelectCoinsBnB(
-      const Amount& target_value, const std::vector<Utxo*>& utxos,
-      const Amount& cost_of_change, const Amount& not_input_fees,
-      Amount* select_value, Amount* utxo_fee_value);
+      const int64_t& target_value, const std::vector<Utxo*>& utxos,
+      const int64_t& cost_of_change, const Amount& not_input_fees,
+      int64_t* select_value, Amount* utxo_fee_value);
 
   /**
    * @brief CoinSelection(KnapsackSolver)を実施する。
@@ -394,8 +394,8 @@ class CFD_EXPORT CoinSelection {
    * @return UTXO一覧。空の場合はエラー終了。
    */
   std::vector<Utxo> KnapsackSolver(
-      const Amount& target_value, const std::vector<Utxo*>& utxos,
-      uint64_t min_change, Amount* select_value, Amount* utxo_fee_value);
+      const int64_t& target_value, const std::vector<Utxo*>& utxos,
+      uint64_t min_change, int64_t* select_value, Amount* utxo_fee_value);
 
  private:
   bool use_bnb_;                       //!< BnB 利用フラグ
