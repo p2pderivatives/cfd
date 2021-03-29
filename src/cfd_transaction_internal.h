@@ -109,7 +109,7 @@ class TransactionContextUtil {
 
   /**
    * @brief verify tx sign (signature) on outpoint.
-   * @param[in,out] transaction       Transaction
+   * @param[in] transaction           Transaction
    * @param[in] outpoint              utxo target txin & vout.
    * @param[in] utxo                  utxo.
    * @param[in] txin                  tx input.
@@ -121,7 +121,8 @@ class TransactionContextUtil {
       const AbstractTxIn* txin,
       std::function<ByteData256(
           const Tx*, const OutPoint&, const UtxoData&, const SigHashType&,
-          const Pubkey&, const Script&, WitnessVersion)>
+          const Pubkey&, const Script&, WitnessVersion, const ByteData*,
+          const TaprootScriptTree*)>
           create_sighash_func);
 
   /**

@@ -27,6 +27,7 @@
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_transaction.h"
+#include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 
 namespace cfd {
@@ -35,6 +36,7 @@ namespace api {
 using cfd::FeeCalculator;
 using cfd::TransactionController;
 using cfd::api::TransactionApiBase;
+using cfd::core::AbstractTransaction;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
@@ -211,25 +213,23 @@ TransactionController TransactionApi::AddMultisigSign(
 Amount TransactionApi::EstimateFee(
     const std::string& tx_hex, const std::vector<UtxoData>& utxos,
     Amount* txout_fee, Amount* utxo_fee, double effective_fee_rate) const {
-  TransactionController txc(tx_hex);
-
-  uint32_t tx_vsize = txc.GetVsizeIgnoreTxIn();
+  TransactionContext txc(tx_hex);
 
   uint32_t size = 0;
   uint32_t witness_size = 0;
   uint32_t wit_size = 0;
   uint32_t nowit_size = 0;
   uint32_t not_witness_count = 0;
-  AddressApi address_api;
   for (const auto& utxo : utxos) {
     NetType net_type = NetType::kMainnet;
     if (!utxo.address.GetAddress().empty()) {
       net_type = utxo.address.GetNetType();
     }
+    AddressFactory address_factory(net_type);
     // check descriptor
     std::string descriptor = utxo.descriptor;
     // set dummy NetType for getting AddressType.
-    auto data = address_api.ParseOutputDescriptor(descriptor, net_type, "");
+    auto data = address_factory.ParseOutputDescriptor(descriptor);
 
     AddressType addr_type;
     if (utxo.address.GetAddress().empty() ||
@@ -247,7 +247,9 @@ Amount TransactionApi::EstimateFee(
       redeem_script = utxo.redeem_script;
     }
     const Script* scriptsig_template = nullptr;
-    if ((!redeem_script.IsEmpty()) && (!utxo.scriptsig_template.IsEmpty())) {
+    if (((!redeem_script.IsEmpty()) ||
+         (addr_type == AddressType::kTaprootAddress)) &&
+        (!utxo.scriptsig_template.IsEmpty())) {
       scriptsig_template = &utxo.scriptsig_template;
     }
 
@@ -257,7 +259,11 @@ Amount TransactionApi::EstimateFee(
     witness_size += wit_size;
     if (wit_size == 0) ++not_witness_count;
   }
-  if ((not_witness_count != 0) &&
+
+  uint32_t tx_size = txc.GetSizeIgnoreTxIn((witness_size != 0));
+  uint32_t tx_vsize = AbstractTransaction::GetVsizeFromSize(tx_size, 0);
+
+  if ((witness_size != 0) && (not_witness_count != 0) &&
       (not_witness_count < static_cast<uint32_t>(utxos.size()))) {
     // append witness size for p2pkh or p2sh
     witness_size += not_witness_count;
@@ -270,7 +276,10 @@ Amount TransactionApi::EstimateFee(
   FeeCalculator fee_calc(fee_rate);
   Amount tx_fee_amount = fee_calc.GetFee(tx_vsize);
   Amount utxo_fee_amount = fee_calc.GetFee(utxo_vsize);
-  Amount fee = tx_fee_amount + utxo_fee_amount;
+  uint32_t total_size = tx_size + size;
+  uint32_t total_vsize =
+      AbstractTransaction::GetVsizeFromSize(total_size, witness_size);
+  Amount fee = fee_calc.GetFee(total_vsize);
 
   if (txout_fee) *txout_fee = tx_fee_amount;
   if (utxo_fee) *utxo_fee = utxo_fee_amount;

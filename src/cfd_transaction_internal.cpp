@@ -19,7 +19,9 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 
@@ -35,6 +37,8 @@ using cfd::core::CryptoUtil;
 using cfd::core::OutPoint;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
+using cfd::core::SchnorrSignature;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptElement;
@@ -43,6 +47,8 @@ using cfd::core::ScriptUtil;
 using cfd::core::ScriptWitness;
 using cfd::core::SigHashType;
 using cfd::core::SignatureUtil;
+using cfd::core::TaprootScriptTree;
+using cfd::core::TaprootUtil;
 using cfd::core::Txid;
 using cfd::core::logger::warn;
 
@@ -74,6 +80,10 @@ WitnessVersion TransactionContextUtil::CheckSignWithPrivkeySimple(
     case AddressType::kP2wpkhAddress:
     case AddressType::kP2shP2wpkhAddress:
       version = WitnessVersion::kVersion0;
+      break;
+    case AddressType::kTaprootAddress:
+      version = WitnessVersion::kVersion1;
+      break;
     default:
       break;
   }
@@ -250,11 +260,13 @@ void TransactionContextUtil::AddSign(
   }
 
   bool has_op_code = false;
-  for (const SignParameter& sign_param : sign_params) {
-    if (sign_param.IsOpCode()) {
-      ScriptOperator op_code = sign_param.GetOpCode();
-      if (op_code.IsPushOperator()) {
-        has_op_code = true;
+  if (!insert_witness) {
+    for (const SignParameter& sign_param : sign_params) {
+      if (sign_param.IsOpCode()) {
+        ScriptOperator op_code = sign_param.GetOpCode();
+        if (op_code.IsPushOperator()) {
+          has_op_code = true;
+        }
       }
     }
   }
@@ -297,7 +309,8 @@ void TransactionContextUtil::Verify(
     const AbstractTxIn* txin,
     std::function<ByteData256(
         const Tx*, const OutPoint&, const UtxoData&, const SigHashType&,
-        const Pubkey&, const Script&, WitnessVersion)>
+        const Pubkey&, const Script&, WitnessVersion, const ByteData*,
+        const TaprootScriptTree*)>
         create_sighash_func) {
   if (TransactionContextUtil::IsOpTrueLockingScript(utxo, txin)) {
     return;  // OP_TRUE only.
@@ -324,14 +337,46 @@ void TransactionContextUtil::Verify(
       TransactionContextUtil::GetVerifySignatureStack(
           work_utxo, txin, &version, &has_pubkey);
 
-  if (has_pubkey) {
+  if (version == WitnessVersion::kVersion1) {
+    SchnorrPubkey witness_program(
+        utxo.locking_script.GetElementList()[1].GetBinaryData());
+    SchnorrSignature schnorr_sig;
+    bool has_parity = false;
+    uint8_t leaf_version = 0;
+    SchnorrPubkey internal_pubkey;
+    std::vector<ByteData256> nodes;
+    Script tapscript;
+    ByteData annex;
+    TaprootUtil::ParseTaprootSignData(
+        signature_stack, &schnorr_sig, &has_parity, &leaf_version,
+        &internal_pubkey, &nodes, &tapscript, nullptr, &annex);
+    if (has_pubkey) {
+      auto sighash = create_sighash_func(
+          transaction, outpoint, work_utxo, schnorr_sig.GetSigHashType(),
+          Pubkey(), Script(), version, &annex, nullptr);
+      bool is_verify = witness_program.Verify(schnorr_sig, sighash);
+      if (!is_verify) {
+        throw CfdException(
+            CfdError::kCfdIllegalStateError, "Verify signature fail.");
+      }
+    } else {
+      TaprootUtil::VerifyTaprootCommitment(
+          has_parity, leaf_version, witness_program, internal_pubkey, nodes,
+          tapscript);
+      // At the moment, there is no function to run Script,
+      // so no further confirmation is possible.
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "The script analysis of tapscript is not supported.");
+    }
+  } else if (has_pubkey) {
     SigHashType sighashtype;
     ByteData signature =
         CryptoUtil::ConvertSignatureFromDer(signature_stack[0], &sighashtype);
     Pubkey pubkey(signature_stack[1]);
     auto sighash = create_sighash_func(
         transaction, outpoint, work_utxo, sighashtype, pubkey, Script(),
-        version);
+        version, nullptr, nullptr);
     bool is_verify =
         SignatureUtil::VerifyEcSignature(sighash, pubkey, signature);
     if (!is_verify) {
@@ -342,6 +387,8 @@ void TransactionContextUtil::Verify(
     // check script format
     Script redeem_script(signature_stack.back());
     if (!redeem_script.IsMultisigScript()) {
+      // At the moment, there is no function to run Script,
+      // so no further confirmation is possible.
       throw CfdException(
           CfdError::kCfdIllegalStateError,
           "Unsupported script format. verify support is multisig only.");
@@ -382,7 +429,7 @@ void TransactionContextUtil::Verify(
           signature_stack[index + 1], &sighashtype);
       auto sighash = create_sighash_func(
           transaction, outpoint, work_utxo, sighashtype, Pubkey(),
-          redeem_script, version);
+          redeem_script, version, nullptr, nullptr);
       for (size_t key_index = 0; key_index < pubkeys.size(); ++key_index) {
         const auto& pubkey = pubkeys[key_index];
         is_exist =
@@ -491,6 +538,8 @@ std::vector<ByteData> TransactionContextUtil::GetVerifySignatureStack(
           signature_stack.push_back(build.Build().GetData());
         }
       }
+    } else if (utxo.address_type == AddressType::kTaprootAddress) {
+      // do nothing
     } else {
       if (items.size() != 1) {
         throw CfdException(
@@ -544,6 +593,29 @@ std::vector<ByteData> TransactionContextUtil::GetVerifySignatureStack(
         locking_script = ScriptUtil::CreateP2shLockingScript(locking_script);
       }
     }
+  } else if (utxo.address_type == AddressType::kTaprootAddress) {
+    version = WitnessVersion::kVersion1;
+
+    SchnorrSignature schnorr_sig;
+    bool has_parity = false;
+    uint8_t leaf_version = 0;
+    SchnorrPubkey internal_pubkey;
+    std::vector<ByteData256> nodes;
+    Script tapscript;
+    ByteData annex;
+
+    TaprootUtil::ParseTaprootSignData(
+        signature_stack, &schnorr_sig, &has_parity, &leaf_version,
+        &internal_pubkey, &nodes, &tapscript, nullptr, &annex);
+    if (internal_pubkey.IsValid()) {
+      TaprootScriptTree tree(leaf_version, tapscript);
+      for (const auto& node : nodes) tree.AddBranch(node);
+      TaprootUtil::CreateTapScriptControl(
+          internal_pubkey, tree, nullptr, &locking_script);
+    } else {
+      has_pubkey = true;
+      locking_script = utxo.locking_script;  // for ignore check
+    }
   } else {
     // check script format
     Script redeem_script(signature_stack.back());
@@ -596,7 +668,17 @@ template void TransactionContextUtil::Verify<TransactionContext>(
     const UtxoData& utxo, const AbstractTxIn* txin,
     std::function<ByteData256(
         const TransactionContext*, const OutPoint&, const UtxoData&,
-        const SigHashType&, const Pubkey&, const Script&, WitnessVersion)>
+        const SigHashType&, const Pubkey&, const Script&, WitnessVersion,
+        const ByteData*, const TaprootScriptTree*)>
+        create_sighash_func);
+
+template void TransactionContextUtil::Verify<Transaction>(
+    const Transaction* transaction, const OutPoint& outpoint,
+    const UtxoData& utxo, const AbstractTxIn* txin,
+    std::function<ByteData256(
+        const Transaction*, const OutPoint&, const UtxoData&,
+        const SigHashType&, const Pubkey&, const Script&, WitnessVersion,
+        const ByteData*, const TaprootScriptTree*)>
         create_sighash_func);
 
 // -----------------------------------------------------------------------------
@@ -626,7 +708,7 @@ template void TransactionContextUtil::Verify<ConfidentialTransactionContext>(
     std::function<ByteData256(
         const ConfidentialTransactionContext*, const OutPoint&,
         const UtxoData&, const SigHashType&, const Pubkey&, const Script&,
-        WitnessVersion)>
+        WitnessVersion, const ByteData*, const TaprootScriptTree*)>
         create_sighash_func);
 #endif  // CFD_DISABLE_ELEMENTS
 

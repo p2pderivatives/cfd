@@ -22,6 +22,7 @@
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_script.h"
 
 using cfd::core::ByteData;
 using cfd::core::CfdError;
@@ -45,6 +46,7 @@ namespace cfd {
 namespace capi {
 
 using cfd::core::CfdException;
+using cfd::core::Script;
 
 //! empty 32byte data
 constexpr const char* const kEmpty32Bytes =
@@ -71,7 +73,7 @@ constexpr uint32_t kAssetSize = 33;
 //! prefix: MultisigSign
 constexpr const char* const kPrefixMultisigSignData = "MultisigSign";
 //! multisig max key num
-constexpr const uint32_t kMultisigMaxKeyNum = 16;
+constexpr const uint32_t kMultisigMaxKeyNum = Script::kMaxMultisigPubkeyNum;
 //! signature hex size (73 * 2)
 constexpr const uint32_t kSignatureHexSize = 146;
 //! pubkey hex size (cfd::core::Pubkey::kPubkeySize * 2)
@@ -249,6 +251,7 @@ class CfdCapiManager {
   /**
    * @brief ハンドルを作成する。
    * @param[in] is_outside  create outside handle
+   * @return handle
    */
   void* CreateHandle(bool is_outside = false);
   /**

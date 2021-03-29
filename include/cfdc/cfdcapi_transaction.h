@@ -19,8 +19,13 @@ extern "C" {
 
 /** txin sequence locktime */
 enum CfdSequenceLockTime {
-  /** disable locktime */
+  /**
+   * @brief disable locktime
+   * @deprecated rename to kCfdSequenceLockTimeFinal.
+   */
   kCfdSequenceLockTimeDisable = 0xffffffffU,
+  /** locktime final */
+  kCfdSequenceLockTimeFinal = 0xffffffffU,
   /** enable locktime (maximum time) */
   kCfdSequenceLockTimeEnableMax = 0xfffffffeU,
 };
@@ -94,6 +99,182 @@ CFDC_API int CfdAddTransactionOutput(
     void* handle, void* create_handle, int64_t value_satoshi,
     const char* address, const char* direct_locking_script,
     const char* asset_string);
+
+/**
+ * @brief clear witness stack on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdClearWitnessStack(
+    void* handle, void* create_handle, const char* txid, uint32_t vout);
+
+/**
+ * @brief update scriptsig on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] script_sig        unlocking script(script signature).
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdUpdateTxInScriptSig(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* script_sig);
+
+/**
+ * @brief set utxo data on transaction input.
+ * @details for calculate schnorr sighature.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              utxo txid.
+ * @param[in] vout              utxo vout.
+ * @param[in] amount            utxo amount
+ * @param[in] commitment        utxo amount commitment
+ * @param[in] descriptor        utxo descriptor
+ * @param[in] address           utxo address
+ * @param[in] asset             utxo asset
+ * @param[in] scriptsig_template    utxo scriptsig template
+ * @param[in] can_insert        insert mode
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdSetTransactionUtxoData(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* commitment, const char* descriptor,
+    const char* address, const char* asset, const char* scriptsig_template,
+    bool can_insert);
+
+/**
+ * @brief Create sighash on transaction input.
+ * @details Call CfdSetTransactionUtxoData before calling this function.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] sighash_type      sighash type.
+ * @param[in] sighash_anyone_can_pay    anyone can pay flag.
+ * @param[in] pubkey            pubkey
+ * @param[in] redeem_script     redeem script
+ * @param[in] tapleaf_hash      tapleaf hash
+ * @param[in] code_separator_position   code separator position
+ * @param[in] annex             annex bytes.
+ * @param[out] sighash          sighash
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdCreateSighashByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int sighash_type, bool sighash_anyone_can_pay, const char* pubkey,
+    const char* redeem_script, const char* tapleaf_hash,
+    uint32_t code_separator_position, const char* annex, char** sighash);
+
+/**
+ * @brief Sign with private key on transaction input.
+ * @details Call CfdSetTransactionUtxoData before calling this function.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] privkey           private key.
+ * @param[in] sighash_type      sighash type.
+ * @param[in] sighash_anyone_can_pay    anyone can pay flag.
+ * @param[in] has_grind_r       Grind-R flag on sign.
+ * @param[in] aux_rand          the auxiliary random data.\
+ *      used to create the nonce.
+ * @param[in] annex             annex bytes.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddSignWithPrivkeyByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* privkey, int sighash_type, bool sighash_anyone_can_pay,
+    bool has_grind_r, const char* aux_rand, const char* annex);
+
+/**
+ * @brief Verify transactin sign. (It does not check the Script itself.)
+ * @details Call CfdSetTransactionUtxoData before calling this function.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdVerifyTxSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout);
+
+/**
+ * @brief Add tx sign on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.
+ * @param[in] sign_data_hex     sign data.
+ * @param[in] use_der_encode    use der encode.
+ * @param[in] sighash_type      sighash type.
+ * @param[in] sighash_anyone_can_pay    anyone can pay flag.
+ * @param[in] clear_stack       clear witness stack.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddTxSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int hash_type, const char* sign_data_hex, bool use_der_encode,
+    int sighash_type, bool sighash_anyone_can_pay, bool clear_stack);
+
+/**
+ * @brief Add tx taproot sign on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] signature         signature.
+ *      It is assumed that sighashType is assigned \
+ *      by CfdAddSighashTypeInSchnorrSignature().
+ * @param[in] tapscript         tapscript hex.
+ * @param[in] control_block     taproot control block.
+ *      see CfdGetTaprootScriptTreeHash().
+ * @param[in] annex             annex bytes.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddTaprootSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* signature, const char* tapscript, const char* control_block,
+    const char* annex);
+
+/**
+ * @brief Add tx pubkey hash sign on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.
+ * @param[in] pubkey            pubkey.
+ * @param[in] signature         signature.
+ * @param[in] use_der_encode    use der encode.
+ * @param[in] sighash_type      sighash type.
+ * @param[in] sighash_anyone_can_pay    anyone can pay flag.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddPubkeyHashSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int hash_type, const char* pubkey, const char* signature,
+    bool use_der_encode, int sighash_type, bool sighash_anyone_can_pay);
+
+/**
+ * @brief Add tx script hash final sign on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] hash_type         hash type.
+ * @param[in] redeem_script     redeem script.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddScriptHashLastSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int hash_type, const char* redeem_script);
 
 /**
  * @brief finalize and execute createrawtransaction.

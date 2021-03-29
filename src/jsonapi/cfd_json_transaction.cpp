@@ -137,52 +137,20 @@ void TransactionJsonApi::DecodeRawTransaction(
     script_pub_key_res.SetHex(locking_script.GetHex());
     script_pub_key_res.SetAsm(locking_script.ToString());
 
-    ExtractScriptData extract_data =
-        TransactionJsonApi::ExtractLockingScript(locking_script);
-    LockingScriptType type = extract_data.script_type;
-    script_pub_key_res.SetType("nonstandard");
-    if (type != LockingScriptType::kFee) {
-      script_pub_key_res.SetType(
-          TransactionJsonApi::ConvertLockingScriptTypeString(type));
-    }
-    script_pub_key_res.SetReqSigs(extract_data.pushed_datas.size());
-
     AddressFactory addr_factory(net_type);
-    Address address;
-    if (type == LockingScriptType::kMultisig) {
-      script_pub_key_res.SetReqSigs(extract_data.req_sigs);
-      for (ByteData pubkey_bytes : extract_data.pushed_datas) {
-        Pubkey pubkey = Pubkey(pubkey_bytes);
-        address = addr_factory.CreateP2pkhAddress(pubkey);
-        script_pub_key_res.GetAddresses().push_back(address.GetAddress());
-      }
-    } else if (type == LockingScriptType::kPayToPubkey) {
-      Pubkey pubkey = Pubkey(extract_data.pushed_datas[0]);
-      address = addr_factory.CreateP2pkhAddress(pubkey);
-      script_pub_key_res.GetAddresses().push_back(address.GetAddress());
-    } else if (type == LockingScriptType::kPayToPubkeyHash) {
-      ByteData160 hash =
-          ByteData160(extract_data.pushed_datas[0].GetBytes());
-      address = addr_factory.GetAddressByHash(
-          AddressType::kP2pkhAddress, hash);
-      script_pub_key_res.GetAddresses().push_back(address.GetAddress());
-    } else if (type == LockingScriptType::kPayToScriptHash) {
-      ByteData160 hash =
-          ByteData160(extract_data.pushed_datas[0].GetBytes());
-      address = addr_factory.GetAddressByHash(
-          AddressType::kP2shAddress, hash);
-      script_pub_key_res.GetAddresses().push_back(address.GetAddress());
-    } else if (type == LockingScriptType::kWitnessV0KeyHash) {
-      address =
-          addr_factory.GetSegwitAddressByHash(extract_data.pushed_datas[0]);
-      script_pub_key_res.GetAddresses().push_back(address.GetAddress());
-    } else if (type == LockingScriptType::kWitnessV0ScriptHash) {
-      address =
-          addr_factory.GetSegwitAddressByHash(extract_data.pushed_datas[0]);
-      script_pub_key_res.GetAddresses().push_back(address.GetAddress());
-    } else {
+    int64_t require_num = 0;
+    std::string script_type;
+    auto addr_list = TransactionJsonApi::ConvertFromLockingScript(
+        addr_factory, locking_script, &script_type, &require_num);
+    script_pub_key_res.SetType(script_type);
+    script_pub_key_res.SetReqSigs(require_num);
+    if (addr_list.empty()) {
       script_pub_key_res.SetIgnoreItem("reqSigs");
       script_pub_key_res.SetIgnoreItem("addresses");
+    } else {
+      for (auto addr : addr_list) {
+        script_pub_key_res.GetAddresses().push_back(addr.GetAddress());
+      }
     }
     res_txout.SetScriptPubKey(script_pub_key_res);
 
@@ -265,6 +233,8 @@ ExtractScriptData TransactionJsonApi::ExtractLockingScript(
   if (locking_script.IsWitnessProgram()) {
     uint8_t witness_version = static_cast<uint8_t>(elems[0].GetNumber());
     ByteData program = elems[1].GetBinaryData();
+    extract_data.witness_version = static_cast<WitnessVersion>(
+        witness_version);
     if (locking_script.IsP2wpkhScript()) {
       // tx witness keyhash
       extract_data.script_type = LockingScriptType::kWitnessV0KeyHash;
@@ -273,19 +243,17 @@ ExtractScriptData TransactionJsonApi::ExtractLockingScript(
       // tx witness scripthash
       extract_data.script_type = LockingScriptType::kWitnessV0ScriptHash;
       extract_data.pushed_datas.push_back(program);
+    } else if (locking_script.IsTaprootScript()) {
+      extract_data.script_type = LockingScriptType::kWitnessV1Taproot;
+      extract_data.pushed_datas.push_back(program);
     } else if (witness_version != 0) {
       // tx witness unknown
       extract_data.script_type = LockingScriptType::kWitnessUnknown;
-      std::vector<uint8_t> data;
-      data.reserve(program.GetDataSize() + 1);
-      data.push_back(witness_version);
-      std::copy(
-          program.GetBytes().begin(), program.GetBytes().end(),
-          std::back_inserter(data));
-      extract_data.pushed_datas.push_back(ByteData(data));
+      extract_data.pushed_datas.push_back(program);
     } else {
       // non standard
       extract_data.script_type = LockingScriptType::kNonStandard;
+      extract_data.witness_version = WitnessVersion::kVersionNone;
     }
     return extract_data;
   }
@@ -344,6 +312,8 @@ std::string TransactionJsonApi::ConvertLockingScriptTypeString(
       return "witness_v0_scripthash";
     case LockingScriptType::kWitnessV0KeyHash:
       return "witness_v0_keyhash";
+    case LockingScriptType::kWitnessV1Taproot:
+      return "witness_v1_taproot";
     case LockingScriptType::kWitnessUnknown:
       return "witness_unknown";
     case LockingScriptType::kTrue:
@@ -378,6 +348,70 @@ NetType TransactionJsonApi::ConvertNetType(const std::string& network_type) {
         " or \"testnet\" or \"regtest\".");
   }
   return net_type;
+}
+
+std::vector<Address> TransactionJsonApi::ConvertFromLockingScript(
+    const AddressFactory& factory, const Script& script,
+    std::string* script_type, int64_t* require_num) {
+  ExtractScriptData extract_data =
+      TransactionJsonApi::ExtractLockingScript(script);
+  LockingScriptType type = extract_data.script_type;
+  if (script_type != nullptr) {
+    std::string type_str = "nonstandard";
+    if (type != LockingScriptType::kFee) {
+      type_str = TransactionJsonApi::ConvertLockingScriptTypeString(type);
+    }
+    *script_type = type_str;
+  }
+  if (require_num != nullptr) {
+    *require_num = static_cast<int64_t>(extract_data.pushed_datas.size());
+  }
+
+  std::vector<Address> addr_list;
+  Address address;
+  if (type == LockingScriptType::kMultisig) {
+    if (require_num != nullptr) {
+      *require_num = extract_data.req_sigs;
+    }
+    for (ByteData pubkey_bytes : extract_data.pushed_datas) {
+      Pubkey pubkey = Pubkey(pubkey_bytes);
+      address = factory.CreateP2pkhAddress(pubkey);
+      addr_list.push_back(address);
+    }
+  } else if (type == LockingScriptType::kPayToPubkey) {
+    Pubkey pubkey = Pubkey(extract_data.pushed_datas[0]);
+    address = factory.CreateP2pkhAddress(pubkey);
+    addr_list.push_back(address);
+  } else if (type == LockingScriptType::kPayToPubkeyHash) {
+    ByteData160 hash =
+        ByteData160(extract_data.pushed_datas[0].GetBytes());
+    address = factory.GetAddressByHash(
+        AddressType::kP2pkhAddress, hash);
+    addr_list.push_back(address);
+  } else if (type == LockingScriptType::kPayToScriptHash) {
+    ByteData160 hash =
+        ByteData160(extract_data.pushed_datas[0].GetBytes());
+    address = factory.GetAddressByHash(
+        AddressType::kP2shAddress, hash);
+    addr_list.push_back(address);
+  } else if ((type == LockingScriptType::kWitnessV0KeyHash) ||
+      (type == LockingScriptType::kWitnessV0ScriptHash) ||
+      (type == LockingScriptType::kWitnessV1Taproot)) {
+    address = factory.GetSegwitAddressByHash(
+          extract_data.pushed_datas[0], extract_data.witness_version);
+    addr_list.push_back(address);
+  } else if (type == LockingScriptType::kWitnessUnknown) {
+    try {
+      address = factory.GetSegwitAddressByHash(
+            extract_data.pushed_datas[0], extract_data.witness_version);
+      addr_list.push_back(address);
+    } catch (const CfdException&) {
+      // If the data is invalid, it will not be output.
+    }
+  } else {
+    // do nothing
+  }
+  return addr_list;
 }
 
 }  // namespace json

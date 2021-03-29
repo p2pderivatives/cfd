@@ -16,7 +16,6 @@
 #include "capi/cfdc_internal.h"
 #include "cfd/cfd_address.h"
 #include "cfd/cfd_elements_address.h"
-#include "cfd/cfdapi_address.h"
 #include "cfd/cfdapi_elements_address.h"
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_address.h"
@@ -25,11 +24,11 @@
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 
 using cfd::AddressFactory;
-using cfd::api::AddressApi;
-using cfd::api::DescriptorKeyData;
-using cfd::api::DescriptorScriptData;
+using cfd::DescriptorKeyData;
+using cfd::DescriptorScriptData;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::CfdError;
@@ -41,14 +40,16 @@ using cfd::core::ExtPrivkey;
 using cfd::core::ExtPubkey;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
 using cfd::core::Script;
+using cfd::core::ScriptUtil;
+using cfd::core::WitnessVersion;
 
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
 
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::ElementsAddressFactory;
-using cfd::api::ElementsAddressApi;
 #endif  // CFD_DISABLE_ELEMENTS
 
 // =============================================================================
@@ -130,6 +131,7 @@ int CfdCreateAddress(
     void* handle, int hash_type, const char* pubkey, const char* redeem_script,
     int network_type, char** address, char** locking_script,
     char** p2sh_segwit_locking_script) {
+  int result = CfdErrorCode::kCfdUnknownError;
   char* work_address = nullptr;
   char* work_locking_script = nullptr;
   char* work_p2sh_segwit_locking_script = nullptr;
@@ -152,23 +154,26 @@ int CfdCreateAddress(
     Script unlocking_script;
 
     if ((pubkey != nullptr) && (*pubkey != '\0')) {
-      pubkey_obj = Pubkey(pubkey);
+      if (addr_type == AddressType::kTaprootAddress) {
+        pubkey_obj =
+            Pubkey(ByteData("02").Concat(SchnorrPubkey(pubkey).GetData()));
+      } else {
+        pubkey_obj = Pubkey(pubkey);
+      }
     }
     if ((redeem_script != nullptr) && (*redeem_script != '\0')) {
       script = Script(redeem_script);
     }
 
     if (is_bitcoin) {
-      AddressApi api;
-      addr = api.CreateAddress(
-          net_type, addr_type, &pubkey_obj, &script, &lock_script,
-          &unlocking_script);
+      AddressFactory factory(net_type);
+      addr = factory.CreateAddress(
+          addr_type, &pubkey_obj, &script, &lock_script, &unlocking_script);
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
-      ElementsAddressApi e_api;
-      addr = e_api.CreateAddress(
-          net_type, addr_type, &pubkey_obj, &script, &lock_script,
-          &unlocking_script);
+      ElementsAddressFactory factory(net_type);
+      addr = factory.CreateAddress(
+          addr_type, &pubkey_obj, &script, &lock_script, &unlocking_script);
 #else
       throw CfdException(
           CfdError::kCfdIllegalStateError, "Elements not supported.");
@@ -194,20 +199,15 @@ int CfdCreateAddress(
       *p2sh_segwit_locking_script = work_p2sh_segwit_locking_script;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
-    FreeBufferOnError(
-        &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
-    return SetLastError(handle, except);
+    result = SetLastError(handle, except);
   } catch (const std::exception& std_except) {
-    FreeBufferOnError(
-        &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
     SetLastFatalError(handle, std_except.what());
-    return CfdErrorCode::kCfdUnknownError;
   } catch (...) {
-    FreeBufferOnError(
-        &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
     SetLastFatalError(handle, "unknown error.");
-    return CfdErrorCode::kCfdUnknownError;
   }
+  FreeBufferOnError(
+      &work_address, &work_locking_script, &work_p2sh_segwit_locking_script);
+  return result;
 }
 
 int CfdInitializeMultisigScript(
@@ -329,22 +329,28 @@ int CfdFinalizeMultisigScript(
     for (uint32_t index = 0; index < data->current_index; ++index) {
       pubkeys.emplace_back(std::string(data->pubkeys[index]));
     }
+    bool has_witness = (addr_type != AddressType::kP2shAddress);
+    Script multisig_script = ScriptUtil::CreateMultisigRedeemScript(
+        require_num, pubkeys, has_witness);
 
     if (is_bitcoin) {
-      AddressApi api;
-      addr = api.CreateMultisig(
-          net_type, addr_type, require_num, pubkeys, &redeem_script_obj,
-          &witness_script_obj);
+      AddressFactory factory(net_type);
+      addr = factory.CreateAddress(
+          addr_type, nullptr, &multisig_script, nullptr, &redeem_script_obj);
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
-      ElementsAddressApi e_api;
-      addr = e_api.CreateMultisig(
-          net_type, addr_type, require_num, pubkeys, &redeem_script_obj,
-          &witness_script_obj);
+      ElementsAddressFactory factory(net_type);
+      addr = factory.CreateAddress(
+          addr_type, nullptr, &multisig_script, nullptr, &redeem_script_obj);
 #else
       throw CfdException(
           CfdError::kCfdIllegalStateError, "Elements not supported.");
 #endif  // CFD_DISABLE_ELEMENTS
+    }
+    if (!has_witness) {
+      redeem_script_obj = multisig_script;
+    } else {
+      witness_script_obj = multisig_script;
     }
 
     work_address = CreateString(addr.GetAddress());
@@ -429,14 +435,14 @@ int CfdParseDescriptor(
     std::vector<DescriptorKeyData> multisig_key_list;
     DescriptorScriptData desc_data;
     if (is_bitcoin) {
-      AddressApi api;
-      desc_data = api.ParseOutputDescriptor(
-          descriptor, net_type, derive_path, &script_list, &multisig_key_list);
+      AddressFactory factory(net_type);
+      desc_data = factory.ParseOutputDescriptor(
+          descriptor, derive_path, &script_list, &multisig_key_list);
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
-      ElementsAddressApi e_api;
-      desc_data = e_api.ParseOutputDescriptor(
-          descriptor, net_type, derive_path, &script_list, &multisig_key_list);
+      ElementsAddressFactory factory(net_type);
+      desc_data = factory.ParseOutputDescriptor(
+          descriptor, derive_path, &script_list, &multisig_key_list);
 #else
       throw CfdException(
           CfdError::kCfdIllegalStateError, "Elements not supported.");
@@ -509,8 +515,7 @@ int CfdGetDescriptorData(
     if ((locking_script != nullptr) && (!desc_data.locking_script.IsEmpty())) {
       work_locking_script = CreateString(desc_data.locking_script.GetHex());
     }
-    if ((address != nullptr) &&
-        (desc_data.type != DescriptorScriptType::kDescriptorScriptRaw)) {
+    if ((address != nullptr) && (!desc_data.address.GetAddress().empty())) {
       std::string addr = desc_data.address.GetAddress();
       if (!addr.empty()) work_address = CreateString(addr);
     }
@@ -762,14 +767,14 @@ int CfdGetAddressesFromMultisig(
     std::vector<Pubkey> pubkey_list;
     std::vector<Address> addr_list;
     if (is_bitcoin) {
-      AddressApi api;
-      addr_list = api.GetAddressesFromMultisig(
-          net_type, addr_type, redeem_script_obj, &pubkey_list);
+      AddressFactory factory(net_type);
+      addr_list = factory.GetAddressesFromMultisig(
+          addr_type, redeem_script_obj, &pubkey_list);
     } else {
 #ifndef CFD_DISABLE_ELEMENTS
-      ElementsAddressApi e_api;
-      addr_list = e_api.GetAddressesFromMultisig(
-          net_type, addr_type, redeem_script_obj, &pubkey_list);
+      ElementsAddressFactory factory(net_type);
+      addr_list = factory.GetAddressesFromMultisig(
+          addr_type, redeem_script_obj, &pubkey_list);
 #else
       throw CfdException(
           CfdError::kCfdIllegalStateError, "Elements not supported.");
@@ -991,6 +996,12 @@ int CfdGetAddressInfo(
           break;
         case AddressType::kP2shP2wpkhAddress:
           *hash_type = kCfdP2shP2wpkh;
+          break;
+        case AddressType::kTaprootAddress:
+          *hash_type = kCfdTaproot;
+          break;
+        case AddressType::kWitnessUnknown:
+          *hash_type = kCfdUnknown;
           break;
         default:
           warn(

@@ -61,7 +61,9 @@ enum CfdErrorCode {
   /** disk access error */
   kCfdDiskAccessError = 6,
   /** Signature Verification Fail */
-  kCfdSignVerificationError = 7
+  kCfdSignVerificationError = 7,
+  /** NotFound error */
+  kCfdNotFoundError = 8
 };
 
 /**
@@ -195,6 +197,136 @@ CFDC_API int CfdRequestExecuteJson(
  */
 CFDC_API int CfdSerializeByteData(
     void* handle, const char* buffer, char** output);
+
+/**
+ * @brief Encrypto by AES.
+ * @param[in] handle    handle pointer.
+ * @param[in] key       key byte array hex.
+ * @param[in] cbc_iv    initial vector (with cbc) hex.
+ * @param[in] buffer    byte array hex.
+ * @param[out] output   output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdEncryptAES(
+    void* handle, const char* key, const char* cbc_iv, const char* buffer,
+    char** output);
+
+/**
+ * @brief Decrypto by AES.
+ * @param[in] handle    handle pointer.
+ * @param[in] key       key byte array hex.
+ * @param[in] cbc_iv    initial vector (with cbc) hex.
+ * @param[in] buffer    AES byte array hex.
+ * @param[out] output   output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdDecryptAES(
+    void* handle, const char* key, const char* cbc_iv, const char* buffer,
+    char** output);
+
+/**
+ * @brief Encode base64.
+ * @param[in] handle    handle pointer.
+ * @param[in] buffer    byte array hex.
+ * @param[out] output   output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdEncodeBase64(void* handle, const char* buffer, char** output);
+
+/**
+ * @brief Decode base64.
+ * @param[in] handle    handle pointer.
+ * @param[in] base64    base64 string.
+ * @param[out] output   output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdDecodeBase64(void* handle, const char* base64, char** output);
+
+/**
+ * @brief Encode base58.
+ * @param[in] handle          handle pointer.
+ * @param[in] buffer          byte array hex.
+ * @param[in] use_checksum    using checksum.
+ * @param[out] output         output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdEncodeBase58(
+    void* handle, const char* buffer, bool use_checksum, char** output);
+
+/**
+ * @brief Decode base58.
+ * @param[in] handle          handle pointer.
+ * @param[in] base58          base58 string.
+ * @param[in] use_checksum    using checksum.
+ * @param[out] output         output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdDecodeBase58(
+    void* handle, const char* base58, bool use_checksum, char** output);
+
+/**
+ * @brief Hash with ripemd160.
+ * @param[in] handle            handle pointer.
+ * @param[in] message           message string. (text or hex)
+ * @param[in] has_text          message has text.
+ * @param[out] output           output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdRipemd160(
+    void* handle, const char* message, bool has_text, char** output);
+
+/**
+ * @brief Hash with sha256.
+ * @param[in] handle            handle pointer.
+ * @param[in] message           message string. (text or hex)
+ * @param[in] has_text          message has text.
+ * @param[out] output           output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdSha256(
+    void* handle, const char* message, bool has_text, char** output);
+
+/**
+ * @brief Hash with hash160.
+ * @param[in] handle            handle pointer.
+ * @param[in] message           message string. (text or hex)
+ * @param[in] has_text          message has text.
+ * @param[out] output           output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdHash160(
+    void* handle, const char* message, bool has_text, char** output);
+
+/**
+ * @brief Hash with hash256.
+ * @param[in] handle            handle pointer.
+ * @param[in] message           message string. (text or hex)
+ * @param[in] has_text          message has text.
+ * @param[out] output           output byte array hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdHash256(
+    void* handle, const char* message, bool has_text, char** output);
 
 #ifdef __cplusplus
 #if 0

@@ -1,7 +1,7 @@
 // Copyright 2019 CryptoGarage
 /**
  * @file cfd_common.h
- * @brief cfdの共通定義ファイル。
+ * @brief Common definition file for cfd.
  */
 #ifndef CFD_INCLUDE_CFD_CFD_COMMON_H_
 #define CFD_INCLUDE_CFD_CFD_COMMON_H_
@@ -9,7 +9,7 @@
 #include <cstdint>
 
 /**
- * @brief APIのDLLエクスポート定義
+ * @brief API DLL export definition
  */
 #ifndef CFD_API
 #if defined(_WIN32)
@@ -28,7 +28,7 @@
 #endif
 
 /**
- * @brief クラスのDLLエクスポート定義
+ * @brief DLL export definition for class
  */
 #ifndef CFD_EXPORT
 #if defined(_WIN32)
@@ -47,12 +47,12 @@
 #endif
 
 /**
- * @brief cfd名前空間
+ * @brief cfd namespace
  */
 namespace cfd {
 
 /**
- * @brief ライブラリがサポートしている機能の定義値
+ * @brief Definition of the function supported by the library
  */
 enum LibraryFunction {
   kEnableBitcoin = 0x0001,   //!< enable bitcoin function
@@ -61,17 +61,17 @@ enum LibraryFunction {
 
 // API
 /**
- * @brief ライブラリがサポートしている機能の値を取得する。
- * @return LibraryFunctionのビットフラグ
+ * @brief Get the supported function by the library.
+ * @return Function bit flag
  */
 CFD_API uint64_t GetSupportedFunction();
 /**
- * @brief cfdの初期化を行う。
+ * @brief Initialize cfd.
  */
 CFD_API void Initialize(void);
 /**
- * @brief cfdの終了処理を行う。
- * @param[in] is_finish_process   プロセス終了時かどうか
+ * @brief Performs cfd termination processing.
+ * @param[in] is_finish_process   Whether at the end of the process
  */
 CFD_API void Finalize(bool is_finish_process = false);
 

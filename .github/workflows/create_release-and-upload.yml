@@ -168,10 +168,14 @@ jobs:
         asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-ubuntu${{ matrix.os_ver }}04-${{ matrix.bin }}-x86_64.zip
         asset_content_type: application/zip
 
-  upload-object-alpine-3-10:
-    name: upload-object-alpine-3.10
+  upload-object-alpine:
+    name: upload-object-alpine
     needs: create_releases
     runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        alpine: ['3.10', '3.12', '3.13']
 
     steps:
     - name: checkout
@@ -181,55 +185,19 @@ jobs:
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
     - name: list
       run: ls -a $GITHUB_WORKSPACE
-    - name: docker setup
+    - name: docker setup 3.10
+      if: matrix.alpine == '3.10'
       uses: docker://alpine:3.10
       with:
         entrypoint: /github/workspace/.github/workflows/docker/alpine_build_entrypoint.sh
-    - name: create archive file
-      run: |
-        echo "---- dump output data ----"
-        ls -l $GITHUB_WORKSPACE/dist/usr/local/*
-        mkdir -p /tmp/cfd
-        sudo chmod 777 /tmp/cfd
-        sudo chown runner /tmp/cfd
-        sudo cp -r $GITHUB_WORKSPACE/dist/usr /tmp/cfd
-        cd /tmp/cfd
-        sudo zip -r /tmp/cfd/cfd.zip usr
-        sudo chmod 777 /tmp/cfd/cfd.zip
-        sudo chown runner /tmp/cfd/cfd.zip
-        sudo cp -rp /tmp/cfd/cfd.zip $GITHUB_WORKSPACE/dist/cfd.zip
-        echo "---- dump zip file ----"
-        sudo ls -l /tmp/cfd
-    - name: output url
-      id: get_url
-      run: echo "::set-output name=upload_url::${{ needs.create_releases.outputs.release_url }}"
-    - name: Upload Release Asset
-      id: upload-release-asset 
-#      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.get_url.outputs.upload_url }}
-        asset_path: /tmp/cfd/cfd.zip
-        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-alpine-3.10-x86_64.zip
-        asset_content_type: application/zip
-
-  upload-object-alpine-3-12:
-    name: upload-object-alpine-3.12
-    needs: create_releases
-    runs-on: ubuntu-18.04
-
-    steps:
-    - name: checkout
-      uses: actions/checkout@v2
-    - name: Get the version
-      id: get_version
-      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-    - name: list
-      run: ls -a $GITHUB_WORKSPACE
-    - name: docker setup
+    - name: docker setup 3.12
+      if: matrix.alpine == '3.12'
       uses: docker://alpine:3.12
+      with:
+        entrypoint: /github/workspace/.github/workflows/docker/alpine_build_entrypoint.sh
+    - name: docker setup 3.13
+      if: matrix.alpine == '3.13'
+      uses: docker://alpine:3.13
       with:
         entrypoint: /github/workspace/.github/workflows/docker/alpine_build_entrypoint.sh
     - name: create archive file
@@ -259,7 +227,7 @@ jobs:
       with:
         upload_url: ${{ steps.get_url.outputs.upload_url }}
         asset_path: /tmp/cfd/cfd.zip
-        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-alpine-3.12-x86_64.zip
+        asset_name: cfd-${{ steps.get_version.outputs.VERSION }}-alpine-${{ matrix.alpine }}-x86_64.zip
         asset_content_type: application/zip
 
   upload-object-macos:
@@ -269,7 +237,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode: [10.3, 11.6]
+        xcode: [10.3, 11.7, 12.4]
         shared: [on, off]
         include:
           - shared: on
@@ -279,7 +247,7 @@ jobs:
 
     steps:
     - name: checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}

@@ -29,7 +29,9 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
@@ -62,6 +64,7 @@ using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::Amount;
 using cfd::core::ByteData;
+using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::HashType;
@@ -69,10 +72,13 @@ using cfd::core::NetType;
 using cfd::core::OutPoint;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
+using cfd::core::SchnorrSignature;
 using cfd::core::Script;
 using cfd::core::ScriptUtil;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
+using cfd::core::TaprootUtil;
 using cfd::core::Txid;
 using cfd::core::TxInReference;
 using cfd::core::TxOutReference;
@@ -381,6 +387,757 @@ int CfdAddTransactionOutput(
   }
 }
 
+int CfdClearWitnessStack(
+    void* handle, void* create_handle, const char* txid, uint32_t vout) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    Txid txid_obj(txid);
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      auto index = tx->GetTxInIndex(txid_obj, vout);
+      tx->RemoveScriptWitnessStackAll(index);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      auto index = tx->GetTxInIndex(txid_obj, vout);
+      tx->RemoveScriptWitnessStackAll(index);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdUpdateTxInScriptSig(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* script_sig) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    Txid txid_obj(txid);
+    Script script;
+    if (!IsEmptyString(script_sig)) script = Script(script_sig);
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      auto index = tx->GetTxInIndex(txid_obj, vout);
+      tx->SetUnlockingScript(index, script);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      auto index = tx->GetTxInIndex(txid_obj, vout);
+      tx->SetUnlockingScript(index, script);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdSetTransactionUtxoData(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* commitment, const char* descriptor,
+    const char* address, const char* asset, const char* scriptsig_template,
+    bool can_insert) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    NetType network = ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+
+    UtxoData utxo;
+    utxo.address_type = AddressType::kP2shAddress;
+    utxo.block_height = 0;
+    utxo.binary_data = nullptr;
+    utxo.vout = vout;
+    utxo.txid = Txid(txid);
+    utxo.amount = Amount(amount);
+    if (!IsEmptyString(scriptsig_template)) {
+      utxo.scriptsig_template = Script(scriptsig_template);
+    }
+    if (!IsEmptyString(descriptor)) {
+      utxo.descriptor = std::string(descriptor);
+    }
+
+    OutPoint outpoint(utxo.txid, utxo.vout);
+    if (is_bitcoin) {
+      AddressFactory factory(network);
+      if (!IsEmptyString(address)) {
+        utxo.address = factory.GetAddress(address);
+      }
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      if (tx->IsFindTxIn(outpoint)) {
+        tx->CollectInputUtxo({utxo});
+      } else if (!can_insert) {
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Txid is not found.");
+      } else {
+        tx->AddInput(utxo);
+      }
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ElementsAddressFactory factory(network);
+      if (!IsEmptyString(asset)) {
+        utxo.asset = ConfidentialAssetId(asset);
+      }
+      if (!IsEmptyString(commitment)) {
+        utxo.value_commitment = ConfidentialValue(commitment);
+      }
+      if (!IsEmptyString(address)) {
+        utxo.address = factory.GetAddress(address);
+      }
+
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      if (tx->IsFindTxIn(outpoint)) {
+        tx->CollectInputUtxo({utxo});
+      } else {
+        tx->AddInput(utxo);
+      }
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdCreateSighashByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int sighash_type, bool sighash_anyone_can_pay, const char* pubkey,
+    const char* redeem_script, const char* tapleaf_hash,
+    uint32_t code_separator_position, const char* annex, char** sighash) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (sighash == nullptr) {
+      warn(CFD_LOG_SOURCE, "sighash is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sighash is null.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+
+    ByteData sighash_bytes;
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      auto utxo = tx->GetTxInUtxoData(outpoint);
+      if (utxo.address_type == AddressType::kTaprootAddress) {
+        ByteData256 tapleaf_hash_obj;
+        ByteData annex_data;
+        bool has_tapscript = !IsEmptyString(tapleaf_hash);
+        if (has_tapscript) {
+          tapleaf_hash_obj = ByteData256(tapleaf_hash);
+        }
+        if (!IsEmptyString(annex)) annex_data = ByteData(annex);
+        sighash_bytes =
+            tx->CreateSignatureHashByTaproot(
+                  outpoint, sighashtype,
+                  (has_tapscript) ? &tapleaf_hash_obj : nullptr,
+                  (has_tapscript) ? &code_separator_position : nullptr,
+                  &annex_data)
+                .GetData();
+      } else {
+        WitnessVersion version = WitnessVersion::kVersionNone;
+        Script script;
+        Amount amount;
+        if (IsEmptyString(redeem_script)) {
+          Pubkey pubkey_obj(pubkey);
+          if (utxo.address_type != AddressType::kP2pkhAddress) {
+            version = WitnessVersion::kVersion0;
+            amount = utxo.amount;
+          }
+          sighash_bytes = tx->CreateSignatureHash(
+              outpoint, pubkey_obj, sighashtype, amount, version);
+        } else {
+          script = Script(redeem_script);
+          auto wsh_script = ScriptUtil::CreateP2wshLockingScript(script);
+          auto segwit_script = ScriptUtil::CreateP2shLockingScript(wsh_script);
+          if (utxo.locking_script.Equals(wsh_script) ||
+              utxo.locking_script.Equals(segwit_script)) {
+            version = WitnessVersion::kVersion0;
+            amount = utxo.amount;
+          }
+          sighash_bytes = tx->CreateSignatureHash(
+              outpoint, script, sighashtype, amount, version);
+        }
+      }
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      auto utxo = tx->GetTxInUtxoData(outpoint);
+      ConfidentialValue value;
+      auto utxo_value = utxo.value_commitment;
+      if (!value.HasBlinding()) utxo_value = ConfidentialValue(utxo.amount);
+      if (utxo.address_type == AddressType::kTaprootAddress) {
+        throw CfdException(
+            CfdError::kCfdIllegalStateError,
+            "Failed to parameter. unsupported type.");
+      } else {
+        WitnessVersion version = WitnessVersion::kVersionNone;
+        Pubkey pubkey_obj;
+        Script script;
+        if (!IsEmptyString(pubkey)) pubkey_obj = Pubkey(pubkey);
+        if (!IsEmptyString(redeem_script)) script = Script(redeem_script);
+        if (pubkey_obj.IsValid()) {
+          if (utxo.address_type != AddressType::kP2pkhAddress) {
+            version = WitnessVersion::kVersion0;
+            value = utxo_value;
+          }
+          sighash_bytes = tx->CreateSignatureHash(
+              outpoint, pubkey_obj, sighashtype, value, version);
+        } else {
+          auto wsh_script = ScriptUtil::CreateP2wshLockingScript(script);
+          auto segwit_script = ScriptUtil::CreateP2shLockingScript(wsh_script);
+          if (utxo.locking_script.Equals(wsh_script) ||
+              utxo.locking_script.Equals(segwit_script)) {
+            version = WitnessVersion::kVersion0;
+            value = utxo_value;
+          }
+          sighash_bytes = tx->CreateSignatureHash(
+              outpoint, script, sighashtype, value, version);
+        }
+      }
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    *sighash = CreateString(sighash_bytes.GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddSignWithPrivkeyByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* privkey, int sighash_type, bool sighash_anyone_can_pay,
+    bool has_grind_r, const char* aux_rand, const char* annex) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (IsEmptyString(privkey)) {
+      warn(CFD_LOG_SOURCE, "privkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+
+    ByteData sighash_bytes;
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
+
+    Privkey privkey_obj;
+    std::string privkey_str(privkey);
+    if (Privkey::HasWif(privkey_str)) {
+      privkey_obj = Privkey::FromWif(privkey_str);
+    } else {
+      privkey_obj = Privkey(privkey_str);
+    }
+
+    ByteData annex_data;
+    bool has_annex = !IsEmptyString(aux_rand);
+    if (has_annex) annex_data = ByteData(annex);
+    ByteData256 aux_rand_data;
+    bool has_aux_rand = !IsEmptyString(aux_rand);
+    if (has_aux_rand) aux_rand_data = ByteData256(aux_rand);
+
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->SignWithKey(
+          outpoint, privkey_obj.GetPubkey(), privkey_obj, sighashtype,
+          has_grind_r, (has_aux_rand) ? &aux_rand_data : nullptr,
+          (has_annex) ? &annex_data : nullptr);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      tx->SignWithKey(
+          outpoint, privkey_obj.GetPubkey(), privkey_obj, sighashtype,
+          has_grind_r);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdVerifyTxSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->Verify(outpoint);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      tx->Verify(outpoint);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    if (result != CfdErrorCode::kCfdSignVerificationError) {
+      result = SetLastError(handle, except);
+    } else {
+      SetLastError(handle, except);  // collect error message
+    }
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdAddTxSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int hash_type, const char* sign_data_hex, bool use_der_encode,
+    int sighash_type, bool sighash_anyone_can_pay, bool clear_stack) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+
+    AddressType addr_type = ConvertHashToAddressType(hash_type);
+    bool is_witness = true;
+    if ((addr_type == AddressType::kP2shAddress) ||
+        (addr_type == AddressType::kP2pkhAddress)) {
+      is_witness = false;
+    }
+
+    if ((sign_data_hex == nullptr) ||
+        (IsEmptyString(sign_data_hex) && (use_der_encode || !is_witness))) {
+      warn(CFD_LOG_SOURCE, "sign data is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. sign data is null or empty.");
+    }
+
+    SignParameter param;
+    if (use_der_encode) {
+      // encode to der
+      SigHashType sighashtype = SigHashType::Create(
+          static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
+      ByteData signature_bytes = ByteData(std::string(sign_data_hex));
+      param = SignParameter(signature_bytes, true, sighashtype);
+    } else {
+      param = SignParameter(std::string(sign_data_hex));
+    }
+    std::vector<SignParameter> sign_list = {param};
+
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->AddSign(outpoint, sign_list, is_witness, clear_stack);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      tx->AddSign(outpoint, sign_list, is_witness, clear_stack);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddTaprootSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* signature, const char* tapscript, const char* control_block,
+    const char* annex) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+    ByteData annex_data;
+    bool has_annex = !IsEmptyString(annex);
+    if (has_annex) annex_data = ByteData(annex);
+
+    if (!IsEmptyString(signature)) {  // single sign
+      // do nothing
+    } else if (IsEmptyString(tapscript)) {
+      warn(CFD_LOG_SOURCE, "tapscript is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tapscript is null or empty.");
+    } else if (IsEmptyString(control_block)) {
+      warn(CFD_LOG_SOURCE, "control_block is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. control_block is null or empty.");
+    }
+
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      if (!IsEmptyString(signature)) {
+        SchnorrSignature sig(signature);
+        tx->AddSchnorrSign(outpoint, sig, (has_annex) ? &annex_data : nullptr);
+      } else {
+        Script tapscript_obj(tapscript);
+        ByteData control_obj(control_block);
+        std::vector<SignParameter> sign_params;
+        sign_params.emplace_back(tapscript_obj.GetData());
+        sign_params.emplace_back(control_obj);
+        if (has_annex) sign_params.emplace_back(annex_data);
+        tx->AddSign(outpoint, sign_params, true, false);
+      }
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Elements is not supported yet.");
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddPubkeyHashSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int hash_type, const char* pubkey, const char* signature,
+    bool use_der_encode, int sighash_type, bool sighash_anyone_can_pay) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null or empty.");
+    }
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+
+    AddressType addr_type = ConvertHashToAddressType(hash_type);
+    SignParameter param;
+    if (use_der_encode) {
+      // encode to der
+      SigHashType sighashtype = SigHashType::Create(
+          static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
+      ByteData signature_bytes = ByteData(std::string(signature));
+      param = SignParameter(signature_bytes, true, sighashtype);
+    } else {
+      param = SignParameter(std::string(signature));
+    }
+
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->AddPubkeyHashSign(outpoint, param, Pubkey(pubkey), addr_type);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      tx->AddPubkeyHashSign(outpoint, param, Pubkey(pubkey), addr_type);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdAddScriptHashLastSignByHandle(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int hash_type, const char* redeem_script) {
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    if (IsEmptyString(redeem_script)) {
+      warn(CFD_LOG_SOURCE, "redeem_script is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. redeem_script is null or empty.");
+    }
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    }
+    OutPoint outpoint(Txid(txid), vout);
+
+    AddressType addr_type = ConvertHashToAddressType(hash_type);
+    std::vector<SignParameter> list;
+    Script script = Script(std::string(redeem_script));
+    if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->AddScriptHashSign(outpoint, list, script, addr_type);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      tx->AddScriptHashSign(outpoint, list, script, addr_type);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
 int CfdFinalizeTransaction(
     void* handle, void* create_handle, char** tx_hex_string) {
   return CfdGetModifiedTxByHandle(handle, create_handle, tx_hex_string);
@@ -481,8 +1238,8 @@ int CfdAddTxSign(
     SignParameter param;
     if (use_der_encode) {
       // encode to der
-      SigHashType sighashtype(
-          static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+      SigHashType sighashtype = SigHashType::Create(
+          static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
       ByteData signature_bytes = ByteData(std::string(sign_data_hex));
       param = SignParameter(signature_bytes, true, sighashtype);
     } else {
@@ -563,8 +1320,8 @@ int CfdAddPubkeyHashSign(
     SignParameter param;
     if (use_der_encode) {
       // encode to der
-      SigHashType sighashtype(
-          static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+      SigHashType sighashtype = SigHashType::Create(
+          static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
       ByteData signature_bytes = ByteData(std::string(signature));
       param = SignParameter(signature_bytes, true, sighashtype);
     } else {
@@ -738,8 +1495,8 @@ int CfdAddSignWithPrivkeySimple(
     }
 
     OutPoint outpoint(Txid(txid), vout);
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
 
     bool is_bitcoin = false;
     ConvertNetType(net_type, &is_bitcoin);
@@ -861,8 +1618,8 @@ int CfdAddMultisigSignDataToDer(
     }
 
     // encode to der
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     ByteData signature_bytes = ByteData(std::string(signature));
     SignParameter param(signature_bytes, true, sighashtype);
     ByteData signature_der = param.ConvertToSignature();
@@ -1039,8 +1796,8 @@ int CfdVerifySignature(
     WitnessVersion version = GetWitnessVersion(hash_type);
     Amount amount = Amount(value_satoshi);
     OutPoint outpoint(Txid(txid), vout);
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     ByteData signature_obj(signature);
 
     bool is_verify = false;
@@ -1125,6 +1882,7 @@ int CfdVerifyTxSign(
     ConvertNetType(net_type, &is_bitcoin);
 
     UtxoData utxo;
+    utxo.address_type = AddressType::kP2shAddress;
     utxo.block_height = 0;
     utxo.binary_data = nullptr;
     utxo.descriptor = "";
@@ -1253,8 +2011,8 @@ int CfdCreateSighash(
     ConvertNetType(net_type, &is_bitcoin);
     Amount value(value_satoshi);
     ByteData sighash_bytes;
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     if ((core_hash_type == HashType::kP2sh) ||
         (core_hash_type == HashType::kP2wsh)) {
       if (IsEmptyString(redeem_script)) {
@@ -1883,6 +2641,9 @@ int CfdAddTxInTemplateForFundRawTx(
         static_cast<CfdCapiFundRawTxData*>(fund_handle);
 
     UtxoData utxo;
+    utxo.address_type = AddressType::kP2shAddress;
+    utxo.block_height = 0;
+    utxo.binary_data = nullptr;
     utxo.txid = Txid(txid);
     utxo.vout = vout;
     utxo.amount = Amount(amount);
@@ -1963,6 +2724,9 @@ int CfdAddUtxoTemplateForFundRawTx(
         static_cast<CfdCapiFundRawTxData*>(fund_handle);
 
     UtxoData utxo;
+    utxo.address_type = AddressType::kP2shAddress;
+    utxo.block_height = 0;
+    utxo.binary_data = nullptr;
     utxo.txid = Txid(txid);
     utxo.vout = vout;
     utxo.amount = Amount(amount);

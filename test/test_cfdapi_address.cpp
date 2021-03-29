@@ -16,7 +16,7 @@
 #include "cfdcore/cfdcore_hdwallet.h"
 
 using cfd::api::AddressApi;
-using cfd::api::DescriptorScriptData;
+using cfd::DescriptorScriptData;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::DescriptorKeyType;

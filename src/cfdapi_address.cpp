@@ -2,8 +2,7 @@
 /**
  * @file cfdapi_address.cpp
  *
- * @brief \~english implementation of address operation that uses cfd-api
- *   \~japanese cfd-apiで利用するAddress操作の実装ファイル
+ * @brief implementation of address operation that uses cfd-api
  */
 #include "cfd/cfdapi_address.h"
 
@@ -17,6 +16,7 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_script.h"
 
 namespace cfd {
@@ -34,8 +34,10 @@ using cfd::core::DescriptorKeyType;
 using cfd::core::DescriptorNode;
 using cfd::core::DescriptorScriptReference;
 using cfd::core::DescriptorScriptType;
+using cfd::core::KeyData;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
 using cfd::core::Script;
 using cfd::core::ScriptUtil;
 using cfd::core::WitnessVersion;
@@ -48,7 +50,8 @@ Address AddressApi::CreateAddress(
   if ((pubkey == nullptr) || (!pubkey->IsValid())) {
     if (address_type == AddressType::kP2pkhAddress ||
         address_type == AddressType::kP2wpkhAddress ||
-        address_type == AddressType::kP2shP2wpkhAddress) {
+        address_type == AddressType::kP2shP2wpkhAddress ||
+        address_type == AddressType::kTaprootAddress) {
       warn(
           CFD_LOG_SOURCE,
           "Failed to CreateAddress. Invalid pubkey hex: pubkey is empty.");
@@ -104,6 +107,11 @@ Address AddressApi::CreateAddress(
       if (redeem_script != nullptr) {
         *redeem_script = temp_script;
       }
+      break;
+    case AddressType::kTaprootAddress:
+      addr = Address(
+          net_type, WitnessVersion::kVersion1,
+          SchnorrPubkey::FromPubkey(*pubkey), addr_prefixes);
       break;
     default:
       warn(
@@ -235,7 +243,8 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
     const std::string& bip32_derivation_path,
     std::vector<DescriptorScriptData>* script_list,
     std::vector<DescriptorKeyData>* multisig_key_list,
-    const std::vector<AddressFormatData>* prefix_list) const {
+    const std::vector<AddressFormatData>* prefix_list,
+    std::vector<KeyData>* key_list) const {
   std::vector<AddressFormatData> addr_prefixes;
   if (prefix_list == nullptr) {
     addr_prefixes = cfd::core::GetBitcoinAddressFormatList();
@@ -264,6 +273,12 @@ DescriptorScriptData AddressApi::ParseOutputDescriptor(
   std::vector<std::string> args;
   for (uint32_t index = 0; index < desc.GetNeedArgumentNum(); ++index) {
     args.push_back(bip32_derivation_path);
+  }
+  if (key_list != nullptr) {
+    auto temp_list = desc.GetKeyDataAll(&args);
+    for (const auto& key : temp_list) {
+      key_list->push_back(key);
+    }
   }
   std::vector<DescriptorScriptReference> script_refs =
       desc.GetReferenceAll(&args);

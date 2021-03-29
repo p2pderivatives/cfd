@@ -1,6 +1,6 @@
 {
   "name": "cfd",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "cfd",
   "scripts": {
     "code_format": "clang-format -i --style=file src/*.cpp src/*.h include/cfd/*.h src/capi/*.cpp src/capi/*.h include/cfdc/*.h",
@@ -139,21 +139,19 @@
     "check": "run-s doxygen_check ctest_quiet lint_check",
     "check_debug": "run-s doxygen_check lint_check ctest_debug",
     "check_all": "run-s cmake_clean git_subm_update cmake_quiet doxygen_check ctest_quiet lint_check",
-    "convert_json": "node ./tools/generate_json_map_class.js"
+    "convert_json": "ts-node ./tools/generate_json_map_class.ts",
+    "convert_json_debug": "ts-node ./tools/generate_json_map_class.ts mode=debug"
   },
   "author": "",
   "license": "MIT",
-  "gypfile": true,
   "dependencies": {
-    "cmake-js": "^5.2.0",
-    "big-integer": "^1.6.26",
-    "bindings": "*",
-    "nan": "^2.11.0",
-    "node-gyp": "^3.8.0",
-    "tape": "^4.8.0"
+    "cmake-js": "^5.2.0"
   },
   "devDependencies": {
+    "@types/node": "^14.14.14",
     "npm-run-all": "^4.1.5",
-    "run-script-os": "^1.0.5"
+    "run-script-os": "^1.1.3",
+    "ts-morph": "^9.1.0",
+    "ts-node": "^9.1.1"
   }
 }

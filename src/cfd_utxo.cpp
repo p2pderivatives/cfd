@@ -462,6 +462,7 @@ std::vector<Utxo> CoinSelection::SelectCoinsMinConf(
   }
 
   std::vector<Utxo*> utxo_pool;
+  bool ignore_error = false;
   if (use_bnb_ && option_params.IsUseBnB()) {
     // Get long term estimate
     FeeCalculator long_term_fee(option_params.GetLongTermFeeBaserate());
@@ -476,7 +477,7 @@ std::vector<Utxo> CoinSelection::SelectCoinsMinConf(
 
       uint64_t fee = effective_fee.GetFee(*utxo).GetSatoshiValue();
       // Only include outputs that are positive effective value (i.e. not dust)
-      if (utxo->amount > fee) {
+      if ((utxo->amount > fee) || (!consider_fee)) {
         uint64_t effective_value = utxo->amount;
         if (use_fee) {
           if (consider_fee) {
@@ -495,16 +496,19 @@ std::vector<Utxo> CoinSelection::SelectCoinsMinConf(
             utxo->long_term_fee);
 #endif
         if (utxo->long_term_fee > utxo->fee) {
-          utxo->long_term_fee = utxo->fee;  // TODO(k-matsuzawa): 後で見直し
+          utxo->long_term_fee = utxo->fee;  // TODO(k-matsuzawa): Check later
         }
         utxo->effective_value = effective_value;
+        utxo->effective_k_value = static_cast<int64_t>(effective_value);
         utxo_pool.push_back(utxo);
+      } else {
+        ignore_error = true;
       }
     }
     // Calculate the fees for things that aren't inputs
     std::vector<Utxo> result = SelectCoinsBnB(
         target_value, utxo_pool, cost_of_change.GetSatoshiValue(),
-        tx_fee_value, select_value, utxo_fee_value);
+        tx_fee_value, ignore_error, select_value, utxo_fee_value);
     if (!result.empty()) {
       if (searched_bnb) *searched_bnb = true;
       return result;
@@ -513,20 +517,22 @@ std::vector<Utxo> CoinSelection::SelectCoinsMinConf(
   }
 
   // Filter by the min conf specs and add to utxo_pool
-  // TODO(k-matsuzawa): 現状はフィルタリングしていないためUtxo一覧の再作成不要
+  // TODO(k-matsuzawa): Currently it is not filtered, so there is no need to recreate the Utxo list.  // NOLINT
   // for (const OutputGroup& group : groups) {
   //   if (!group.EligibleForSpending(eligibility_filter)) continue;
   //   utxo_pool.push_back(group);
   // }
-  if (utxo_pool.empty()) {
+  if (utxo_pool.empty() || ignore_error) {
+    utxo_pool.clear();
     for (auto& utxo : work_utxos) {
       if (utxo == nullptr) continue;
       utxo->fee =
           (use_fee) ? effective_fee.GetFee(*utxo).GetSatoshiValue() : 0;
-      if (utxo->amount > utxo->fee) {
-        utxo->effective_value = utxo->amount - utxo->fee;
-        utxo_pool.push_back(utxo);
+      utxo->effective_k_value = static_cast<int64_t>(utxo->amount);
+      if (consider_fee) {
+        utxo->effective_k_value -= static_cast<int64_t>(utxo->fee);
       }
+      utxo_pool.push_back(utxo);
     }
   }
   int64_t search_value = target_value;
@@ -573,7 +579,7 @@ std::vector<Utxo> CoinSelection::SelectCoinsMinConf(
 std::vector<Utxo> CoinSelection::SelectCoinsBnB(
     const int64_t& target_value, const std::vector<Utxo*>& utxos,
     const int64_t& cost_of_change, const Amount& not_input_fees,
-    int64_t* select_value, Amount* utxo_fee_value) {
+    bool ignore_error, int64_t* select_value, Amount* utxo_fee_value) {
   info(
       CFD_LOG_SOURCE,
       "SelectCoinsBnB start. cost_of_change={}, not_input_fees={}",
@@ -612,9 +618,14 @@ std::vector<Utxo> CoinSelection::SelectCoinsBnB(
         ": curr_available_value={},"
         "actual_target={}",
         curr_available_value, actual_target);
-    throw CfdException(
-        CfdError::kCfdIllegalStateError,
-        "Failed to select coin. Not enough utxos.");
+    if (ignore_error) {  // go to knapsack route.
+      info(CFD_LOG_SOURCE, "SelectCoinsBnB end. results={}", results.size());
+      return results;
+    } else {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Failed to select coin. Not enough utxos.");
+    }
   }
 
   // Sort the utxos
@@ -653,6 +664,9 @@ std::vector<Utxo> CoinSelection::SelectCoinsBnB(
         best_selection = curr_selection;
         best_selection.resize(p_utxos.size());
         best_waste = curr_waste;
+        if (best_waste == 0) {
+          break;
+        }
       }
       curr_waste -= (curr_value - actual_target);
       //NOLINT Remove the excess value as we will be selecting different coins now
@@ -726,22 +740,24 @@ std::vector<Utxo> CoinSelection::KnapsackSolver(
     const int64_t& target_value, const std::vector<Utxo*>& utxos,
     uint64_t min_change, int64_t* select_value, Amount* utxo_fee_value) {
   std::vector<Utxo> ret_utxos;
-  uint64_t n_target = target_value;
+  int64_t n_target = target_value;
+  int64_t n_min_change = static_cast<int64_t>(min_change);
   info(CFD_LOG_SOURCE, "KnapsackSolver start. target={}", n_target);
 
   // List of values less than target
   const Utxo* lowest_larger = nullptr;
   std::vector<const Utxo*> applicable_groups;
-  uint64_t n_total = 0;
-  uint64_t n_effective_total = 0;  // amount excluding fee
-  uint64_t utxo_fee = 0;
+  // int64_t n_total = 0;
+  int64_t n_effective_total = 0;  // amount excluding fee
+  int64_t n_effective_total_max = 0;
+  int64_t utxo_fee = 0;
 
   std::vector<uint32_t> indexes =
       RandomNumberUtil::GetRandomIndexes(static_cast<uint32_t>(utxos.size()));
 
   for (size_t index = 0; index < indexes.size(); ++index) {
     // if (utxos[index]->amount == n_target) {
-    if (utxos[index]->effective_value == n_target) {
+    if (utxos[index]->effective_k_value == n_target) {
       // that meets the required value
       ret_utxos.push_back(*utxos[index]);
       *select_value = utxos[index]->amount;
@@ -749,11 +765,14 @@ std::vector<Utxo> CoinSelection::KnapsackSolver(
       info(CFD_LOG_SOURCE, "KnapsackSolver end. results={}", ret_utxos.size());
       return ret_utxos;
 
-    } else if (utxos[index]->effective_value < n_target + min_change) {
+    } else if (utxos[index]->effective_k_value < n_target + n_min_change) {
       // } else if ((utxos[index]->amount < n_target + min_change) {
       applicable_groups.push_back(utxos[index]);
-      n_total += utxos[index]->amount;
-      n_effective_total += utxos[index]->effective_value;
+      // n_total += utxos[index]->amount;
+      if (utxos[index]->effective_k_value > 0) {
+        n_effective_total_max += utxos[index]->effective_k_value;
+      }
+      n_effective_total += utxos[index]->effective_k_value;
 
     } else if (
         lowest_larger == nullptr ||
@@ -778,7 +797,7 @@ std::vector<Utxo> CoinSelection::KnapsackSolver(
   }
 
   // if (n_total < n_target) {
-  if (n_effective_total < n_target) {
+  if (n_effective_total_max < n_target) {
     if (lowest_larger == nullptr) {
       warn(
           CFD_LOG_SOURCE, "insufficient funds. effective_total:{} target:{}",
@@ -797,20 +816,20 @@ std::vector<Utxo> CoinSelection::KnapsackSolver(
   std::sort(
       applicable_groups.begin(), applicable_groups.end(),
       [](const Utxo* a, const Utxo* b) {
-        return a->effective_value > b->effective_value;
+        return a->effective_k_value > b->effective_k_value;
       });
   std::vector<char> vf_best;
-  uint64_t n_best;
+  int64_t n_best;
 
   randomize_cache_.clear();
   ApproximateBestSubset(
-      applicable_groups, n_effective_total, n_target, &vf_best, &n_best,
+      applicable_groups, n_effective_total_max, n_target, &vf_best, &n_best,
       kApproximateBestSubsetIterations);
-  if (n_best != n_target && n_effective_total >= n_target + min_change) {
-    uint64_t n_best2 = n_best;
+  if (n_best != n_target && n_effective_total_max >= n_target + n_min_change) {
+    int64_t n_best2 = n_best;
     std::vector<char> vf_best2;
     ApproximateBestSubset(
-        applicable_groups, n_effective_total, (n_target + min_change),
+        applicable_groups, n_effective_total_max, (n_target + n_min_change),
         &vf_best2, &n_best2, kApproximateBestSubsetIterations);
     if ((n_best2 == n_target) || (n_best > n_best2)) {
       n_best = n_best2;
@@ -821,8 +840,8 @@ std::vector<Utxo> CoinSelection::KnapsackSolver(
   // NOLINT If we have a bigger coin and (either the stochastic approximation didn't find a good solution,
   // NOLINT                                or the next bigger coin is closer), return the bigger coin
   if (lowest_larger != nullptr &&
-      ((n_best != n_target && n_best < n_target + min_change) ||
-       lowest_larger->effective_value <= n_best)) {
+      ((n_best != n_target && n_best < n_target + n_min_change) ||
+       lowest_larger->effective_k_value <= n_best)) {
     // lowest_larger->amount <= n_best)) {
     ret_utxos.push_back(*lowest_larger);
     *select_value = static_cast<int64_t>(lowest_larger->amount);
@@ -845,8 +864,8 @@ std::vector<Utxo> CoinSelection::KnapsackSolver(
 }
 
 void CoinSelection::ApproximateBestSubset(
-    const std::vector<const Utxo*>& utxos, uint64_t n_total_value,
-    uint64_t n_target_value, std::vector<char>* vf_best, uint64_t* n_best,
+    const std::vector<const Utxo*>& utxos, int64_t n_total_value,
+    int64_t n_target_value, std::vector<char>* vf_best, int64_t* n_best,
     int iterations) {
   if (vf_best == nullptr || n_best == nullptr) {
     warn(CFD_LOG_SOURCE, "Outparameter(select_value) is nullptr.");
@@ -862,7 +881,7 @@ void CoinSelection::ApproximateBestSubset(
   for (int n_rep = 0; n_rep < iterations && *n_best != n_target_value;
        n_rep++) {
     vf_includes.assign(utxos.size(), false);
-    uint64_t n_total = 0;
+    int64_t n_total = 0;
     bool is_reached_target = false;
     for (int n_pass = 0; n_pass < 2 && !is_reached_target; n_pass++) {
       for (unsigned int i = 0; i < utxos.size(); i++) {
@@ -878,7 +897,7 @@ void CoinSelection::ApproximateBestSubset(
         }
         if (rand_bool) {
           // n_total += utxos[i]->amount;
-          n_total += utxos[i]->effective_value;
+          n_total += utxos[i]->effective_k_value;
           vf_includes[i] = true;
           if (n_total >= n_target_value) {
             is_reached_target = true;
@@ -887,7 +906,7 @@ void CoinSelection::ApproximateBestSubset(
               *vf_best = vf_includes;
             }
             // n_total -= utxos[i]->amount;
-            n_total -= utxos[i]->effective_value;
+            n_total -= utxos[i]->effective_k_value;
             vf_includes[i] = false;
           }
         }

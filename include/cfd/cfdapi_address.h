@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "cfd/cfd_address.h"
 #include "cfd/cfd_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_descriptor.h"
@@ -25,36 +26,15 @@ using cfd::core::AddressFormatData;
 using cfd::core::AddressType;
 using cfd::core::DescriptorKeyType;
 using cfd::core::DescriptorScriptType;
+using cfd::core::KeyData;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
 
 /**
- * @brief DescriptorのScript系情報構造体
- */
-struct DescriptorScriptData {
-  DescriptorScriptType type;      //!< script type
-  Script locking_script;          //!< locking script
-  uint32_t depth;                 //!< depth
-  Address address;                //!< address
-  AddressType address_type;       //!< address type
-  Script redeem_script;           //!< redeem script
-  DescriptorKeyType key_type;     //!< key type
-  std::string key;                //!< key string
-  uint32_t multisig_req_sig_num;  //!< multisig num of require signatures
-};
-
-/**
- * @brief DescriptorのKey系情報構造体
- */
-struct DescriptorKeyData {
-  DescriptorKeyType type;  //!< key type
-  std::string key;         //!< key string
-};
-
-/**
  * @brief Address関連の関数群クラス
  * @details 現状は内部クラス扱い。あとで名称変更予定.
+ * @deprecated The function has moved to AddressFactory.
  */
 class CFD_EXPORT AddressApi {
  public:
@@ -119,6 +99,7 @@ class CFD_EXPORT AddressApi {
    * @param[out] script_list            descriptor script list
    * @param[out] multisig_key_list      descriptor multisig key list
    * @param[in] prefix_list             address prefix list
+   * @param[out] key_list               key data list
    * @return descriptor script data (top level or high security)
    */
   DescriptorScriptData ParseOutputDescriptor(
@@ -126,7 +107,8 @@ class CFD_EXPORT AddressApi {
       const std::string& bip32_derivation_path = "",
       std::vector<DescriptorScriptData>* script_list = nullptr,
       std::vector<DescriptorKeyData>* multisig_key_list = nullptr,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+      const std::vector<AddressFormatData>* prefix_list = nullptr,
+      std::vector<KeyData>* key_list = nullptr) const;
 };
 
 }  // namespace api

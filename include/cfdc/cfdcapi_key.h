@@ -222,6 +222,33 @@ CFDC_API int CfdSignSchnorrWithNonce(
     char** signature);
 
 /**
+ * @brief Add a sighash type to a schnorr signature.
+ *
+ * @param[in] handle cfd handle.
+ * @param[in] signature the signature.
+ * @param[in] sighash_type the sighash type.
+ * @param[in] anyone_can_pay the anyone can pay flag.
+ * @param[out] added_signature the signature.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdAddSighashTypeInSchnorrSignature(
+    void* handle, const char* signature, int sighash_type, bool anyone_can_pay,
+    char** added_signature);
+
+/**
+ * @brief Get a sighash type from a schnorr signature.
+ *
+ * @param[in] handle cfd handle.
+ * @param[in] signature the signature.
+ * @param[out] sighash_type the sighash type.
+ * @param[out] anyone_can_pay the anyone can pay flag.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetSighashTypeFromSchnorrSignature(
+    void* handle, const char* signature, int* sighash_type,
+    bool* anyone_can_pay);
+
+/**
  * @brief Compute a signature point for a Schnorr signature.
  *
  * @param[in] handle cfd handle.
@@ -377,6 +404,18 @@ CFDC_API int CfdParsePrivkeyWif(
 CFDC_API int CfdGetPubkeyFromPrivkey(
     void* handle, const char* privkey, const char* wif, bool is_compressed,
     char** pubkey);
+
+/**
+ * @brief get pubkey fingerprint.
+ * @param[in] handle          cfd handle.
+ * @param[in] pubkey          pubkey hex.
+ * @param[out] fingerprint    fingerprint.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPubkeyFingerprint(
+    void* handle, const char* pubkey, char** fingerprint);
 
 /**
  * @brief Compress pubkey.

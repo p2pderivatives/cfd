@@ -10,6 +10,7 @@ TEST_CFD_SOURCES= \
     test_cfd_transaction_context.cpp \
     test_cfd_coin_selection.cpp \
     test_cfd_utxoutil.cpp \
+    test_cfd_psbt.cpp \
     test_cfdapi_address.cpp \
     test_cfdapi_elements_transaction.cpp \
     test_cfdapi_transaction.cpp \
@@ -25,6 +26,7 @@ TEST_CFD_CAPI_SOURCES= \
     capi/test_cfdcapi_elements_transaction.cpp \
     capi/test_cfdcapi_key.cpp \
     capi/test_cfdcapi_ledger \
+    capi/test_cfdcapi_psbt.cpp \
     capi/test_cfdcapi_script.cpp \
     capi/test_cfdcapi_transaction.cpp
 

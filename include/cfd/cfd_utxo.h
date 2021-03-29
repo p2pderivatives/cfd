@@ -2,7 +2,7 @@
 /**
  * @file cfd_utxo.h
  *
- * @brief UTXO操作の関連クラス定義
+ * @brief Related class definitions for UTXO operations
  */
 #ifndef CFD_INCLUDE_CFD_CFD_UTXO_H_
 #define CFD_INCLUDE_CFD_CFD_UTXO_H_
@@ -30,13 +30,13 @@ using cfd::core::Txid;
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::core::ConfidentialAssetId;
 #endif  // CFD_DISABLE_ELEMENTS
-//! Asset Amountマップへのエイリアス (key: asset(str), value: amount)
+//! Alias ​​to Asset Amount map (key: asset(str), value: amount)
 using AmountMap = std::map<std::string, int64_t>;
 
 /**
- * @brief 最小のデータのみを保持するUTXO構造体。
+ * @brief A UTXO structure that holds only the smallest data.
  * @details witness_size_max, uscript_size_max, address_type
- *  は専用APIで算出する。
+ *  is calculated by the dedicated API.
  * @see cfd::CoinSelection::ConvertToUtxo()
  */
 struct Utxo {
@@ -55,131 +55,126 @@ struct Utxo {
   uint8_t asset[33];  //!< asset
 #endif                // CFD_DISABLE_ELEMENTS
   /**
-   * @brief 任意のバイナリデータアドレス
-   * @details cfdでは領域だけ設けておき、アクセスはしない
+   * @brief Any binary data address
+   * @details In cfd, only the area is provided and it is not accessed.
    */
   void* binary_data;
-#if 0
-  int32_t status;           //!< utxo status (reserved)
-  // elements
-  uint8_t confidential_key[33];      //!< Confidential key
-#endif  // if 0
   // calculate
-  uint64_t effective_value;  //!< amountからfeeを除外した有効額
-  uint64_t fee;              //!< fee
-  uint64_t long_term_fee;    //!< 長期間後のfee
+  uint64_t effective_value;   //!< Effective amount excluding fee from amount
+  uint64_t fee;               //!< fee
+  uint64_t long_term_fee;     //!< Fee after a long term
+  int64_t effective_k_value;  //!< Effective amount for knapsack
 };
 
 /**
- * @brief UTXOのフィルタリング条件を指定する。
- *   utxoのamount上限などの指定に利用することを想定
+ * @brief Specify UTXO filtering conditions.
  */
 struct UtxoFilter {
-  uint32_t reserved;  //!< 予約領域
+  uint32_t reserved;  //!< reserved
 };
 
 /**
- * @brief CoinSelectionのオプション情報を保持するクラス
+ * @brief Class that holds option information of CoinSelection.
  */
 class CFD_EXPORT CoinSelectionOption {
  public:
   /**
-   * @brief コンストラクタ
+   * @brief constructor.
    */
   CoinSelectionOption();
 
   /**
-   * @brief BnB使用フラグを取得します.
-   * @retval true BnB使用
-   * @retval false BnB未使用
+   * @brief Get the BnB using flag.
+   * @retval true   use BnB
+   * @retval false  unuse BnB
    */
   bool IsUseBnB() const;
   /**
-   * @brief 出力変更サイズを取得します.
-   * @return 出力変更サイズ
+   * @brief Get the output change size.
+   * @return output change size.
    */
   uint32_t GetChangeOutputSize() const;
   /**
-   * @brief 出力変更サイズを取得します.
-   * @return 出力変更サイズ
+   * @brief Get the spend change size.
+   * @return spend change size.
    */
   uint32_t GetChangeSpendSize() const;
   /**
-   * @brief 効果的なfeeのbaserateを取得します.
-   * @return 効果的なfeeのbaserate
+   * @brief Get an effective fee baserate.
+   * @return effective fee baserate.
    */
   uint64_t GetEffectiveFeeBaserate() const;
   /**
-   * @brief 長期的なfeeのbaserateを取得します.
-   * @return 長期的なfeeのbaserate
+   * @brief Get a long-term fee baserate.
+   * @return long-term fee baserate.
    */
   uint64_t GetLongTermFeeBaserate() const;
   /**
-   * @brief knapsack探索時の最小の加算値を取得します.
+   * @brief Get the minimum addition value when searching for knapsack.
    * @return knapsack minimum change
    */
   int64_t GetKnapsackMinimumChange() const;
   /**
-   * @brief DustとしてFeeに取り込まれる上限額を取得します.
+   * @brief Get the maximum amount that will be included in Fee as dust.
    * @param[in] address     txout address
    * @return dust fee satoshi
    */
   Amount GetDustFeeAmount(const Address& address) const;
 
   /**
-   * @brief BnB 使用フラグを設定します.
-   * @param[in] use_bnb   BnB 使用フラグ
+   * @brief Set the BnB using flag.
+   * @param[in] use_bnb   BnB using flag.
    */
   void SetUseBnB(bool use_bnb);
   /**
-   * @brief 出力変更サイズを設定します.
-   * @param[in] size    サイズ
+   * @brief Set the output change size.
+   * @param[in] size    output change size.
    */
   void SetChangeOutputSize(size_t size);
   /**
-   * @brief 受入変更サイズを設定します.
-   * @param[in] size    サイズ
+   * @brief Set the spend change size.
+   * @param[in] size    spend change size.
    */
   void SetChangeSpendSize(size_t size);
   /**
-   * @brief 効果的なfeeのbaserateを設定します.
+   * @brief Set an effective fee baserate.
    * @param[in] baserate    fee baserate (for BTC/byte)
    */
   void SetEffectiveFeeBaserate(double baserate);
   /**
-   * @brief 長期的なfeeのbaserateを設定します.
+   * @brief Set a long-term fee baserate.
    * @param[in] baserate    fee baserate (for BTC/byte)
    */
   void SetLongTermFeeBaserate(double baserate);
   /**
-   * @brief knapsack探索時の最小の加算値を設定します.
+   * @brief Set the minimum addition value when searching for knapsack.
    * @param[in] min_change    knapsack minimum change
    */
   void SetKnapsackMinimumChange(int64_t min_change);
   /**
-   * @brief DustとしてFeeに取り込まれる額のrateを設定します.
+   * @brief Set the maximum amount that will be included in Fee as dust.
    * @param[in] baserate    fee baserate (for BTC/byte)
    */
   void SetDustFeeRate(double baserate);
 
   /**
-   * @brief bitcoin相当でサイズ関連情報を初期化します。
+   * @brief Initializes size related information equivalent to bitcoin.
    */
   void InitializeTxSizeInfo();
 
 #ifndef CFD_DISABLE_ELEMENTS
   /**
-   * @brief feeに使用するassetを取得します.
-   * @return feeに使用するasset
+   * @brief Get the asset to use for the fee.
+   * @return asset to use for the fee.
    */
   ConfidentialAssetId GetFeeAsset() const;
   /**
-   * @brief feeに使用するassetを設定します.
+   * @brief Set the asset to use for the fee.
    * @param[in] asset   asset
    */
   void SetFeeAsset(const ConfidentialAssetId& asset);
   /**
-   * @brief DustとしてFeeに取り込まれる上限額を取得します.
+   * @brief Get the maximum amount that will be included in Fee as dust.
    * @param[in] address     txout address
    * @return dust fee satoshi
    */
@@ -204,53 +199,53 @@ class CFD_EXPORT CoinSelectionOption {
   void GetBlindInfo(int* exponent, int* minimum_bits) const;
 
   /**
-   * @brief ConfidentialTxベースでサイズ関連情報を初期化します。
+   * @brief Initializes size-related information based on Confidential Tx.
    */
   void InitializeConfidentialTxSizeInfo();
 #endif  // CFD_DISABLE_ELEMENTS
 
  private:
-  bool use_bnb_ = true;              //!< BnB 使用フラグ
-  uint32_t change_output_size_ = 0;  //!< 出力変更サイズ
-  uint32_t change_spend_size_ = 0;   //!< 受入変更サイズ
+  bool use_bnb_ = true;              //!< BnB using flag
+  uint32_t change_output_size_ = 0;  //!< output change size
+  uint32_t change_spend_size_ = 0;   //!< spend change size
   uint64_t effective_fee_baserate_;  //!< fee baserate
   uint64_t long_term_fee_baserate_;  //!< longterm fee baserate
   int64_t knapsack_minimum_change_;  //!< knapsack min change
   int64_t dust_fee_rate_;            //!< dust fee rate
 #ifndef CFD_DISABLE_ELEMENTS
-  ConfidentialAssetId fee_asset_;  //!< feeとして利用するasset
+  ConfidentialAssetId fee_asset_;  //!< asset to be used as a fee
   int exponent_ = 0;               //!< rangeproof exponent value
   int minimum_bits_ = cfd::core::kDefaultBlindMinimumBits;  //!< minimum bits
 #endif  // CFD_DISABLE_ELEMENTS
 };
 
 /**
- * @brief CoinSelection計算を行うクラス
+ * @brief Class that performs CoinSelection calculation
  */
 class CFD_EXPORT CoinSelection {
  public:
   /**
-   * @brief コンストラクタ
+   * @brief Constructor
    */
   CoinSelection();
 
   /**
-   * @brief コンストラクタ
+   * @brief Constructor
    * @param[in] use_bnb
    */
   explicit CoinSelection(bool use_bnb);
 
   /**
-   * @brief 最小のCoinを選択する。
-   * @param[in] target_value    収集額
-   * @param[in] utxos           検索対象UTXO一覧
-   * @param[in] filter          UTXO収集フィルタ情報
-   * @param[in] option_params   オプション情報
+   * @brief Select the smallest Coin.
+   * @param[in] target_value    Collection amount
+   * @param[in] utxos           List of UTXOs to be searched
+   * @param[in] filter          UTXO collection filter (reserved)
+   * @param[in] option_params   collect Option
    * @param[in] tx_fee_value    transaction fee information
-   * @param[out] select_value   UTXO収集成功時、合計収集額
-   * @param[out] utxo_fee_value UTXO収集成功時、utxo分のfee金額
-   * @param[out] searched_bnb   BnBで検索したかのフラグ
-   * @return UTXO一覧。空の場合はエラー終了。
+   * @param[out] select_value   Total collection amount
+   * @param[out] utxo_fee_value the fee amount for utxo
+   * @param[out] searched_bnb   Flag of whether you searched with BnB
+   * @return UTXO list. If it is empty, the error ends.
    */
   std::vector<Utxo> SelectCoins(
       const Amount& target_value, const std::vector<Utxo>& utxos,
@@ -260,22 +255,23 @@ class CFD_EXPORT CoinSelection {
 
 #ifndef CFD_DISABLE_ELEMENTS
   /**
-   * @brief 最小のCoinを選択する。(マルチアセット版)
-   * @details utxosに対して、map_target_valueのkeyで指定された asset id で
-   *   CoinSelectionを行う。また、option_paramで fee asset が指定されている場合
-   *   対象のassetに対してのCoinSelectionも実施する。
-   * @param[in] map_target_value  Asset毎の収集額map
-   *  bitcoinの場合はkeyに空文字を設定
-   * @param[in,out] utxos         検索対象UTXO一覧
-   * @param[in] filter            UTXO収集フィルタ情報
-   * @param[in] option_params     オプション情報
+   * @brief Select the smallest Coin. (Multi-asset version)
+   * @details CoinSelection is performed on utxos with the asset id \
+   *    specified by the key of map_target_value. \
+   *    In addition, if fee asset is specified in option_param, \
+   *    CoinSelection for the target asset is also executed.
+   * @param[in] map_target_value  Collection amount map for each Asset.
+   *    For bitcoin, set the key to an empty string
+   * @param[in,out] utxos         List of UTXOs to be searched
+   * @param[in] filter            UTXO collection filter (reserved)
+   * @param[in] option_params     collect Option
    * @param[in] tx_fee_value      transaction fee information
-   * @param[out] map_select_value UTXO収集成功時、Asset毎の合計収集額map
-   *   map_target_valueで指定されたAsset毎の収集額が格納される
-   * @param[out] utxo_fee_value   UTXO収集成功時、utxo分のfee金額
-   * @param[out] map_searched_bnb asset毎にBnBで検索したかのフラグ
-   *   map_target_valueで指定されたAsset毎に結果が格納される
-   * @return UTXO一覧。空の場合はエラー終了。
+   * @param[out] map_select_value Total collection amount map.
+   *   The collection amount for each Asset specified by map_target_value is stored.
+   * @param[out] utxo_fee_value   the fee amount for utxo
+   * @param[out] map_searched_bnb Flag of whether you searched with BnB.
+   *   The result is stored for each Asset specified by map_target_value.
+   * @return UTXO list. If it is empty, the error ends.
    */
   std::vector<Utxo> SelectCoins(
       const AmountMap& map_target_value, const std::vector<Utxo>& utxos,
@@ -286,14 +282,14 @@ class CFD_EXPORT CoinSelection {
 #endif  // CFD_DISABLE_ELEMENTS
 
   /**
-   * @brief UTXO構造体への変換を行う。
+   * @brief Conversion to UTXO structure.
    * @param[in] txid                txid
    * @param[in] vout                vout
    * @param[in] output_descriptor   output descriptor
    * @param[in] amount              amount
    * @param[in] asset               asset
-   * @param[in] binary_data         任意のデータアドレス
-   * @param[out] utxo               変換後のUTXO
+   * @param[in] binary_data         Any data address
+   * @param[out] utxo               Converted UTXO
    * @param[in] scriptsig_template  scriptsig template
    */
   static void ConvertToUtxo(
@@ -302,16 +298,16 @@ class CFD_EXPORT CoinSelection {
       Utxo* utxo, const Script* scriptsig_template = nullptr);
 
   /**
-   * @brief UTXO構造体への変換を行う。
-   * @param[in] block_height        block高
-   * @param[in] block_hash          blockハッシュ
+   * @brief Conversion to UTXO structure.
+   * @param[in] block_height        block height
+   * @param[in] block_hash          block hash
    * @param[in] txid                txid
    * @param[in] vout                vout
-   * @param[in] locking_script      block高
+   * @param[in] locking_script      locking script
    * @param[in] output_descriptor   output descriptor
    * @param[in] amount              amount
-   * @param[in] binary_data         任意のデータアドレス
-   * @param[out] utxo               変換後のUTXO
+   * @param[in] binary_data         Any data address
+   * @param[out] utxo               Converted UTXO
    * @param[in] scriptsig_template  scriptsig template
    */
   static void ConvertToUtxo(
@@ -323,17 +319,17 @@ class CFD_EXPORT CoinSelection {
 
 #ifndef CFD_DISABLE_ELEMENTS
   /**
-   * @brief UTXO構造体への変換を行う。
-   * @param[in] block_height        block高
-   * @param[in] block_hash          blockハッシュ
+   * @brief Conversion to UTXO structure.
+   * @param[in] block_height        block height
+   * @param[in] block_hash          block hash
    * @param[in] txid                txid
    * @param[in] vout                vout
-   * @param[in] locking_script      block高
+   * @param[in] locking_script      locking script
    * @param[in] output_descriptor   output descriptor
    * @param[in] amount              amount
    * @param[in] asset               asset
-   * @param[in] binary_data         任意のデータアドレス
-   * @param[out] utxo               変換後のUTXO
+   * @param[in] binary_data         Any data address
+   * @param[out] utxo               Converted UTXO
    * @param[in] scriptsig_template  scriptsig template
    */
   static void ConvertToUtxo(
@@ -346,20 +342,22 @@ class CFD_EXPORT CoinSelection {
 
  protected:
   /**
-   * @brief 最小のCoinを選択する。
-   * @details utxosで指定されるutxoについては、複数のassetが入力されることは
-   *   想定していない。そのため、複数assetが混在したutxoが入力された場合
-   *   返却されるutxoには複数のassetが混在する可能性がある。
-   * @param[in] target_value     収集額
-   * @param[in,out] utxos        検索対象UTXO一覧
-   * @param[in] filter           UTXO収集フィルタ情報
-   * @param[in] option_params    オプション情報
-   * @param[in] tx_fee_value     transaction fee information
-   * @param[in] consider_fee     feeを考慮したCoinSelectionの実施フラグ (default: true)
-   * @param[out] select_value    UTXO収集成功時、合計収集額
-   * @param[out] utxo_fee_value  UTXO収集成功時、utxo分のfee金額
-   * @param[out] searched_bnb    BnBで検索できたかどうか
-   * @return UTXO一覧。空の場合はエラー終了。
+   * @brief Select the smallest Coin.
+   * @details For utxo specified by utxos, it is not assumed that \
+   *    multiple assets will be input. Therefore, if a utxo with \
+   *    a mixture of multiple assets is input, there is a possibility \
+   *    that multiple assets will be mixed in the returned utxo.
+   * @param[in] target_value    Collection amount
+   * @param[in] utxos           List of UTXOs to be searched
+   * @param[in] filter          UTXO collection filter (reserved)
+   * @param[in] option_params   collect Option
+   * @param[in] tx_fee_value    transaction fee information
+   * @param[in] consider_fee    \
+   *    Coin Selection implementation flag considering fee (default: true)
+   * @param[out] select_value   Total collection amount
+   * @param[out] utxo_fee_value the fee amount for utxo
+   * @param[out] searched_bnb   Flag of whether you searched with BnB
+   * @return UTXO list. If it is empty, the error ends.
    */
   std::vector<Utxo> SelectCoinsMinConf(
       const int64_t& target_value, const std::vector<Utxo*>& utxos,
@@ -369,50 +367,51 @@ class CFD_EXPORT CoinSelection {
       bool* searched_bnb = nullptr);
 
   /**
-   * @brief CoinSelection(BnB)を実施する。
-   * @param[in] target_value     収集額
-   * @param[in] utxos            検索対象UTXO一覧
-   * @param[in] cost_of_change   コストの変更範囲。
-   *              target_value+本値が収集上限値となる。
-   * @param[in] not_input_fees   TxIn部を除いたfee額
-   * @param[out] select_value    UTXO収集成功時、合計収集額
-   * @param[out] utxo_fee_value  UTXO収集成功時、utxo分のfee金額
-   * @return UTXO一覧。空の場合はエラー終了。
+   * @brief Perform Coin Selection (BnB).
+   * @param[in] target_value      Collection amount
+   * @param[in] utxos             List of UTXOs to be searched
+   * @param[in] cost_of_change    Cost change range.
+   *    target_value + This value is the upper limit of collection.
+   * @param[in] not_input_fees    Fee amount excluding TxIn part
+   * @param[in] ignore_error      ignore throw exception.
+   * @param[out] select_value     Total collection amount
+   * @param[out] utxo_fee_value   the fee amount for utxo
+   * @return UTXO list. If it is empty, the error ends.
    */
   std::vector<Utxo> SelectCoinsBnB(
       const int64_t& target_value, const std::vector<Utxo*>& utxos,
       const int64_t& cost_of_change, const Amount& not_input_fees,
-      int64_t* select_value, Amount* utxo_fee_value);
+      bool ignore_error, int64_t* select_value, Amount* utxo_fee_value);
 
   /**
-   * @brief CoinSelection(KnapsackSolver)を実施する。
-   * @param[in] target_value     収集額
-   * @param[in] utxos            検索対象UTXO一覧
-   * @param[in] min_change       最小の差額
-   * @param[out] select_value    UTXO収集成功時、合計収集額
-   * @param[out] utxo_fee_value  UTXO収集成功時、utxo分のfee金額
-   * @return UTXO一覧。空の場合はエラー終了。
+   * @brief Perform Coin Selection (Knapsack Solver).
+   * @param[in] target_value      Collection amount
+   * @param[in] utxos             List of UTXOs to be searched
+   * @param[in] min_change        Minimum change amount
+   * @param[out] select_value     Total collection amount
+   * @param[out] utxo_fee_value   the fee amount for utxo
+   * @return UTXO list. If it is empty, the error ends.
    */
   std::vector<Utxo> KnapsackSolver(
       const int64_t& target_value, const std::vector<Utxo*>& utxos,
       uint64_t min_change, int64_t* select_value, Amount* utxo_fee_value);
 
  private:
-  bool use_bnb_;                       //!< BnB 利用フラグ
+  bool use_bnb_;                       //!< BnB using flag
   std::vector<bool> randomize_cache_;  //!< randomize cache
 
   /**
-   * 収集額に最も近い合計額となるUTXO一覧を決定する
-   * @param[in]  utxos          収集額より小さいUTXO一覧
-   * @param[in]  n_total_value  utxo一覧の合計額
-   * @param[in]  n_target_value 収集額
-   * @param[out] vf_best        収集対象フラグ一覧
-   * @param[out] n_best         収集額に最も近い合計額
-   * @param[in]  iterations     繰り返し数
+   * Determine the UTXO list with the total amount closest to the collected amount
+   * @param[in]  utxos          UTXO list smaller than the collected amount
+   * @param[in]  n_total_value  Total amount of utxo list
+   * @param[in]  n_target_value Collection amount
+   * @param[out] vf_best        List of flags to be collected
+   * @param[out] n_best         Total amount closest to the collected amount
+   * @param[in]  iterations     Number of repetitions
    */
   void ApproximateBestSubset(
-      const std::vector<const Utxo*>& utxos, uint64_t n_total_value,
-      uint64_t n_target_value, std::vector<char>* vf_best, uint64_t* n_best,
+      const std::vector<const Utxo*>& utxos, int64_t n_total_value,
+      int64_t n_target_value, std::vector<char>* vf_best, int64_t* n_best,
       int iterations);
 };
 

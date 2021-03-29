@@ -7,6 +7,8 @@
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfd/cfd_address.h"
@@ -28,6 +30,9 @@ using cfd::core::NetType;
 using cfd::core::OutPoint;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
+using cfd::core::SchnorrSignature;
+using cfd::core::SchnorrUtil;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
@@ -35,6 +40,9 @@ using cfd::core::ScriptUtil;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
 using cfd::core::SignatureUtil;
+using cfd::core::TapScriptData;
+using cfd::core::TaprootScriptTree;
+using cfd::core::TaprootUtil;
 using cfd::core::Transaction;
 using cfd::core::Txid;
 using cfd::core::WitnessVersion;
@@ -284,8 +292,8 @@ TEST(TransactionContext, Input_Output) {
 
   EXPECT_EQ(ctx.GetTxInCount(), 4);
   EXPECT_EQ(ctx.GetTxOutCount(), 2);
-  EXPECT_EQ(ctx.GetSizeIgnoreTxIn(), 73);
-  EXPECT_EQ(ctx.GetVsizeIgnoreTxIn(), 73);
+  EXPECT_EQ(ctx.GetSizeIgnoreTxIn(), 75);
+  EXPECT_EQ(ctx.GetVsizeIgnoreTxIn(), 75);
   if (ctx.GetTxInCount() == 4) {
     auto ref_list = ctx.GetTxInList();
     EXPECT_STREQ(ref_list[0].GetTxid().GetHex().c_str(), utxo1.txid.GetHex().c_str());
@@ -702,4 +710,207 @@ TEST(TransactionContext, VerifyP2shSegwit)
   // sign1 -> fail -> ignore
   OutPoint outpoint1(utxo2.txid, utxo2.vout);
   EXPECT_NO_THROW(txc.Verify(outpoint1));
+}
+
+TEST(TransactionContext, TaprootSign)
+{
+  Privkey key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
+  Pubkey pubkey = key.GeneratePubkey();
+  bool is_parity = false;
+  SchnorrPubkey schnorr_pubkey = SchnorrPubkey::FromPubkey(pubkey, &is_parity);
+  EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      schnorr_pubkey.GetHex());
+  EXPECT_TRUE(is_parity);
+
+  AddressFactory addr_factory(NetType::kRegtest);
+  auto txout1_addr = addr_factory.CreateTaprootAddress(schnorr_pubkey);
+
+  TransactionContext tx1(2, 0);
+  OutPoint outpoint1(
+    Txid("1f9866dc0a19c427347c2db0b5910bdc2c20b78fa9f74f8756b21db890dba8ff"), 0);
+  Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
+
+  tx1.AddTxIn(outpoint1);
+  Amount amt1(int64_t{2499999000});
+  tx1.AddTxOut(txout1_addr, amt1);
+  EXPECT_EQ("0200000001ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb00000000", tx1.GetHex());
+  SigHashType sighash_all;
+  tx1.SignWithPrivkeySimple(outpoint1, key1.GetPubkey(), key1, sighash_all,
+      Amount(int64_t{2500000000}), AddressType::kP2wpkhAddress);
+  EXPECT_EQ("02000000000101ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb02473044022018b10265080f8c491c43595000461a19212239fea9ee4c6fd26498f358b1760d0220223c1389ac26a2ed5f77ad73240af2fa6eb30ef5d19520026c2f7b7e817592530121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c4400000000", tx1.GetHex());
+  
+  UtxoData utxo;
+  utxo.block_height = 0;
+  utxo.txid = tx1.GetTxid();
+  utxo.vout = 0;
+  utxo.locking_script = txout1_addr.GetLockingScript();
+  utxo.descriptor = "raw(" + utxo.locking_script.GetHex() + ")";
+  utxo.address = txout1_addr;
+  utxo.amount = amt1;
+  utxo.address_type = txout1_addr.GetAddressType();
+  utxo.binary_data = nullptr;
+
+  OutPoint outpoint2(tx1.GetTxid(), 0);
+  TransactionContext tx2(2, 0);
+  tx2.AddInput(utxo);
+  Address addr2("bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40");
+  tx2.AddTxOut(addr2, Amount(int64_t{2499998000}));
+
+  auto sighash = tx2.CreateSignatureHashByTaproot(outpoint2, sighash_all);
+  EXPECT_EQ("e5b11ddceab1e4fc49a8132ae589a39b07acf49cabb2b0fbf6104bc31da12c02", sighash.GetHex());
+
+  tx2.SignWithKey(outpoint2, Pubkey(), key, sighash_all);
+  EXPECT_EQ("0200000000010116d975e4c2cea30f72f4f5fe528f5a0727d9ea149892a50c030d44423088ea2f0000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d5014161f75636003a870b7a1685abae84eedf8c9527227ac70183c376f7b3a35b07ebcbea14749e58ce1a87565b035b2f3963baa5ae3ede95e89fd607ab7849f208720100000000", tx2.GetHex());
+
+  try {
+    tx2.Verify();
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+  EXPECT_TRUE(tx2.VerifyInputSchnorrSignature(
+      SchnorrSignature("61f75636003a870b7a1685abae84eedf8c9527227ac70183c376f7b3a35b07ebcbea14749e58ce1a87565b035b2f3963baa5ae3ede95e89fd607ab7849f2087201"),
+      outpoint2, {utxo}, schnorr_pubkey));
+  EXPECT_FALSE(tx2.VerifyInputSchnorrSignature(
+      SchnorrSignature("61f75636003a870b7a1685abae84eedf8c9527227ac70183c376f7b3a35b07ebcbea14749e58ce1a87565b035b2f3963baa5ae3ede95e89fd607ab7849f2087301"),
+      outpoint2, {utxo}, schnorr_pubkey));
+}
+
+TEST(TransactionContext, TaprootSignWithNonce)
+{
+  ByteData256 nonce("2fea883042440d030ca5929814ead927075a8f52fef5f4720fa3cec2e475d916");
+
+  Privkey key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
+  Pubkey pubkey = key.GeneratePubkey();
+  bool is_parity = false;
+  SchnorrPubkey schnorr_pubkey = SchnorrPubkey::FromPubkey(pubkey, &is_parity);
+  EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      schnorr_pubkey.GetHex());
+  EXPECT_TRUE(is_parity);
+
+  AddressFactory addr_factory(NetType::kRegtest);
+  auto txout1_addr = addr_factory.CreateTaprootAddress(schnorr_pubkey);
+
+  TransactionContext tx1(2, 0);
+  OutPoint outpoint1(
+    Txid("1f9866dc0a19c427347c2db0b5910bdc2c20b78fa9f74f8756b21db890dba8ff"), 0);
+  Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
+
+  tx1.AddTxIn(outpoint1);
+  Amount amt1(int64_t{2499999000});
+  tx1.AddTxOut(txout1_addr, amt1);
+  EXPECT_EQ("0200000001ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb00000000", tx1.GetHex());
+  SigHashType sighash_all;
+  tx1.SignWithPrivkeySimple(outpoint1, key1.GetPubkey(), key1, sighash_all,
+      Amount(int64_t{2500000000}), AddressType::kP2wpkhAddress);
+  EXPECT_EQ("02000000000101ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb02473044022018b10265080f8c491c43595000461a19212239fea9ee4c6fd26498f358b1760d0220223c1389ac26a2ed5f77ad73240af2fa6eb30ef5d19520026c2f7b7e817592530121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c4400000000", tx1.GetHex());
+  
+  UtxoData utxo;
+  utxo.block_height = 0;
+  utxo.txid = tx1.GetTxid();
+  utxo.vout = 0;
+  utxo.locking_script = txout1_addr.GetLockingScript();
+  utxo.descriptor = "raw(" + utxo.locking_script.GetHex() + ")";
+  utxo.address = txout1_addr;
+  utxo.amount = amt1;
+  utxo.address_type = txout1_addr.GetAddressType();
+  utxo.binary_data = nullptr;
+
+  OutPoint outpoint2(tx1.GetTxid(), 0);
+  TransactionContext tx2(2, 0);
+  tx2.AddInput(utxo);
+  Address addr2("bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40");
+  tx2.AddTxOut(addr2, Amount(int64_t{2499998000}));
+  tx2.SignWithKey(outpoint2, Pubkey(), key,sighash_all, true, &nonce);
+  EXPECT_EQ("0200000000010116d975e4c2cea30f72f4f5fe528f5a0727d9ea149892a50c030d44423088ea2f0000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d5014151df55894d1a024c244e20ecedc39cae39fa6d43653305b7f32605eea6359415a7ceef44c52a2f26be2e06d33d79c2e90b5dfaebcb4f79e242134121e0b9579e0100000000", tx2.GetHex());
+
+  try {
+    tx2.Verify();
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+}
+
+TEST(TransactionContext, TapScriptSign)
+{
+  Privkey key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
+  Pubkey pubkey = key.GeneratePubkey();
+  bool is_parity = false;
+  SchnorrPubkey schnorr_pubkey = SchnorrPubkey::FromPubkey(pubkey, &is_parity);
+  EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      schnorr_pubkey.GetHex());
+  EXPECT_TRUE(is_parity);
+
+  ScriptBuilder builder;
+  builder.AppendData(schnorr_pubkey.GetData());
+  builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+  Script redeem_script = builder.Build();
+  std::vector<ByteData256> nodes = {
+    ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
+    ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54")
+  };
+  TaprootScriptTree tree(redeem_script);
+  for (const auto& node : nodes) tree.AddBranch(node);
+  EXPECT_EQ("dfc43ba9fc5f8a9e1b6d6a50600c704bb9e41b741d9ed6de6559a53d2f38e513", tree.GetTapLeafHash().GetHex());
+
+  AddressFactory addr_factory(NetType::kRegtest);
+  auto txout1_addr = addr_factory.CreateTaprootAddress(tree, schnorr_pubkey);
+
+  TransactionContext tx1(2, 0);
+  OutPoint outpoint1(
+    Txid("cd6adc252632eb0768ac6407e586cc74bfed739d6c8b9efa55305eb37cbd76dd"), 0);
+  Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
+
+  tx1.AddTxIn(outpoint1);
+  Amount amt1(int64_t{2499999000});
+  tx1.AddTxOut(txout1_addr, amt1);
+  EXPECT_EQ("0200000001dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff0118f50295000000002251203dee5a5387a2b57902f3a6e9da077726d19c6cc8c8c7b04bcf5a197b2a9b01d200000000", tx1.GetHex());
+  SigHashType sighash_all;
+  tx1.SignWithPrivkeySimple(outpoint1, key1.GetPubkey(), key1, sighash_all,
+      Amount(int64_t{2500000000}), AddressType::kP2wpkhAddress);
+  EXPECT_EQ("02000000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff0118f50295000000002251203dee5a5387a2b57902f3a6e9da077726d19c6cc8c8c7b04bcf5a197b2a9b01d20247304402201db912bc61dab1c6117b0aec2965ea1b2d1caa42a1372adc16c8cf673f1187d7022062667d8a976b197f7ba33299365eeb68c1e45fa2a255411672d89f7afab12cb20121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c4400000000", tx1.GetHex());
+  
+  UtxoData utxo;
+  utxo.block_height = 0;
+  utxo.txid = tx1.GetTxid();
+  utxo.vout = 0;
+  utxo.locking_script = txout1_addr.GetLockingScript();
+  utxo.descriptor = "raw(" + utxo.locking_script.GetHex() + ")";
+  utxo.address = txout1_addr;
+  utxo.amount = amt1;
+  utxo.address_type = txout1_addr.GetAddressType();
+  utxo.binary_data = nullptr;
+
+  OutPoint outpoint2(tx1.GetTxid(), 0);
+  TransactionContext tx2(2, 0);
+  tx2.AddInput(utxo);
+  Address addr2("bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40");
+  tx2.AddTxOut(addr2, Amount(int64_t{2499998000}));
+  EXPECT_EQ("02000000015b80a1af0e00c700bee9c8e4442bec933fcdc0c686dac2dc336caaaf186c5d190000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d500000000", tx2.GetHex());
+ 
+  ByteData256 tap_leaf_hash = tree.GetTapLeafHash();
+  EXPECT_EQ("dfc43ba9fc5f8a9e1b6d6a50600c704bb9e41b741d9ed6de6559a53d2f38e513", tap_leaf_hash.GetHex());
+  auto sighash = tx2.CreateSignatureHashByTaproot(outpoint2, sighash_all, &tap_leaf_hash);
+  EXPECT_EQ("80e53eaee13048aee9c6c13fa5a8529aad7fe2c362bfc16f1e2affc71f591d36", sighash.GetHex());
+
+  auto sig = SchnorrUtil::Sign(sighash, key);
+  EXPECT_EQ("f5aa6b260f9df687786cd3813ba83b476e195041bccea800f2571212f4aae9848a538b6175a4f8ea291d38e351ea7f612a3d700dca63cd3aff05d315c5698ee9", sig.GetHex());
+  sig.SetSigHashType(sighash_all);
+  SignParameter sign_param(sig.GetData(true));
+  tx2.AddTapScriptSign(outpoint2, tree, schnorr_pubkey, {sign_param});
+
+  EXPECT_EQ("020000000001015b80a1af0e00c700bee9c8e4442bec933fcdc0c686dac2dc336caaaf186c5d190000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50341f5aa6b260f9df687786cd3813ba83b476e195041bccea800f2571212f4aae9848a538b6175a4f8ea291d38e351ea7f612a3d700dca63cd3aff05d315c5698ee90122201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfbac61c01777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6ddc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d5400000000", tx2.GetHex());
+
+  try {
+    tx2.Verify();
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("The script analysis of tapscript is not supported.", except.what());
+  }
+
+  TransactionContext invalid_sign_tx("020000000001015b80a1af0e00c700bee9c8e4442bec933fcdc0c686dac2dc336caaaf186c5d190000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50341f5aa6b260f9df687786cd3813ba83b476e195041bccea800f2571212f4aae9848a538b6175a4f8ea291d38e351ea7f612a3d700dca63cd3aff05d315c5698ee90122201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfbac61c01777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6ddc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d3d5400000000");
+  invalid_sign_tx.CollectInputUtxo({utxo});
+  try {
+    invalid_sign_tx.Verify();
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("Unmatch locking script.", except.what());
+  }
 }

@@ -486,7 +486,7 @@ TEST(ConfidentialTransactionContext, BlindTransaction)
   issue_key.token_key = issue_key.asset_key;
   BlindParameter utxo_param;
   utxo_param.asset = ConfidentialAssetId("849cabdb3b0df8a05b97c5df0f2e2f891d5a94fccf6dbe9907ee34b477a1e735");
-  utxo_param.value = ConfidentialValue(Amount(int64_t{49922540}));
+  utxo_param.value = ConfidentialValue(Amount(int64_t{49980000}));
 
   std::map<OutPoint, BlindParameter> utxo_info_map;
   utxo_info_map.emplace(outpoint, utxo_param);

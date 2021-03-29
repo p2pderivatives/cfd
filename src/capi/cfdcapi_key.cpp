@@ -614,12 +614,6 @@ int CfdSignSchnorr(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. msg is null or empty.");
     }
-    if (IsEmptyString(aux_rand)) {
-      warn(CFD_LOG_SOURCE, "aux_rand is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. aux_rand is null or empty.");
-    }
     if (IsEmptyString(sk)) {
       warn(CFD_LOG_SOURCE, "sk is null or empty.");
       throw CfdException(
@@ -633,8 +627,13 @@ int CfdSignSchnorr(
           "Failed to parameter. signature is null.");
     }
 
-    SchnorrSignature schnorr_sig = SchnorrUtil::Sign(
-        ByteData256(msg), Privkey(sk), ByteData256(aux_rand));
+    SchnorrSignature schnorr_sig;
+    if (IsEmptyString(aux_rand)) {
+      schnorr_sig = SchnorrUtil::Sign(ByteData256(msg), Privkey(sk));
+    } else {
+      schnorr_sig = SchnorrUtil::Sign(
+          ByteData256(msg), Privkey(sk), ByteData256(aux_rand));
+    }
 
     *signature = CreateString(schnorr_sig.GetHex());
     return CfdErrorCode::kCfdSuccess;
@@ -683,6 +682,71 @@ int CfdSignSchnorrWithNonce(
         ByteData256(msg), Privkey(sk), Privkey(nonce));
 
     *signature = CreateString(schnorr_sig.GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdAddSighashTypeInSchnorrSignature(
+    void* handle, const char* signature, int sighash_type, bool anyone_can_pay,
+    char** added_signature) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null or empty.");
+    }
+    if (added_signature == nullptr) {
+      warn(CFD_LOG_SOURCE, "added_signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. added_signature is null or empty.");
+    }
+    SchnorrSignature sig(signature);
+    SigHashType sighash_type_obj = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), anyone_can_pay);
+    sig.SetSigHashType(sighash_type_obj);
+    *added_signature = CreateString(sig.GetData(true).GetHex());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdGetSighashTypeFromSchnorrSignature(
+    void* handle, const char* signature, int* sighash_type,
+    bool* anyone_can_pay) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(signature)) {
+      warn(CFD_LOG_SOURCE, "signature is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. signature is null or empty.");
+    }
+    SchnorrSignature sig(signature);
+    auto sighash_type_obj = sig.GetSigHashType();
+    if (sighash_type != nullptr) {
+      *sighash_type = static_cast<int>(sighash_type_obj.GetSigHashAlgorithm());
+    }
+    if (anyone_can_pay != nullptr) {
+      *anyone_can_pay = sighash_type_obj.IsAnyoneCanPay();
+    }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     result = SetLastError(handle, except);
@@ -842,8 +906,8 @@ int CfdEncodeSignatureByDer(
           "Failed to parameter. der_signature is null.");
     }
 
-    SigHashType type = SigHashType(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType type = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     ByteData der_sig = CryptoUtil::ConvertSignatureToDer(signature, type);
     *der_signature = CreateString(der_sig.GetHex());
 
@@ -1123,8 +1187,39 @@ int CfdGetPubkeyFromPrivkey(
   }
 }
 
-CFDC_API int CfdCompressPubkey(
-    void* handle, const char* pubkey, char** output) {
+int CfdGetPubkeyFingerprint(
+    void* handle, const char* pubkey, char** fingerprint) {
+  try {
+    cfd::Initialize();
+    if (fingerprint == nullptr) {
+      warn(CFD_LOG_SOURCE, "fingerprint is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. fingerprint is null.");
+    }
+    if (IsEmptyString(pubkey)) {
+      warn(CFD_LOG_SOURCE, "pubkey is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey is null or empty.");
+    }
+
+    Pubkey key(pubkey);
+    *fingerprint = CreateString(key.GetFingerprint().GetHex());
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    return SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+    return CfdErrorCode::kCfdUnknownError;
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+    return CfdErrorCode::kCfdUnknownError;
+  }
+}
+
+int CfdCompressPubkey(void* handle, const char* pubkey, char** output) {
   try {
     cfd::Initialize();
     if (output == nullptr) {

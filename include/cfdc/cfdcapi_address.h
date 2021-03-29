@@ -49,7 +49,11 @@ enum CfdAddressType {
   /** P2sh wrapped segwit address (Script Hash) */
   kCfdP2shP2wshAddress,
   /** P2sh wrapped segwit address (Pubkey Hash) */
-  kCfdP2shP2wpkhAddress
+  kCfdP2shP2wpkhAddress,
+  /** Taproot address */
+  kCfdTaprootAddress,
+  /** Witness unknown address */
+  kCfdWitnessUnknownAddress = 0xff
 };
 
 /**
@@ -67,7 +71,11 @@ enum CfdHashType {
   /** P2sh wrapped segwit Script Hash */
   kCfdP2shP2wsh,
   /** P2sh wrapped segwit Pubkey Hash */
-  kCfdP2shP2wpkh
+  kCfdP2shP2wpkh,
+  /** Taproot */
+  kCfdTaproot,
+  /** Unknown */
+  kCfdUnknown = 0xff
 };
 
 /**
@@ -78,7 +86,7 @@ enum CfdWitnessVersion {
   kCfdWitnessVersionNone = -1,
   /** version 0 */
   kCfdWitnessVersion0 = 0,
-  /** version 1 (for future use) */
+  /** version 1 (taproot) */
   kCfdWitnessVersion1,
   /** version 2 (for future use) */
   kCfdWitnessVersion2,
@@ -116,6 +124,8 @@ enum CfdWitnessVersion {
  * @brief sighash type
  */
 enum CfdSighashType {
+  /** SIGHASH_DEFAULT */
+  kCfdSigHashDefault = 0,
   /** SIGHASH_ALL */
   kCfdSigHashAll = 0x01,
   /** SIGHASH_NONE */

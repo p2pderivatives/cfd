@@ -2,7 +2,7 @@
 /**
  * @file cfd_transaction_common.h
  *
- * @brief Transaction操作共通の関連クラス定義
+ * @brief Related class definition common to Transaction operations
  */
 #ifndef CFD_INCLUDE_CFD_CFD_TRANSACTION_COMMON_H_
 #define CFD_INCLUDE_CFD_CFD_TRANSACTION_COMMON_H_
@@ -47,7 +47,7 @@ using cfd::core::ElementsConfidentialAddress;
 
 /**
  * @typedef SignDataType
- * @brief SignData種別
+ * @brief Sign data type
  */
 enum SignDataType {
   kSign = 0,
@@ -58,20 +58,23 @@ enum SignDataType {
 };
 
 /**
- * @brief UTXO構造体
+ * @brief UTXO structure
  */
-struct UtxoData {
-  uint64_t block_height;     //!< blick高
-  BlockHash block_hash;      //!< block hash
-  Txid txid;                 //!< txid
-  uint32_t vout;             //!< vout
-  Script locking_script;     //!< locking script
-  Script redeem_script;      //!< script
-  Address address;           //!< address
-  std::string descriptor;    //!< output descriptor
-  Amount amount;             //!< amount
-  AddressType address_type;  //!< address type
-  void* binary_data;         //!< binary data option
+struct CFD_EXPORT UtxoData {
+ public:
+  uint64_t block_height = 0;  //!< blick height
+  BlockHash block_hash;       //!< block hash
+  Txid txid;                  //!< txid
+  uint32_t vout = 0;          //!< vout
+  Script locking_script;      //!< locking script
+  Script redeem_script;       //!< script
+  Address address;            //!< address
+  std::string descriptor;     //!< output descriptor
+  Amount amount;              //!< amount
+  //! address type
+  AddressType address_type = AddressType::kP2shAddress;
+  //! binary data option
+  void* binary_data = nullptr;
 #ifndef CFD_DISABLE_ELEMENTS
   ConfidentialAssetId asset;  //!< asset
   // elements
@@ -81,11 +84,82 @@ struct UtxoData {
   ConfidentialValue value_commitment;                //!< value commitment
 #endif                                               // CFD_DISABLE_ELEMENTS
   Script scriptsig_template;                         //!< scriptsig template
-  // int32_t status;          //!< utxo status (reserved)
+
+ public:
+  /**
+   * @brief constructor.
+   */
+  UtxoData();
+#ifndef CFD_DISABLE_ELEMENTS
+  /**
+   * @brief constructor.
+   * @param[in] block_height    block_height
+   * @param[in] block_hash    block_hash
+   * @param[in] txid    txid
+   * @param[in] vout    vout
+   * @param[in] locking_script    locking_script
+   * @param[in] redeem_script    redeem_script
+   * @param[in] address    address
+   * @param[in] descriptor    descriptor
+   * @param[in] amount    amount
+   * @param[in] address_type    address_type
+   * @param[in] binary_data    binary_data
+   * @param[in] asset    asset
+   * @param[in] confidential_address    confidential_address
+   * @param[in] asset_blind_factor    asset_blind_factor
+   * @param[in] amount_blind_factor    amount_blind_factor
+   * @param[in] value_commitment    value_commitment
+   * @param[in] scriptsig_template    scriptsig_template
+   */
+  explicit UtxoData(
+      uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
+      uint32_t vout, const Script& locking_script, const Script& redeem_script,
+      const Address& address, const std::string& descriptor,
+      const Amount& amount, AddressType address_type, void* binary_data,
+      const ConfidentialAssetId& asset,
+      const ElementsConfidentialAddress& confidential_address,
+      const BlindFactor& asset_blind_factor,
+      const BlindFactor& amount_blind_factor,
+      const ConfidentialValue& value_commitment,
+      const Script& scriptsig_template);
+#else
+  /**
+   * @brief constructor.
+   * @param[in] block_height    block_height
+   * @param[in] block_hash    block_hash
+   * @param[in] txid    txid
+   * @param[in] vout    vout
+   * @param[in] locking_script    locking_script
+   * @param[in] redeem_script    redeem_script
+   * @param[in] address    address
+   * @param[in] descriptor    descriptor
+   * @param[in] amount    amount
+   * @param[in] address_type    address_type
+   * @param[in] binary_data    binary_data
+   * @param[in] scriptsig_template    scriptsig_template
+   */
+  explicit UtxoData(
+      uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
+      uint32_t vout, const Script& locking_script, const Script& redeem_script,
+      const Address& address, const std::string& descriptor,
+      const Amount& amount, AddressType address_type, void* binary_data,
+      const Script& scriptsig_template);
+#endif  // CFD_DISABLE_ELEMENTS
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  UtxoData(const UtxoData& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  UtxoData& operator=(const UtxoData& object) &;
 };
 
 /**
- * @brief Coin関連のAPIクラス
+ * @brief Utxo related API classes
  */
 class CFD_EXPORT UtxoUtil {
  public:
@@ -112,16 +186,16 @@ class CFD_EXPORT UtxoUtil {
 };
 
 /**
- * @brief Sign生成のためのデータモデル
+ * @brief Data model for sign generation
  */
 class CFD_EXPORT SignParameter {
  public:
   /**
-   * @brief コンストラクタ(for vector)
+   * @brief constructor(for vector)
    */
   SignParameter();
   /**
-   * @brief コンストラクタ(Type: auto)
+   * @brief constructor(Type: auto)
    * @param[in] text_message            text data
    * @param[in] der_encode              flag of need der encode
    * @param[in] sighash_type            sighash type (SigHashType)
@@ -131,7 +205,7 @@ class CFD_EXPORT SignParameter {
       const SigHashType sighash_type =
           SigHashType(SigHashAlgorithm::kSigHashAll));
   /**
-   * @brief コンストラクタ(Type: Sign)
+   * @brief constructor(Type: Sign)
    * @param[in] data                    byte data
    * @param[in] der_encode              flag of need der encode
    * @param[in] sighash_type            sighash type (SigHashType)
@@ -141,44 +215,44 @@ class CFD_EXPORT SignParameter {
       const SigHashType sighash_type =
           SigHashType(SigHashAlgorithm::kSigHashAll));
   /**
-   * @brief コンストラクタ(Type: Binary)
+   * @brief constructor(Type: Binary)
    * @param[in] data  data
    */
   explicit SignParameter(const ByteData& data);
   /**
-   * @brief コンストラクタ(Type: Pubkey)
+   * @brief constructor(Type: Pubkey)
    * @param[in] pubkey  pubkey data
    */
   explicit SignParameter(const Pubkey& pubkey);
   /**
-   * @brief コンストラクタ(Type: RedeemScript)
+   * @brief constructor(Type: RedeemScript)
    * @param[in] redeem_script  redeem script data
    */
   explicit SignParameter(const Script& redeem_script);
   /**
-   * @brief コンストラクタ(Type: ScriptOperator)
+   * @brief constructor(Type: ScriptOperator)
    * @param[in] op_code  op code
    */
   explicit SignParameter(const ScriptOperator& op_code);
   /**
-   * @brief コピーコンストラクタ.
-   * @param[in] sign_parameter     Sign生成情報オブジェクト
+   * @brief copy constructor.
+   * @param[in] sign_parameter     object
    */
   SignParameter(const SignParameter& sign_parameter);
   /**
-   * @brief コピーコンストラクタ.
-   * @param[in] sign_parameter     Sign生成情報オブジェクト
-   * @return SignParameterオブジェクト
+   * @brief copy constructor.
+   * @param[in] sign_parameter     object
+   * @return object
    */
   SignParameter& operator=(const SignParameter& sign_parameter);
   /**
-   * @brief RelatedPubkeyのセット
+   * @brief Set the related pubkey.
    * @param[in] pubkey  realated pubkey
    */
   void SetRelatedPubkey(const Pubkey& pubkey);
 
   /**
-   * @brief dataを取得する
+   * @brief Get data
    * @return data
    */
   ByteData GetData() const;
@@ -194,27 +268,27 @@ class CFD_EXPORT SignParameter {
    */
   bool IsOpCode() const;
   /**
-   * @brief data typeを取得する
+   * @brief Get data type
    * @return data
    */
   SignDataType GetDataType() const;
   /**
-   * @brief RelatedPubkeyを取得する
+   * @brief Get RelatedPubkey
    * @return related pubkey data
    */
   Pubkey GetRelatedPubkey() const;
   /**
-   * @brief DerEncodeフラグを取得する
-   * @return der encode 実施フラグ
+   * @brief Get DerEncode
+   * @return der encode use flag
    */
   bool IsDerEncode() const;
   /**
-   * @brief SigHashTypeを取得する
+   * @brief Get sighash type
    * @return sighash type
    */
   SigHashType GetSigHashType() const;
   /**
-   * @brief 格納された情報でdataをsignatureへ変換する
+   * @brief Convert data to signature with stored information
    * @return signature data
    */
   ByteData ConvertToSignature() const;

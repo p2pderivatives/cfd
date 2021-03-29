@@ -13,6 +13,9 @@ option(CFD_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
 option(ENABLE_CAPI  "enable c-api (ON or OFF. default:ON)" ON)
 option(ENABLE_JSONAPI  "enable json-api (ON or OFF. default:ON)" ON)
 
+set(GENERATE_WALLY ON CACHE BOOL "" FORCE)
+set(EXCLUDE_WALLYCORE_LIB ON CACHE BOOL "" FORCE)
+
 ####################
 # common setting
 ####################
