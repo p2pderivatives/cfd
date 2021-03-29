@@ -1585,8 +1585,8 @@ int CfdAddConfidentialTxDerSign(
     }
 
     // encode to der
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     ByteData signature_bytes = ByteData(std::string(signature));
     SignParameter param(signature_bytes, true, sighashtype);
     ByteData signature_der = param.ConvertToSignature();
@@ -1772,8 +1772,8 @@ int CfdAddConfidentialTxSignWithPrivkeySimple(
 
     OutPoint outpoint(Txid(txid), vout);
     ConfidentialTransactionContext tx(tx_hex_string);
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     tx.SignWithPrivkeySimple(
         outpoint, Pubkey(pubkey), privkey_obj, sighashtype, value, addr_type,
         has_grind_r);
@@ -1874,8 +1874,8 @@ int CfdCreateConfidentialSighash(
     }
 
     ElementsTransactionApi api;
-    SigHashType sighashtype(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighashtype = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     std::string sighash_bytes = api.CreateSignatureHash(
         std::string(tx_hex_string), Txid(std::string(txid)), vout, key_data,
         value, core_hash_type, sighashtype);
@@ -2089,8 +2089,8 @@ CFDC_API int CfdVerifyConfidentialTxSignature(
     ConfidentialTransactionController ctxc(tx_hex);
     ByteData signature_obj(signature);
     Txid txid_obj(txid);
-    SigHashType sighash_type_obj(
-        static_cast<SigHashAlgorithm>(sighash_type), sighash_anyone_can_pay);
+    SigHashType sighash_type_obj = SigHashType::Create(
+        static_cast<uint8_t>(sighash_type), sighash_anyone_can_pay);
     ConfidentialValue value;
     if (!IsEmptyString(value_commitment)) {
       value = ConfidentialValue(value_commitment);

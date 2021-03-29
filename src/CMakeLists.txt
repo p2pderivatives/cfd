@@ -85,10 +85,17 @@ add_library(${PROJECT_NAME} STATIC)
 endif()
 
 if(NOT ENABLE_CAPI)
+if(NOT ENABLE_JSONAPI)
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ${CFD_SOURCES}
+)
+else()
 target_sources(${PROJECT_NAME}
   PRIVATE
     ${CFD_SOURCES} ${CFD_JSONAPI_SOURCES}
 )
+endif()
 else()
 if(NOT ENABLE_JSONAPI)
 target_sources(${PROJECT_NAME}
@@ -117,6 +124,7 @@ target_compile_options(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     CFD_BUILD=1
+    ${ELEMENTS_COMP_OPT}
     ${CFD_ELEMENTS_USE}
     ${CFD_CAPI_USE}
     ${CFD_JSONAPI_USE}

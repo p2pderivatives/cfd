@@ -2,8 +2,7 @@
 /**
  * @file cfd_transaction.cpp
  *
- * @brief \~english implementation of classes related to transaction operation
- *   \~japanese Transaction操作の関連クラスの実装ファイル
+ * @brief implementation of classes related to transaction operation
  */
 #include "cfd/cfd_transaction.h"
 
@@ -17,10 +16,13 @@
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_coin.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_transaction.h"
 
 namespace cfd {
@@ -33,16 +35,21 @@ using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::Descriptor;
 using cfd::core::HashType;
 using cfd::core::NetType;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrUtil;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
 using cfd::core::ScriptUtil;
 using cfd::core::SigHashType;
 using cfd::core::SignatureUtil;
+using cfd::core::TaprootScriptTree;
+using cfd::core::TaprootUtil;
+using cfd::core::TapScriptData;
 using cfd::core::Transaction;
 using cfd::core::Txid;
 using cfd::core::TxIn;
@@ -65,15 +72,23 @@ using cfd::TransactionController;
  * @param[in] pubkey          pubkey on pubkey hash.
  * @param[in] redeem_script   redeem script on script hash.
  * @param[in] version         witness version.
+ * @param[in] annex           annex
+ * @param[in] script_tree     taproot script tree.
  * @return signature hash.
  */
 static ByteData256 CreateTxSighash(
     const TransactionContext* transaction, const OutPoint& outpoint,
     const UtxoData& utxo, const SigHashType& sighash_type,
-    const Pubkey& pubkey, const Script& redeem_script,
-    WitnessVersion version) {
+    const Pubkey& pubkey, const Script& redeem_script, WitnessVersion version,
+    const ByteData* annex, const TaprootScriptTree* script_tree) {
   ByteData sig;
-  if (redeem_script.IsEmpty()) {
+  if (version == WitnessVersion::kVersion1) {
+    ByteData256 tapleaf_hash;
+    if (script_tree != nullptr) tapleaf_hash = script_tree->GetTapLeafHash();
+    return transaction->CreateSignatureHashByTaproot(
+        outpoint, sighash_type,
+        (script_tree != nullptr) ? &tapleaf_hash : nullptr, 0, annex);
+  } else if (redeem_script.IsEmpty()) {
     sig = transaction->CreateSignatureHash(
         outpoint, pubkey, sighash_type, utxo.amount, version);
   } else {
@@ -88,19 +103,55 @@ static ByteData256 CreateTxSighash(
     const Script&, WitnessVersion)> create_sighash_func;
 */
 
+/**
+ * @brief Get locking script from utxo.
+ * @param[in] utxo    utxo data.
+ * @return locking script
+ */
+static Script GetLockingScriptFromUtxoData(const UtxoData& utxo) {
+  Script locking_script = utxo.locking_script;
+  if (!utxo.address.GetAddress().empty()) {
+    locking_script = utxo.address.GetLockingScript();
+  } else if (!utxo.descriptor.empty()) {
+    auto desc = Descriptor::Parse(utxo.descriptor);
+    locking_script = desc.GetLockingScript();
+  }
+  return locking_script;
+}
+
 // -----------------------------------------------------------------------------
 // TransactionController
 // -----------------------------------------------------------------------------
-TransactionContext::TransactionContext() {}
+TransactionContext::TransactionContext() {
+  utxo_map_.clear();
+  signed_map_.clear();
+  verify_map_.clear();
+  verify_ignore_map_.clear();
+}
 
 TransactionContext::TransactionContext(uint32_t version, uint32_t locktime)
-    : Transaction(version, locktime) {}
+    : Transaction(version, locktime) {
+  utxo_map_.clear();
+  signed_map_.clear();
+  verify_map_.clear();
+  verify_ignore_map_.clear();
+}
 
 TransactionContext::TransactionContext(const std::string& tx_hex)
-    : Transaction(tx_hex) {}
+    : Transaction(tx_hex) {
+  utxo_map_.clear();
+  signed_map_.clear();
+  verify_map_.clear();
+  verify_ignore_map_.clear();
+}
 
 TransactionContext::TransactionContext(const ByteData& byte_data)
-    : Transaction(byte_data.GetHex()) {}
+    : Transaction(byte_data.GetHex()) {
+  utxo_map_.clear();
+  signed_map_.clear();
+  verify_map_.clear();
+  verify_ignore_map_.clear();
+}
 
 TransactionContext::TransactionContext(const TransactionContext& context)
     : Transaction(context.GetHex()) {
@@ -115,11 +166,13 @@ TransactionContext::TransactionContext(const Transaction& transaction)
 
 TransactionContext& TransactionContext::operator=(
     const TransactionContext& context) & {
-  SetFromHex(context.GetHex());
-  utxo_map_ = context.utxo_map_;
-  signed_map_ = context.signed_map_;
-  verify_map_ = context.verify_map_;
-  verify_ignore_map_ = context.verify_ignore_map_;
+  if (this != &context) {
+    SetFromHex(context.GetHex());
+    utxo_map_ = context.utxo_map_;
+    signed_map_ = context.signed_map_;
+    verify_map_ = context.verify_map_;
+    verify_ignore_map_ = context.verify_ignore_map_;
+  }
   return *this;
 }
 
@@ -207,8 +260,9 @@ uint32_t TransactionContext::AddTxOut(
   return AddTxOut(value, address.GetLockingScript());
 }
 
-uint32_t TransactionContext::GetSizeIgnoreTxIn() const {
+uint32_t TransactionContext::GetSizeIgnoreTxIn(bool use_witness) const {
   uint32_t result = AbstractTransaction::kTransactionMinimumSize;
+  if (use_witness) result += 2;
   std::vector<TxOutReference> txouts = GetTxOutList();
   for (const auto& txout : txouts) {
     result += txout.GetSerializeSize();
@@ -216,8 +270,9 @@ uint32_t TransactionContext::GetSizeIgnoreTxIn() const {
   return result;
 }
 
-uint32_t TransactionContext::GetVsizeIgnoreTxIn() const {
-  return AbstractTransaction::GetVsizeFromSize(GetSizeIgnoreTxIn(), 0);
+uint32_t TransactionContext::GetVsizeIgnoreTxIn(bool use_witness) const {
+  return AbstractTransaction::GetVsizeFromSize(
+      GetSizeIgnoreTxIn(use_witness), 0);
 }
 
 void TransactionContext::AddInput(const UtxoData& utxo) {
@@ -237,7 +292,7 @@ void TransactionContext::AddInput(const UtxoData& utxo, uint32_t sequence) {
   UtxoUtil::ConvertToUtxo(utxo, &temp, &dest);
 
   AddTxIn(utxo.txid, utxo.vout, sequence);
-  utxo_map_.emplace(OutPoint(utxo.txid, utxo.vout), dest);
+  utxo_map_.emplace_back(dest);
 }
 
 void TransactionContext::AddInputs(const std::vector<UtxoData>& utxos) {
@@ -253,10 +308,14 @@ void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
       uint32_t vout = txin_ref.GetVout();
 
       OutPoint outpoint(txid, vout);
-      if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+      if (!IsFindUtxoMap(outpoint)) {
         for (const auto& utxo : utxos) {
           if ((utxo.vout == vout) && utxo.txid.Equals(txid)) {
-            utxo_map_.emplace(outpoint, utxo);
+            UtxoData dest;
+            Utxo temp;
+            memset(&temp, 0, sizeof(temp));
+            UtxoUtil::ConvertToUtxo(utxo, &temp, &dest);
+            utxo_map_.emplace_back(dest);
             break;
           }
         }
@@ -265,16 +324,27 @@ void TransactionContext::CollectInputUtxo(const std::vector<UtxoData>& utxos) {
   }
 }
 
+UtxoData TransactionContext::GetTxInUtxoData(const OutPoint& outpoint) const {
+  UtxoData utxo;
+  utxo.address_type = AddressType::kP2shAddress;
+  utxo.vout = 0;
+  utxo.block_height = 0;
+  utxo.binary_data = nullptr;
+  IsFindUtxoMap(outpoint, &utxo);
+  return utxo;
+}
+
 Amount TransactionContext::GetFeeAmount() const {
   Amount input;
+  UtxoData utxo;
   for (const auto& txin_ref : vin_) {
     OutPoint outpoint(txin_ref.GetTxid(), txin_ref.GetVout());
-    if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+    if (!IsFindUtxoMap(outpoint, &utxo)) {
       throw CfdException(
           CfdError::kCfdIllegalStateError,
           "Utxo is not found. GetFeeAmount fail.");
     }
-    input += utxo_map_.find(outpoint)->second.amount;
+    input += utxo.amount;
   }
 
   Amount output;
@@ -290,57 +360,74 @@ Amount TransactionContext::GetFeeAmount() const {
 
 void TransactionContext::SignWithKey(
     const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
-    SigHashType sighash_type, bool has_grind_r) {
-  if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+    SigHashType sighash_type, bool has_grind_r, const ByteData256* aux_rand,
+    const ByteData* annex) {
+  UtxoData utxo;
+  if (!IsFindUtxoMap(outpoint, &utxo)) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "Utxo is not found. sign fail.");
   }
-  UtxoData utxo = utxo_map_.find(outpoint)->second;
-
-  SignWithPrivkeySimple(
-      outpoint, pubkey, privkey, sighash_type, utxo.amount, utxo.address_type,
-      has_grind_r);
+  utxo.locking_script = GetLockingScriptFromUtxoData(utxo);
+  if (utxo.locking_script.IsTaprootScript()) {
+    SignWithSchnorrPrivkeySimple(
+        outpoint, privkey, sighash_type, aux_rand, annex);
+  } else {
+    SignWithPrivkeySimple(
+        outpoint, pubkey, privkey, sighash_type, utxo.amount,
+        utxo.address_type, has_grind_r);
+  }
 }
 
 void TransactionContext::IgnoreVerify(const OutPoint& outpoint) {
   GetTxInIndex(outpoint.GetTxid(), outpoint.GetVout());
-  verify_ignore_map_.emplace(outpoint);
+  if (!IsFindOutPoint(verify_ignore_map_, outpoint)) {
+    verify_ignore_map_.emplace_back(outpoint);
+  }
 }
 
 void TransactionContext::Verify() {
   for (const auto& vin : vin_) {
     OutPoint outpoint = vin.GetOutPoint();
-    if (verify_ignore_map_.find(outpoint) == std::end(verify_ignore_map_)) {
+    if (!IsFindOutPoint(verify_ignore_map_, outpoint)) {
       Verify(outpoint);
     }
   }
 }
 
 void TransactionContext::Verify(const OutPoint& outpoint) {
-  if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+  UtxoData utxo;
+  if (!IsFindUtxoMap(outpoint, &utxo)) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "Utxo is not found. verify fail.");
   }
-  const auto& utxo = utxo_map_.find(outpoint)->second;
   const auto& txin = vin_[GetTxInIndex(outpoint)];
 
+  std::vector<UtxoData> utxo_list;
+  utxo.locking_script = GetLockingScriptFromUtxoData(utxo);
+  if (utxo.locking_script.IsTaprootScript()) {
+    UtxoData work_utxo;
+    for (const auto& txin_ref : vin_) {
+      OutPoint target_outpoint(txin_ref.GetTxid(), txin_ref.GetVout());
+      if (!IsFindUtxoMap(target_outpoint, &work_utxo)) {
+        throw CfdException(
+            CfdError::kCfdIllegalStateError,
+            "Utxo is not found. Verify fail.");
+      }
+      work_utxo.locking_script = GetLockingScriptFromUtxoData(work_utxo);
+      utxo_list.emplace_back(work_utxo);
+    }
+  }
   TransactionContextUtil::Verify<TransactionContext>(
       this, outpoint, utxo, &txin, CreateTxSighash);
-  verify_map_.emplace(outpoint);
+  if (!IsFindOutPoint(verify_map_, outpoint)) {
+    verify_map_.emplace_back(outpoint);
+  }
 }
 
 ByteData TransactionContext::Finalize() {
   Verify();
   return AbstractTransaction::GetData();
 }
-
-#if 0
-// priority: low
-void TransactionContext::ClearSign() { return; }
-
-// priority: low
-void TransactionContext::ClearSign(const OutPoint& outpoint) { return; }
-#endif
 
 ByteData TransactionContext::CreateSignatureHash(
     const OutPoint& outpoint, const Pubkey& pubkey, SigHashType sighash_type,
@@ -355,12 +442,47 @@ ByteData TransactionContext::CreateSignatureHash(
     const OutPoint& outpoint, const Script& redeem_script,
     SigHashType sighash_type, const Amount& value,
     WitnessVersion version) const {
-  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
-  // TODO(k-matsuzawa): 現状は利用側で分割し、適用する箇所だけ指定してもらう。
+  // TODO(k-matsuzawa): For now, when using OP_CODESEPARATOR, divide it on the user side and ask them to specify only the applicable part.  // NOLINT
   ByteData256 sighash = GetSignatureHash(
       GetTxInIndex(outpoint), redeem_script.GetData(), sighash_type, value,
       version);
   return ByteData(sighash.GetBytes());
+}
+
+ByteData256 TransactionContext::CreateSignatureHashByTaproot(
+    const OutPoint& outpoint, const SigHashType& sighash_type,
+    const ByteData256* tap_leaf_hash, const uint32_t* code_separator_position,
+    const ByteData* annex) const {
+  UtxoData utxo;
+  std::vector<TxOut> utxos;
+  // utxos.reserve(vin_.size());
+  // for (const auto& txin_ref : vin_) {
+  for (size_t index = 0; index < vin_.size(); ++index) {
+    const auto& txin_ref = vin_[index];
+    OutPoint target_outpoint(txin_ref.GetTxid(), txin_ref.GetVout());
+    if (!IsFindUtxoMap(target_outpoint, &utxo)) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Utxo is not found. CreateSignatureHashByTaproot fail.");
+    }
+    utxo.locking_script = GetLockingScriptFromUtxoData(utxo);
+    utxos.emplace_back(TxOut(utxo.amount, utxo.locking_script));
+  }
+
+  uint32_t txin_index = GetTxInIndex(outpoint);
+  ByteData annex_data;
+  if (annex != nullptr) annex_data = *annex;
+  TapScriptData script_data;
+  if (tap_leaf_hash != nullptr) {
+    script_data.tap_leaf_hash = *tap_leaf_hash;
+    if (code_separator_position != nullptr) {
+      script_data.code_separator_position = *code_separator_position;
+    }
+  }
+
+  return GetSchnorrSignatureHash(
+      txin_index, sighash_type, utxos,
+      (tap_leaf_hash != nullptr) ? &script_data : nullptr, annex_data);
 }
 
 void TransactionContext::SignWithPrivkeySimple(
@@ -377,6 +499,22 @@ void TransactionContext::SignWithPrivkeySimple(
   SignParameter sign(signature, true, sighash_type);
 
   AddPubkeyHashSign(outpoint, sign, pubkey, address_type);
+}
+
+void TransactionContext::SignWithSchnorrPrivkeySimple(
+    const OutPoint& outpoint, const Privkey& privkey,
+    const SigHashType& sighash_type, const ByteData256* aux_rand,
+    const ByteData* annex) {
+  auto sighash =
+      CreateSignatureHashByTaproot(outpoint, sighash_type, nullptr, 0, annex);
+  SchnorrSignature signature;
+  if (aux_rand != nullptr) {
+    signature = SchnorrUtil::Sign(sighash, privkey, *aux_rand);
+  } else {
+    signature = SchnorrUtil::Sign(sighash, privkey);
+  }
+  signature.SetSigHashType(sighash_type);
+  AddSchnorrSign(outpoint, signature, annex);
 }
 
 void TransactionContext::AddPubkeyHashSign(
@@ -408,10 +546,33 @@ void TransactionContext::AddMultisigSign(
   AddScriptHashSign(outpoint, sign_list, redeem_script, address_type, true);
 }
 
+void TransactionContext::AddSchnorrSign(
+    const OutPoint& outpoint, const SchnorrSignature& signature,
+    const ByteData* annex) {
+  std::vector<SignParameter> sign_params = {
+      SignParameter(signature.GetData(true))};
+  if (annex != nullptr) sign_params.emplace_back(*annex);
+  AddSign(outpoint, sign_params, true, true);
+  signed_map_.emplace(outpoint, signature.GetSigHashType());
+}
+
+void TransactionContext::AddTapScriptSign(
+    const OutPoint& outpoint, const TaprootScriptTree& tree,
+    const SchnorrPubkey& internal_pubkey,
+    const std::vector<SignParameter>& sign_data_list, const ByteData* annex) {
+  std::vector<SignParameter> sign_params = sign_data_list;
+  auto control = TaprootUtil::CreateTapScriptControl(internal_pubkey, tree);
+  auto script = tree.GetScript();
+  sign_params.emplace_back(script);
+  sign_params.emplace_back(control);
+  if (annex != nullptr) sign_params.emplace_back(*annex);
+  AddSign(outpoint, sign_params, true, true);
+}
+
 void TransactionContext::AddSign(
     const OutPoint& outpoint, const std::vector<SignParameter>& sign_params,
     bool insert_witness, bool clear_stack) {
-  return TransactionContextUtil::AddSign(
+  TransactionContextUtil::AddSign(
       this, outpoint, sign_params, insert_witness, clear_stack);
 }
 
@@ -433,6 +594,55 @@ bool TransactionContext::VerifyInputSignature(
       CreateSignatureHash(outpoint, script, sighash_type, value, version);
   return SignatureUtil::VerifyEcSignature(
       ByteData256(sighash.GetBytes()), pubkey, signature);
+}
+
+bool TransactionContext::VerifyInputSchnorrSignature(
+    const SchnorrSignature& signature, const OutPoint& outpoint,
+    const std::vector<UtxoData>& utxo_list, const SchnorrPubkey& pubkey,
+    const ByteData* annex) const {
+  UtxoData target_utxo;
+  std::vector<TxOut> utxos;
+  utxos.reserve(vin_.size());
+  for (const auto& txin_ref : vin_) {
+    OutPoint target_outpoint(txin_ref.GetTxid(), txin_ref.GetVout());
+    bool is_find = false;
+    for (const auto& utxo : utxo_list) {
+      if (txin_ref.GetTxid().Equals(utxo.txid) &&
+          (txin_ref.GetVout() == utxo.vout)) {
+        is_find = true;
+        Script locking_script = GetLockingScriptFromUtxoData(utxo);
+        utxos.emplace_back(utxo.amount, locking_script);
+
+        if (outpoint == target_outpoint) {
+          target_utxo = utxo;
+          target_utxo.locking_script = locking_script;
+        }
+      }
+    }
+    if (!is_find) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Utxo is not found. VerifyInputSchnorrSignature fail.");
+    }
+  }
+  if (target_utxo.amount == 0) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "OutPoint is not found into utxo_list.");
+  } else if (!target_utxo.locking_script.IsTaprootScript()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Target OutPoint is not taproot.");
+  }
+  auto hash = target_utxo.locking_script.GetElementList()[1].GetBinaryData();
+  if (!hash.Equals(pubkey.GetData())) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Unmatch locking script.");
+  }
+
+  auto sighash = GetSchnorrSignatureHash(
+      GetTxInIndex(outpoint), signature.GetSigHashType(), utxos, nullptr,
+      (annex != nullptr) ? *annex : ByteData());
+  return pubkey.Verify(signature, sighash);
 }
 
 uint32_t TransactionContext::GetDefaultSequence() const {
@@ -506,6 +716,26 @@ std::vector<SignParameter> TransactionContext::CheckMultisig(
   return signature_list;
 }
 
+bool TransactionContext::IsFindUtxoMap(
+    const OutPoint& outpoint, UtxoData* utxo) const {
+  for (const auto& utxo_data : utxo_map_) {
+    if ((outpoint.GetVout() == utxo_data.vout) &&
+        utxo_data.txid.Equals(outpoint.GetTxid())) {
+      if (utxo != nullptr) *utxo = utxo_data;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool TransactionContext::IsFindOutPoint(
+    const std::vector<OutPoint>& list, const OutPoint& outpoint) const {
+  for (const auto& target : list) {
+    if (outpoint == target) return true;
+  }
+  return false;
+}
+
 // -----------------------------------------------------------------------------
 // TransactionController
 // -----------------------------------------------------------------------------
@@ -532,7 +762,9 @@ TransactionController::TransactionController(
 
 TransactionController& TransactionController::operator=(
     const TransactionController& transaction) & {
-  transaction_ = transaction.transaction_;
+  if (this != &transaction) {
+    transaction_ = transaction.transaction_;
+  }
   return *this;
 }
 

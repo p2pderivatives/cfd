@@ -9,6 +9,11 @@
 #ifndef CFD_SRC_JSONAPI_CFD_JSON_TRANSACTION_H_
 #define CFD_SRC_JSONAPI_CFD_JSON_TRANSACTION_H_
 
+#include <string>
+#include <vector>
+
+#include "cfd/cfd_address.h"
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_script.h"
@@ -19,6 +24,8 @@ namespace cfd {
 namespace api {
 namespace json {
 
+using cfd::AddressFactory;
+using cfd::core::Address;
 using cfd::core::ByteData;
 using cfd::core::Script;
 using cfd::core::SigHashType;
@@ -37,18 +44,21 @@ enum LockingScriptType {
   kNullData,             //!< null data of locking script
   kWitnessV0ScriptHash,  //!< p2wsh locking script
   kWitnessV0KeyHash,     //!< p2wpkh locking script
+  kWitnessV1Taproot,     //!< taproot locking script
   kWitnessUnknown,       //!< invalid witness ver locking script
   kTrue,                 //!< can spend anyone script
   kFee,                  //!< type fee (elements only)
 };
 
 /**
- * @brief LockingScriptの解析情報
+ * @brief LockingScript extract data
  */
 struct ExtractScriptData {
-  LockingScriptType script_type;  //!< LockingScript種別
-  std::vector<ByteData> pushed_datas;  //!< LockingScriptに含まれるhashデータ
-  int64_t req_sigs;                    //!< Unlockingに必要なSignature数
+  LockingScriptType script_type;  //!< LockingScript type
+  std::vector<ByteData> pushed_datas;  //!< hashed data by locking script
+  int64_t req_sigs;                    //!< multisig unlocking signature num
+  //! Witness version
+  WitnessVersion witness_version = WitnessVersion::kVersionNone;
 };
 
 /**
@@ -110,6 +120,18 @@ class TransactionJsonApi {
    * @throw CfdException 指定文字列以外が渡された場合
    */
   static NetType ConvertNetType(const std::string& network_type);
+
+  /**
+   * @brief Convert from locking script.
+   * @param[in] factory     address factory
+   * @param[in] script      locking script
+   * @param[out] script_type    script type
+   * @param[out] require_num    multisig require num
+   * @return address list
+   */
+  static std::vector<Address> ConvertFromLockingScript(
+      const AddressFactory& factory, const Script& script,
+      std::string* script_type, int64_t* require_num);
 
  private:
   TransactionJsonApi();

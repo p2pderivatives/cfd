@@ -391,6 +391,14 @@ TEST(cfdcapi_address, CfdGetAddressInfoTest) {
       kCfdP2wsh,
       kCfdWitnessVersion0,
     },
+    { // HashType(Taproot) mainnet
+      "bc1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naspp3kr4",
+      "51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      "1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      kCfdNetworkMainnet,
+      kCfdTaproot,
+      kCfdWitnessVersion1,
+    },
 #ifndef CFD_DISABLE_ELEMENTS
     { // Elements HashType(P2PKH) liquidv1
       "QKXGAM4Cvd1fvLEz5tbq4YwNRzTjdMWi2q",
@@ -447,6 +455,68 @@ TEST(cfdcapi_address, CfdGetAddressInfoTest) {
       EXPECT_STREQ(exp_datas[idx].hash, hash);
       CfdFreeStringBuffer(locking_script);
       CfdFreeStringBuffer(hash);
+    } else {
+      char* message = nullptr;
+      ret = CfdGetLastErrorMessage(handle, &message);
+      if (ret == kCfdSuccess) {
+        EXPECT_STREQ("", message);
+        CfdFreeStringBuffer(message);
+      }
+    }
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_address, CfdCreateAddressTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  struct CfdCreateAddressExpectData {
+    const char* pubkey;
+    const char* script;
+    int hash_type;
+    int network;
+    const char* address;
+    const char* locking_script;
+  };
+
+  const struct CfdCreateAddressExpectData exp_datas[] = {
+    {  // taproot testnet
+      "1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      "",
+      kCfdTaproot,
+      kCfdNetworkTestnet,
+      "tb1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naskf8ee6",
+      "51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb"
+    },
+    {  // taproot regtest
+      "88de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",
+      "",
+      kCfdTaproot,
+      kCfdNetworkRegtest,
+      "bcrt1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vsn6c9jz",
+      "512088de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799"
+    },
+  };
+  size_t list_size = sizeof(exp_datas) / sizeof(struct CfdCreateAddressExpectData);
+
+  for (size_t idx = 0; idx < list_size; ++idx) {
+    char* locking_script = nullptr;
+    char* address = nullptr;
+    ret = CfdCreateAddress(
+        handle, exp_datas[idx].hash_type, exp_datas[idx].pubkey,
+        exp_datas[idx].script, exp_datas[idx].network,
+        &address, &locking_script, nullptr);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(exp_datas[idx].address, address);
+      EXPECT_STREQ(exp_datas[idx].locking_script, locking_script);
+      CfdFreeStringBuffer(locking_script);
+      CfdFreeStringBuffer(address);
     } else {
       char* message = nullptr;
       ret = CfdGetLastErrorMessage(handle, &message);

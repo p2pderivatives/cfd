@@ -67,7 +67,7 @@ void CoinApi::ConvertToUtxo(const UtxoData& utxo_data, Utxo* utxo) const {
         utxo->address_type = AddressType::kP2wshAddress;
       } else if (utxo_data.locking_script.IsP2pkhScript()) {
         utxo->address_type = AddressType::kP2pkhAddress;
-      } else {  // TODO(k-matsuzawa): p2shに丸めておく
+      } else {  // TODO(k-matsuzawa): unbknown type is convert to p2sh
         utxo->address_type = AddressType::kP2shAddress;
       }
     }

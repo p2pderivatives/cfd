@@ -10,6 +10,7 @@
 #include "cfd/cfd_json_mapping_api.h"
 #include "jsonapi/autogen/cfd_api_json_autogen.h"           // NOLINT
 #include "jsonapi/cfd_json_transaction.h"           // NOLINT
+#include "jsonapi/cfd_json_psbt.h"                  // NOLINT
 #include "jsonapi/cfd_json_elements_transaction.h"  // NOLINT
 
 // using
@@ -105,6 +106,12 @@ std::string JsonMappingApi::DecodeRawTransaction(
       DecodeRawTransactionRequest,
       DecodeRawTransactionResponse>(
       request_message, TransactionJsonApi::DecodeRawTransaction);
+}
+
+std::string JsonMappingApi::DecodePsbt(
+    const std::string &request_message) {
+  return ExecuteDirectApi<DecodePsbtRequest, DecodePsbtResponse>(
+      request_message, PsbtJsonApi::DecodePsbt);
 }
 
 #ifndef CFD_DISABLE_ELEMENTS

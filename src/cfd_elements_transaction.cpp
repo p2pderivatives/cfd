@@ -90,7 +90,8 @@ static ByteData256 CreateConfidentialTxSighash(
     const ConfidentialTransactionContext* transaction,
     const OutPoint& outpoint, const UtxoData& utxo,
     const SigHashType& sighash_type, const Pubkey& pubkey,
-    const Script& redeem_script, WitnessVersion version) {
+    const Script& redeem_script, WitnessVersion version, const ByteData*,
+    const TaprootScriptTree*) {
   ConfidentialValue value;
   if (utxo.value_commitment.IsEmpty()) {
     value = ConfidentialValue(utxo.amount);
@@ -145,11 +146,13 @@ ConfidentialTransactionContext::ConfidentialTransactionContext(
 
 ConfidentialTransactionContext& ConfidentialTransactionContext::operator=(
     const ConfidentialTransactionContext& context) & {
-  SetFromHex(context.GetHex());
-  utxo_map_ = context.utxo_map_;
-  signed_map_ = context.signed_map_;
-  verify_map_ = context.verify_map_;
-  verify_ignore_map_ = context.verify_ignore_map_;
+  if (this != &context) {
+    SetFromHex(context.GetHex());
+    utxo_map_ = context.utxo_map_;
+    signed_map_ = context.signed_map_;
+    verify_map_ = context.verify_map_;
+    verify_ignore_map_ = context.verify_ignore_map_;
+  }
   return *this;
 }
 
@@ -659,7 +662,7 @@ void ConfidentialTransactionContext::AddInput(
   UtxoUtil::ConvertToUtxo(utxo, &temp, &dest);
 
   AddTxIn(utxo.txid, utxo.vout, sequence, Script::Empty);
-  utxo_map_.emplace(OutPoint(utxo.txid, utxo.vout), dest);
+  utxo_map_.emplace_back(dest);
 }
 
 void ConfidentialTransactionContext::AddInputs(
@@ -677,16 +680,27 @@ void ConfidentialTransactionContext::CollectInputUtxo(
       uint32_t vout = txin_ref.GetVout();
 
       OutPoint outpoint(txid, vout);
-      if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+      if (!IsFindUtxoMap(outpoint)) {
         for (const auto& utxo : utxos) {
           if ((utxo.vout == vout) && utxo.txid.Equals(txid)) {
-            utxo_map_.emplace(outpoint, utxo);
+            utxo_map_.emplace_back(utxo);
             break;
           }
         }
       }
     }
   }
+}
+
+UtxoData ConfidentialTransactionContext::GetTxInUtxoData(
+    const OutPoint& outpoint) const {
+  UtxoData utxo;
+  utxo.address_type = AddressType::kP2shAddress;
+  utxo.vout = 0;
+  utxo.block_height = 0;
+  utxo.binary_data = nullptr;
+  IsFindUtxoMap(outpoint, &utxo);
+  return utxo;
 }
 
 void ConfidentialTransactionContext::Blind(
@@ -704,13 +718,13 @@ void ConfidentialTransactionContext::BlindIssuance(
     int64_t minimum_range_value, int exponent, int minimum_bits,
     std::vector<BlindData>* blinder_list) {
   std::map<OutPoint, BlindParameter> utxo_info_map;
+  UtxoData utxo;
   for (const auto& txin_ref : vin_) {
     OutPoint outpoint = txin_ref.GetOutPoint();
-    if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+    if (!IsFindUtxoMap(outpoint, &utxo)) {
       throw CfdException(
           CfdError::kCfdIllegalStateError, "Utxo is not found. blind fail.");
     }
-    UtxoData utxo = utxo_map_.find(outpoint)->second;
     BlindParameter param;
     param.asset = utxo.asset;
     param.abf = utxo.asset_blind_factor;
@@ -733,11 +747,11 @@ void ConfidentialTransactionContext::BlindIssuance(
 void ConfidentialTransactionContext::SignWithKey(
     const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
     SigHashType sighash_type, bool has_grind_r) {
-  if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+  UtxoData utxo;
+  if (!IsFindUtxoMap(outpoint, &utxo)) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "Utxo is not found. sign fail.");
   }
-  UtxoData utxo = utxo_map_.find(outpoint)->second;
 
   if (utxo.amount_blind_factor.IsEmpty() &&
       (!utxo.value_commitment.HasBlinding())) {
@@ -753,45 +767,39 @@ void ConfidentialTransactionContext::SignWithKey(
 
 void ConfidentialTransactionContext::IgnoreVerify(const OutPoint& outpoint) {
   GetTxInIndex(outpoint.GetTxid(), outpoint.GetVout());
-  verify_ignore_map_.emplace(outpoint);
+  if (!IsFindOutPoint(verify_ignore_map_, outpoint)) {
+    verify_ignore_map_.emplace_back(outpoint);
+  }
 }
 
 void ConfidentialTransactionContext::Verify() {
   for (const auto& vin : vin_) {
     OutPoint outpoint = vin.GetOutPoint();
-    if (verify_ignore_map_.find(outpoint) == std::end(verify_ignore_map_)) {
+    if (!IsFindOutPoint(verify_ignore_map_, outpoint)) {
       Verify(outpoint);
     }
   }
 }
 
 void ConfidentialTransactionContext::Verify(const OutPoint& outpoint) {
-  if (utxo_map_.find(outpoint) == std::end(utxo_map_)) {
+  UtxoData utxo;
+  if (!IsFindUtxoMap(outpoint, &utxo)) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "Utxo is not found. verify fail.");
   }
-  const auto& utxo = utxo_map_.find(outpoint)->second;
   const auto& txin = vin_[GetTxInIndex(outpoint)];
 
   TransactionContextUtil::Verify<ConfidentialTransactionContext>(
       this, outpoint, utxo, &txin, CreateConfidentialTxSighash);
-  verify_map_.emplace(outpoint);
+  if (!IsFindOutPoint(verify_map_, outpoint)) {
+    verify_map_.emplace_back(outpoint);
+  }
 }
 
 ByteData ConfidentialTransactionContext::Finalize() {
   Verify();
   return AbstractTransaction::GetData();
 }
-
-#if 0
-// priority: low
-void ConfidentialTransactionContext::ClearSign() { return; }
-
-// priority: low
-void ConfidentialTransactionContext::ClearSign(const OutPoint& outpoint) {
-  return;
-}
-#endif
 
 ByteData ConfidentialTransactionContext::CreateSignatureHash(
     const OutPoint& outpoint, const Pubkey& pubkey, SigHashType sighash_type,
@@ -822,8 +830,7 @@ ByteData ConfidentialTransactionContext::CreateSignatureHash(
     const OutPoint& outpoint, const Script& redeem_script,
     SigHashType sighash_type, const ConfidentialValue& value,
     WitnessVersion version) const {
-  // TODO(soejima): OP_CODESEPARATOR存在時、Scriptの分割が必要。
-  // TODO(k-matsuzawa): 現状は利用側で分割し、適用する箇所だけ指定してもらう。
+  // TODO(k-matsuzawa): For now, when using OP_CODESEPARATOR, divide it on the user side and ask them to specify only the applicable part.  // NOLINT
   ByteData256 sighash = GetElementsSignatureHash(
       GetTxInIndex(outpoint), redeem_script.GetData(), sighash_type, value,
       version);
@@ -928,6 +935,26 @@ void ConfidentialTransactionContext::CallbackStateChange(uint32_t type) {
   verify_map_.clear();
 }
 
+bool ConfidentialTransactionContext::IsFindUtxoMap(
+    const OutPoint& outpoint, UtxoData* utxo) const {
+  for (const auto& utxo_data : utxo_map_) {
+    if ((outpoint.GetVout() == utxo_data.vout) &&
+        utxo_data.txid.Equals(outpoint.GetTxid())) {
+      if (utxo != nullptr) *utxo = utxo_data;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool ConfidentialTransactionContext::IsFindOutPoint(
+    const std::vector<OutPoint>& list, const OutPoint& outpoint) const {
+  for (const auto& target : list) {
+    if (outpoint == target) return true;
+  }
+  return false;
+}
+
 // -----------------------------------------------------------------------------
 // ConfidentialTransactionController
 // -----------------------------------------------------------------------------
@@ -952,7 +979,9 @@ ConfidentialTransactionController::ConfidentialTransactionController(
 ConfidentialTransactionController&
 ConfidentialTransactionController::operator=(
     const ConfidentialTransactionController& transaction) & {
-  transaction_ = transaction.transaction_;
+  if (this != &transaction) {
+    transaction_ = transaction.transaction_;
+  }
   return *this;
 }
 

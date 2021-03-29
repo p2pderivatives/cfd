@@ -215,6 +215,127 @@ TEST(cfdcapi_common, CfdRequestExecuteJson_decodetx) {
   }
   respons_json = NULL;
 
+  // DecodeRawTransaction taproot send
+  const char* request_json4 = "{\"hex\":\"02000000000101ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb02473044022018b10265080f8c491c43595000461a19212239fea9ee4c6fd26498f358b1760d0220223c1389ac26a2ed5f77ad73240af2fa6eb30ef5d19520026c2f7b7e817592530121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c4400000000\",\"network\":\"regtest\"}";
+  const char* exp_json4 = "{\"txid\":\"2fea883042440d030ca5929814ead927075a8f52fef5f4720fa3cec2e475d916\",\"hash\":\"d95071dc758c623d7f2d91178f8b8ce1ee8272131ffedf510595fc4abe2960ad\",\"version\":2,\"size\":203,\"vsize\":122,\"weight\":485,\"locktime\":0,\"vin\":[{\"txid\":\"1f9866dc0a19c427347c2db0b5910bdc2c20b78fa9f74f8756b21db890dba8ff\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"txinwitness\":[\"3044022018b10265080f8c491c43595000461a19212239fea9ee4c6fd26498f358b1760d0220223c1389ac26a2ed5f77ad73240af2fa6eb30ef5d19520026c2f7b7e8175925301\",\"023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44\"],\"sequence\":4294967295}],\"vout\":[{\"value\":2499999000,\"n\":0,\"scriptPubKey\":{\"asm\":\"1 1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb\",\"hex\":\"51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb\",\"reqSigs\":1,\"type\":\"witness_v1_taproot\",\"addresses\":[\"bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq\"]}}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodeRawTransaction", request_json4, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json4, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodeRawTransaction tapscript
+  const char* request_json5 = "{\"hex\":\"020000000001015b80a1af0e00c700bee9c8e4442bec933fcdc0c686dac2dc336caaaf186c5d190000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50341f5aa6b260f9df687786cd3813ba83b476e195041bccea800f2571212f4aae9848a538b6175a4f8ea291d38e351ea7f612a3d700dca63cd3aff05d315c5698ee90122201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfbac61c01777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6ddc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d5400000000\",\"network\":\"regtest\"}";
+  const char* exp_json5 = "{\"txid\":\"e4810312b04fcd7178f04153c08e9f065dbc3a2fcc27db77e76e4347d243f725\",\"hash\":\"dc8767a20b972967c1652436258500772fe93f5e0eae108fbb0a38c30e731c36\",\"version\":2,\"size\":284,\"vsize\":133,\"weight\":530,\"locktime\":0,\"vin\":[{\"txid\":\"195d6c18afaa6c33dcc2da86c6c0cd3f93ec2b44e4c8e9be00c7000eafa1805b\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"txinwitness\":[\"f5aa6b260f9df687786cd3813ba83b476e195041bccea800f2571212f4aae9848a538b6175a4f8ea291d38e351ea7f612a3d700dca63cd3aff05d315c5698ee901\",\"201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfbac\",\"c01777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6ddc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54\"],\"sequence\":4294967295}],\"vout\":[{\"value\":2499998000,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 164e985d0fc92c927a66c0cbaf78e6ea389629d5\",\"hex\":\"0014164e985d0fc92c927a66c0cbaf78e6ea389629d5\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40\"]}}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodeRawTransaction", request_json5, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json5, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdRequestExecuteJson_decodepsbt) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+  char* respons_json = nullptr;
+
+  // DecodePsbt multiple input and output.
+  const char* request_json1 = "{\"psbt\":\"cHNidP8BAJoCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8CAOH1BQAAAAAWABSzIr3c5jO4UaxzcKtFTws2egZU5QDh9QUAAAAAFgAUyrjFOm6PwCltHNORWjB9UcSRpVUAAAAAAAEA9gIAAAAAAQHxmT/o5xiVQu5FBiWOFwIBviknA80nWssJ7OFmcv2EiwAAAAAXFgAUrJ74CyevHJ2VwdtddhMZMivEL8X/////AggEECQBAAAAFgAUCd4qBDHLs0RPwiytnZoP0JY5chAA4fUFAAAAABepFFCfWYX06QoU+5Djkxb9tPOsl1MHhwJHMEQCIB4H33IcMyJBno820H7q5HlZdboNnRljDKPNPcDUlnFyAiAVQo574GtlZ1AVOQUL15GjgPALvdvFCX6pe6e+QBcRSgEhAkrvQ7HVrHulAUmY1jzqxYOVnR/cZuommc2E7q+CooMGAAAAAAEBIADh9QUAAAAAF6kUUJ9ZhfTpChT7kOOTFv2086yXUweHAQcXFgAUlixOCPM206+8NBXJ01muEEBHBSABCGsCRzBEAiApmGKmeptFTWzaX+40pS2Qib+gJERNiAMcNKmOKYvbygIgS0f89Qe4CVQQjgN1Zz/b3QhMX7uZT2yVFyDy6y9ruGYBIQJWUkhGCzwYbezxPbBvByT9ULR8w+SJwwB2yDY9UDjO/gABAL8CAAAAAcbS6jbi6AK1LdrGZdrL7S+DG1JjRZ4cpzT1yUXXUV5AAAAAAGpHMEQCIBG5bH0tDS6NyzcTjhisxGB1KWWt2cuHh99cNJ3w4q5mAiAuk68xtk9RZuVgWBlVXavsV755QwD62zcFLzHd3qmQXAEhA+PSRKOWfguHdl/ahsX/OIhfdJk5U7lYQ4iu8wsmr2rs/////wF4Uc0dAAAAABl2qRSNIEQ6kZaeO8oOJAzQ/+TcmMY94oisAAAAAAEHakcwRAIgZuyVbpZ4PNYSLJwHcyo66ZMbaava/x82LCjtX6lnKNMCIGoW1K5G/tSNPQSSc3YTvZtR/j4kU7REbkR8Zb8sln4QASEC2faIjyhaFaahiAoiAsKyMKQtd89i2mpIrKQZgmLNo8cAIgIDRzv8jHcMGyIKLnquS632wNfq8pAo1bKdNDgBK7KJ74EYKnBHYCwAAIAAAACAAAAAgAAAAAACAAAAACICA2R0r/JjPDUYZVOftStiudb7nk4jV2Yo4fCgp5k0WOBsGJ1rbYYsAACAAAAAgAAAAIAAAAAAAgAAAAA=\"}";
+  const char* exp_json1 = "{\"tx\":{\"txid\":\"f2bd9cccedc37e91a8b10e8034eefc49b901afa6220833097a31ed91772d81a5\",\"hash\":\"f2bd9cccedc37e91a8b10e8034eefc49b901afa6220833097a31ed91772d81a5\",\"version\":2,\"size\":154,\"vsize\":154,\"weight\":616,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":100000000,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 b322bddce633b851ac7370ab454f0b367a0654e5\",\"hex\":\"0014b322bddce633b851ac7370ab454f0b367a0654e5\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qkv3tmh8xxwu9rtrnwz452nctxeaqv489dcscvw\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"0 cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"hex\":\"0014cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qe2uv2wnw3lqzjmgu6wg45vra28zfrf24f5qa8p\"]}}]},\"unknown\":[],\"inputs\":[{\"non_witness_utxo\":{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"hash\":\"9cb67d0ba945c8da2342429e19b12e11852e3a032144ca908996ff46f05dd906\",\"version\":2,\"size\":246,\"vsize\":165,\"weight\":657,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"8b84fd7266e1ec09cb5a27cd032729be0102178e250645ee429518e7e83f99f1\",\"vout\":0,\"scriptSig\":{\"asm\":\"0014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\",\"hex\":\"160014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\"},\"txinwitness\":[\"304402201e07df721c3322419e8f36d07eeae4795975ba0d9d19630ca3cd3dc0d4967172022015428e7be06b6567501539050bd791a380f00bbddbc5097ea97ba7be4017114a01\",\"024aef43b1d5ac7ba5014998d63ceac583959d1fdc66ea2699cd84eeaf82a28306\"],\"sequence\":4294967295}],\"vout\":[{\"value\":100000000,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 b322bddce633b851ac7370ab454f0b367a0654e5\",\"hex\":\"0014b322bddce633b851ac7370ab454f0b367a0654e5\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qkv3tmh8xxwu9rtrnwz452nctxeaqv489dcscvw\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"0 cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"hex\":\"0014cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qe2uv2wnw3lqzjmgu6wg45vra28zfrf24f5qa8p\"]}},{\"value\":4899996680,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 09de2a0431cbb3444fc22cad9d9a0fd096397210\",\"hex\":\"001409de2a0431cbb3444fc22cad9d9a0fd096397210\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qp80z5pp3ewe5gn7z9jkemxs06ztrjusscl4mx0\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"OP_HASH160 509f5985f4e90a14fb90e39316fdb4f3ac975307 OP_EQUAL\",\"hex\":\"a914509f5985f4e90a14fb90e39316fdb4f3ac97530787\",\"reqSigs\":1,\"type\":\"scripthash\",\"addresses\":[\"393JshdyfRGe4Z4zvjvYYFPSUbrFvJy5tm\"]}}]},\"witness_utxo\":{\"amount\":100000000,\"scriptPubKey\":{\"asm\":\"OP_HASH160 509f5985f4e90a14fb90e39316fdb4f3ac975307 OP_EQUAL\",\"hex\":\"a914509f5985f4e90a14fb90e39316fdb4f3ac97530787\",\"type\":\"scripthash\",\"address\":\"393JshdyfRGe4Z4zvjvYYFPSUbrFvJy5tm\"}},\"final_scriptsig\":{\"asm\":\"0014962c4e08f336d3afbc3415c9d359ae1040470520\",\"hex\":\"160014962c4e08f336d3afbc3415c9d359ae1040470520\"},\"final_scriptwitness\":[\"30440220299862a67a9b454d6cda5fee34a52d9089bfa024444d88031c34a98e298bdbca02204b47fcf507b80954108e0375673fdbdd084c5fbb994f6c951720f2eb2f6bb86601\",\"02565248460b3c186decf13db06f0724fd50b47cc3e489c30076c8363d5038cefe\"]},{\"non_witness_utxo\":{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"hash\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"version\":2,\"size\":191,\"vsize\":191,\"weight\":764,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"8b84fd7266e1ec09cb5a27cd032729be0102178e250645ee429518e7e83f99f1\",\"vout\":0,\"scriptSig\":{\"asm\":\"0014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\",\"hex\":\"160014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\"},\"txinwitness\":[\"304402201e07df721c3322419e8f36d07eeae4795975ba0d9d19630ca3cd3dc0d4967172022015428e7be06b6567501539050bd791a380f00bbddbc5097ea97ba7be4017114a01\",\"024aef43b1d5ac7ba5014998d63ceac583959d1fdc66ea2699cd84eeaf82a28306\"],\"sequence\":4294967295},{\"txid\":\"405e51d745c9f534a71c9e4563521b832fedcbda65c6da2db502e8e236ead2c6\",\"vout\":0,\"scriptSig\":{\"asm\":\"3044022011b96c7d2d0d2e8dcb37138e18acc460752965add9cb8787df5c349df0e2ae6602202e93af31b64f5166e5605819555dabec57be794300fadb37052f31dddea9905c01 03e3d244a3967e0b87765fda86c5ff38885f74993953b9584388aef30b26af6aec\",\"hex\":\"473044022011b96c7d2d0d2e8dcb37138e18acc460752965add9cb8787df5c349df0e2ae6602202e93af31b64f5166e5605819555dabec57be794300fadb37052f31dddea9905c012103e3d244a3967e0b87765fda86c5ff38885f74993953b9584388aef30b26af6aec\"},\"sequence\":4294967295}],\"vout\":[{\"value\":100000000,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 b322bddce633b851ac7370ab454f0b367a0654e5\",\"hex\":\"0014b322bddce633b851ac7370ab454f0b367a0654e5\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qkv3tmh8xxwu9rtrnwz452nctxeaqv489dcscvw\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"0 cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"hex\":\"0014cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qe2uv2wnw3lqzjmgu6wg45vra28zfrf24f5qa8p\"]}},{\"value\":4899996680,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 09de2a0431cbb3444fc22cad9d9a0fd096397210\",\"hex\":\"001409de2a0431cbb3444fc22cad9d9a0fd096397210\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"bc1qp80z5pp3ewe5gn7z9jkemxs06ztrjusscl4mx0\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"OP_HASH160 509f5985f4e90a14fb90e39316fdb4f3ac975307 OP_EQUAL\",\"hex\":\"a914509f5985f4e90a14fb90e39316fdb4f3ac97530787\",\"reqSigs\":1,\"type\":\"scripthash\",\"addresses\":[\"393JshdyfRGe4Z4zvjvYYFPSUbrFvJy5tm\"]}},{\"value\":499995000,\"n\":0,\"scriptPubKey\":{\"asm\":\"OP_DUP OP_HASH160 8d20443a91969e3bca0e240cd0ffe4dc98c63de2 OP_EQUALVERIFY OP_CHECKSIG\",\"hex\":\"76a9148d20443a91969e3bca0e240cd0ffe4dc98c63de288ac\",\"reqSigs\":1,\"type\":\"pubkeyhash\",\"addresses\":[\"1DsCvxydk2JqbEj1EqL6mXcEvStsKQvKbx\"]}}]},\"final_scriptsig\":{\"asm\":\"3044022066ec956e96783cd6122c9c07732a3ae9931b69abdaff1f362c28ed5fa96728d302206a16d4ae46fed48d3d0492737613bd9b51fe3e2453b4446e447c65bf2c967e1001 02d9f6888f285a15a6a1880a2202c2b230a42d77cf62da6a48aca4198262cda3c7\",\"hex\":\"473044022066ec956e96783cd6122c9c07732a3ae9931b69abdaff1f362c28ed5fa96728d302206a16d4ae46fed48d3d0492737613bd9b51fe3e2453b4446e447c65bf2c967e10012102d9f6888f285a15a6a1880a2202c2b230a42d77cf62da6a48aca4198262cda3c7\"}}],\"outputs\":[{\"bip32_derivs\":[{\"pubkey\":\"03473bfc8c770c1b220a2e7aae4badf6c0d7eaf29028d5b29d3438012bb289ef81\",\"master_fingerprint\":\"2a704760\",\"path\":\"44'/0'/0'/0/2\"}]},{\"bip32_derivs\":[{\"pubkey\":\"036474aff2633c351865539fb52b62b9d6fb9e4e23576628e1f0a0a7993458e06c\",\"master_fingerprint\":\"9d6b6d86\",\"path\":\"44'/0'/0'/0/2\"}]}],\"fee\":399995000}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json1, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json1, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodePsbt2 multiple input and output.
+  const char* request_json2 = "{\"psbt\":\"cHNidP8BAF4CAAAAAWkv08JB0xYYGWvDa23k9riJEU5CDpvd+cu+Ux5aVE1UAAAAAAD/////ARBLzR0AAAAAIgAgPK0GGd5n5iR6dqECgTY1wFNFfGuk/eSsH/2BSNcOS8wAAAAAAAEBIAhYzR0AAAAAF6kUlF+1A5GnBjfB/8Wrf7ZTCMLyMXWHIgIDpRL19ZwOeQH8R47WNT7vdvRPnLLBhb+89/C5u3Zxa/NHMEQCICBjWTfgUXDYPcMhOts6bq5mcTAI5KvDi0kSxWgN7E8MAiAzwIpxowdXsIRj1TDsBY7XQBlo+zC+9j1FSXIaDkhbhAEiAgP01HNhTpVKxPVRjm98szB7T4R0PhN+1O7LX0+2Q8I7R0cwRAIgXSdKeIfePvrehKSjScTDb1ibVWI7ECe32m2sicF4VjQCIGoDr+u7tgifHjf6yPmZpAFRYciSAUT9UxEtoFgEzUPMAQEDBAEAAAABBCIAIJxNrLJeu4rai7sa3bhp3qTYFwzJUfHZaUshVOFYMnbJAQVHUiEDpRL19ZwOeQH8R47WNT7vdvRPnLLBhb+89/C5u3Zxa/MhA/TUc2FOlUrE9VGOb3yzMHtPhHQ+E37U7stfT7ZDwjtHUq4iBgOlEvX1nA55AfxHjtY1Pu929E+cssGFv7z38Lm7dnFr8xgqcEdgLAAAgAAAAIAAAACAAAAAAAsAAAAiBgP01HNhTpVKxPVRjm98szB7T4R0PhN+1O7LX0+2Q8I7Rxida22GLAAAgAAAAIAAAACAAAAAAAsAAAAAAQAiACA8rQYZ3mfmJHp2oQKBNjXAU0V8a6T95Kwf/YFI1w5LzAEBR1IhApBtOZ9tu+zImNS43j9JdHTIakHyzzbXH5XlygawdIZ7IQJiLHl07DLeda+jczsJpsM9DepRSyn6rM+wmRd09GIiQlKuIgICYix5dOwy3nWvo3M7CabDPQ3qUUsp+qzPsJkXdPRiIkIYnWtthiwAAIAAAACAAAAAgAAAAAAMAAAAIgICkG05n2277MiY1LjeP0l0dMhqQfLPNtcfleXKBrB0hnsYKnBHYCwAAIAAAACAAAAAgAAAAAAMAAAAAA==\",\"network\":\"testnet\"}";
+  const char* exp_json2 = "{\"tx\":{\"txid\":\"4fca1d22793c84025ac994fe144b6840db376fcc50fe87ed98f60cd5717143df\",\"hash\":\"4fca1d22793c84025ac994fe144b6840db376fcc50fe87ed98f60cd5717143df\",\"version\":2,\"size\":94,\"vsize\":94,\"weight\":376,\"locktime\":0,\"vin\":[{\"txid\":\"544d545a1e53becbf9dd9b0e424e1189b8f6e46d6bc36b191816d341c2d32f69\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":499993360,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 3cad0619de67e6247a76a102813635c053457c6ba4fde4ac1ffd8148d70e4bcc\",\"hex\":\"00203cad0619de67e6247a76a102813635c053457c6ba4fde4ac1ffd8148d70e4bcc\",\"reqSigs\":1,\"type\":\"witness_v0_scripthash\",\"addresses\":[\"tb1q8jksvxw7vlnzg7nk5ypgzd34cpf52lrt5n77ftqllkq534cwf0xqjsj24p\"]}}]},\"unknown\":[],\"inputs\":[{\"witness_utxo\":{\"amount\":499996680,\"scriptPubKey\":{\"asm\":\"OP_HASH160 945fb50391a70637c1ffc5ab7fb65308c2f23175 OP_EQUAL\",\"hex\":\"a914945fb50391a70637c1ffc5ab7fb65308c2f2317587\",\"type\":\"scripthash\",\"address\":\"2N6mkeX6gvq65nySsWmQUqacjfnH9HV2ufY\"}},\"partial_signatures\":[{\"pubkey\":\"03a512f5f59c0e7901fc478ed6353eef76f44f9cb2c185bfbcf7f0b9bb76716bf3\",\"signature\":\"3044022020635937e05170d83dc3213adb3a6eae66713008e4abc38b4912c5680dec4f0c022033c08a71a30757b08463d530ec058ed7401968fb30bef63d4549721a0e485b8401\"},{\"pubkey\":\"03f4d473614e954ac4f5518e6f7cb3307b4f84743e137ed4eecb5f4fb643c23b47\",\"signature\":\"304402205d274a7887de3efade84a4a349c4c36f589b55623b1027b7da6dac89c178563402206a03afebbbb6089f1e37fac8f999a4015161c8920144fd53112da05804cd43cc01\"}],\"sighash\":\"ALL\",\"redeem_script\":{\"asm\":\"0 9c4dacb25ebb8ada8bbb1addb869dea4d8170cc951f1d9694b2154e1583276c9\",\"hex\":\"00209c4dacb25ebb8ada8bbb1addb869dea4d8170cc951f1d9694b2154e1583276c9\",\"type\":\"witness_v0_scripthash\"},\"witness_script\":{\"asm\":\"2 03a512f5f59c0e7901fc478ed6353eef76f44f9cb2c185bfbcf7f0b9bb76716bf3 03f4d473614e954ac4f5518e6f7cb3307b4f84743e137ed4eecb5f4fb643c23b47 2 OP_CHECKMULTISIG\",\"hex\":\"522103a512f5f59c0e7901fc478ed6353eef76f44f9cb2c185bfbcf7f0b9bb76716bf32103f4d473614e954ac4f5518e6f7cb3307b4f84743e137ed4eecb5f4fb643c23b4752ae\",\"type\":\"multisig\"},\"bip32_derivs\":[{\"pubkey\":\"03a512f5f59c0e7901fc478ed6353eef76f44f9cb2c185bfbcf7f0b9bb76716bf3\",\"master_fingerprint\":\"2a704760\",\"path\":\"44'/0'/0'/0/11\"},{\"pubkey\":\"03f4d473614e954ac4f5518e6f7cb3307b4f84743e137ed4eecb5f4fb643c23b47\",\"master_fingerprint\":\"9d6b6d86\",\"path\":\"44'/0'/0'/0/11\"}]}],\"outputs\":[{\"witness_script\":{\"asm\":\"2 02906d399f6dbbecc898d4b8de3f497474c86a41f2cf36d71f95e5ca06b074867b 02622c7974ec32de75afa3733b09a6c33d0dea514b29faaccfb0991774f4622242 2 OP_CHECKMULTISIG\",\"hex\":\"522102906d399f6dbbecc898d4b8de3f497474c86a41f2cf36d71f95e5ca06b074867b2102622c7974ec32de75afa3733b09a6c33d0dea514b29faaccfb0991774f462224252ae\",\"type\":\"\"},\"bip32_derivs\":[{\"pubkey\":\"02622c7974ec32de75afa3733b09a6c33d0dea514b29faaccfb0991774f4622242\",\"master_fingerprint\":\"9d6b6d86\",\"path\":\"44'/0'/0'/0/12\"},{\"pubkey\":\"02906d399f6dbbecc898d4b8de3f497474c86a41f2cf36d71f95e5ca06b074867b\",\"master_fingerprint\":\"2a704760\",\"path\":\"44'/0'/0'/0/12\"}]}],\"fee\":3320}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json2, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json2, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodePsbt3
+  const char* request_json3 = "{\"psbt\":\"cHNidP8BAD8CAAAAAf//////////////////////////////////////////AAAAAAD/////AQAAAAAAAAAAA2oBAAAAAAAKDwECAwQFBgcICQ8BAgMEBQYHCAkKCwwNDg8ACg8BAgMEBQYHCAkPAQIDBAUGBwgJCgsMDQ4PAAoPAQIDBAUGBwgJDwECAwQFBgcICQoLDA0ODwA=\",\"network\":\"testnet\"}";
+  const char* exp_json3 = "{\"tx\":{\"txid\":\"75c5c9665a570569ad77dd1279e6fd4628a093c4dcbf8d41532614044c14c115\",\"hash\":\"75c5c9665a570569ad77dd1279e6fd4628a093c4dcbf8d41532614044c14c115\",\"version\":2,\"size\":63,\"vsize\":63,\"weight\":252,\"locktime\":0,\"vin\":[{\"txid\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":0,\"n\":0,\"scriptPubKey\":{\"asm\":\"OP_RETURN 0\",\"hex\":\"6a0100\",\"type\":\"nulldata\"}}]},\"unknown\":[{\"key\":\"0f010203040506070809\",\"value\":\"0102030405060708090a0b0c0d0e0f\"}],\"inputs\":[{\"unknown\":[{\"key\":\"0f010203040506070809\",\"value\":\"0102030405060708090a0b0c0d0e0f\"}]}],\"outputs\":[{\"unknown\":[{\"key\":\"0f010203040506070809\",\"value\":\"0102030405060708090a0b0c0d0e0f\"}]}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json3, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json3, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodePsbt4
+  const char* request_json4 = "{\"psbt\":\"cHNidP8BAFUCAAAAASeaIyOl37UfxF8iD6WLD8E+HjNCeSqF1+Ns1jM7XLw5AAAAAAD/////AaBa6gsAAAAAGXapFP/pwAYQl8w7Y28ssEYPpPxCfStFiKwAAAAAAAEBIJVe6gsAAAAAF6kUY0UgD2jRieGtwN8cTRbqjxTA2+uHIgIDsTQcy6doO2r08SOM1ul+cWfVafrEfx5I1HVBhENVvUZGMEMCIAQktY7/qqaU4VWepck7v9SokGQiQFXN8HC2dxRpRC0HAh9cjrD+plFtYLisszrWTt5g6Hhb+zqpS5m9+GFR25qaAQEEIgAgdx/RitRZZm3Unz1WTj28QvTIR3TjYK2haBao7UiNVoEBBUdSIQOxNBzLp2g7avTxI4zW6X5xZ9Vp+sR/HkjUdUGEQ1W9RiED3lXR4drIBeP4pYwfv5uUwC89uq/hJ/78pJlfJvggg71SriIGA7E0HMunaDtq9PEjjNbpfnFn1Wn6xH8eSNR1QYRDVb1GELSmumcAAACAAAAAgAQAAIAiBgPeVdHh2sgF4/iljB+/m5TALz26r+En/vykmV8m+CCDvRC0prpnAAAAgAAAAIAFAACAAAA=\",\"network\":\"testnet\"}";
+  const char* exp_json4 = "{\"tx\":{\"txid\":\"b4ca8f48572bf08354f8302adfbd9e5c2fc2a52731de5401a39aa048f68c9c21\",\"hash\":\"b4ca8f48572bf08354f8302adfbd9e5c2fc2a52731de5401a39aa048f68c9c21\",\"version\":2,\"size\":85,\"vsize\":85,\"weight\":340,\"locktime\":0,\"vin\":[{\"txid\":\"39bc5c3b33d66ce3d7852a7942331e3ec10f8ba50f225fc41fb5dfa523239a27\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":199908000,\"n\":0,\"scriptPubKey\":{\"asm\":\"OP_DUP OP_HASH160 ffe9c0061097cc3b636f2cb0460fa4fc427d2b45 OP_EQUALVERIFY OP_CHECKSIG\",\"hex\":\"76a914ffe9c0061097cc3b636f2cb0460fa4fc427d2b4588ac\",\"reqSigs\":1,\"type\":\"pubkeyhash\",\"addresses\":[\"n4r6dDFCuGSZ1yQwxTJW3be3QFsoziJp3z\"]}}]},\"unknown\":[],\"inputs\":[{\"witness_utxo\":{\"amount\":199909013,\"scriptPubKey\":{\"asm\":\"OP_HASH160 6345200f68d189e1adc0df1c4d16ea8f14c0dbeb OP_EQUAL\",\"hex\":\"a9146345200f68d189e1adc0df1c4d16ea8f14c0dbeb87\",\"type\":\"scripthash\",\"address\":\"2N2J7hBS8e4eLE4sNVjJGF1eHuZoYdELe8g\"}},\"partial_signatures\":[{\"pubkey\":\"03b1341ccba7683b6af4f1238cd6e97e7167d569fac47f1e48d47541844355bd46\",\"signature\":\"304302200424b58effaaa694e1559ea5c93bbfd4a89064224055cdf070b6771469442d07021f5c8eb0fea6516d60b8acb33ad64ede60e8785bfb3aa94b99bdf86151db9a9a01\"}],\"redeem_script\":{\"asm\":\"0 771fd18ad459666dd49f3d564e3dbc42f4c84774e360ada16816a8ed488d5681\",\"hex\":\"0020771fd18ad459666dd49f3d564e3dbc42f4c84774e360ada16816a8ed488d5681\",\"type\":\"witness_v0_scripthash\"},\"witness_script\":{\"asm\":\"2 03b1341ccba7683b6af4f1238cd6e97e7167d569fac47f1e48d47541844355bd46 03de55d1e1dac805e3f8a58c1fbf9b94c02f3dbaafe127fefca4995f26f82083bd 2 OP_CHECKMULTISIG\",\"hex\":\"522103b1341ccba7683b6af4f1238cd6e97e7167d569fac47f1e48d47541844355bd462103de55d1e1dac805e3f8a58c1fbf9b94c02f3dbaafe127fefca4995f26f82083bd52ae\",\"type\":\"multisig\"},\"bip32_derivs\":[{\"pubkey\":\"03b1341ccba7683b6af4f1238cd6e97e7167d569fac47f1e48d47541844355bd46\",\"master_fingerprint\":\"b4a6ba67\",\"path\":\"0'/0'/4'\"},{\"pubkey\":\"03de55d1e1dac805e3f8a58c1fbf9b94c02f3dbaafe127fefca4995f26f82083bd\",\"master_fingerprint\":\"b4a6ba67\",\"path\":\"0'/0'/5'\"}]}],\"outputs\":[{}],\"fee\":1013}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json4, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json4, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodePsbt5
+  const char* request_json5 = "{\"psbt\":\"cHNidP8BAJoCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8CAOH1BQAAAAAWABSzIr3c5jO4UaxzcKtFTws2egZU5QDh9QUAAAAAFgAUyrjFOm6PwCltHNORWjB9UcSRpVUAAAAADfwDY2ZkAAZkdW1teTEEAQIDBA38A2NmZAAGZHVtbXkyAQAAAAAAAA==\",\"network\":\"testnet\"}";
+  const char* exp_json5 = "{\"tx\":{\"txid\":\"f2bd9cccedc37e91a8b10e8034eefc49b901afa6220833097a31ed91772d81a5\",\"hash\":\"f2bd9cccedc37e91a8b10e8034eefc49b901afa6220833097a31ed91772d81a5\",\"version\":2,\"size\":154,\"vsize\":154,\"weight\":616,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[{\"value\":100000000,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 b322bddce633b851ac7370ab454f0b367a0654e5\",\"hex\":\"0014b322bddce633b851ac7370ab454f0b367a0654e5\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"tb1qkv3tmh8xxwu9rtrnwz452nctxeaqv48987ttha\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"0 cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"hex\":\"0014cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"tb1qe2uv2wnw3lqzjmgu6wg45vra28zfrf24rjmwuj\"]}}]},\"unknown\":[{\"key\":\"fc03636664000664756d6d7931\",\"value\":\"01020304\"},{\"key\":\"fc03636664000664756d6d7932\",\"value\":\"00\"}],\"inputs\":[{},{}],\"outputs\":[{},{}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json5, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json5, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodePsbt6
+  const char* request_json6 = "{\"psbt\":\"cHNidP8BAEgCAAAAAAIA4fUFAAAAABYAFLMivdzmM7hRrHNwq0VPCzZ6BlTlAOH1BQAAAAAWABTKuMU6bo/AKW0c05FaMH1RxJGlVQAAAAAAIgIDRzv8jHcMGyIKLnquS632wNfq8pAo1bKdNDgBK7KJ74EYKnBHYCwAAIAAAACAAAAAgAAAAAACAAAADfwDY2ZkAAZkdW1teTEEAQIDBA38A2NmZAAGZHVtbXkyAQAAIgIDZHSv8mM8NRhlU5+1K2K51vueTiNXZijh8KCnmTRY4GwYnWtthiwAAIAAAACAAAAAgAAAAAACAAAAAA==\",\"network\":\"testnet\"}";
+  const char* exp_json6 = "{\"tx\":{\"txid\":\"772e587ed2406fa46800082714af39c6a0393eaab8b4c977aff22aa052dbdac0\",\"hash\":\"772e587ed2406fa46800082714af39c6a0393eaab8b4c977aff22aa052dbdac0\",\"version\":2,\"size\":72,\"vsize\":72,\"weight\":288,\"locktime\":0,\"vin\":[],\"vout\":[{\"value\":100000000,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 b322bddce633b851ac7370ab454f0b367a0654e5\",\"hex\":\"0014b322bddce633b851ac7370ab454f0b367a0654e5\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"tb1qkv3tmh8xxwu9rtrnwz452nctxeaqv48987ttha\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"0 cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"hex\":\"0014cab8c53a6e8fc0296d1cd3915a307d51c491a555\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"tb1qe2uv2wnw3lqzjmgu6wg45vra28zfrf24rjmwuj\"]}}]},\"unknown\":[],\"inputs\":[],\"outputs\":[{\"bip32_derivs\":[{\"pubkey\":\"03473bfc8c770c1b220a2e7aae4badf6c0d7eaf29028d5b29d3438012bb289ef81\",\"master_fingerprint\":\"2a704760\",\"path\":\"44'/0'/0'/0/2\"}],\"unknown\":[{\"key\":\"fc03636664000664756d6d7931\",\"value\":\"01020304\"},{\"key\":\"fc03636664000664756d6d7932\",\"value\":\"00\"}]},{\"bip32_derivs\":[{\"pubkey\":\"036474aff2633c351865539fb52b62b9d6fb9e4e23576628e1f0a0a7993458e06c\",\"master_fingerprint\":\"9d6b6d86\",\"path\":\"44'/0'/0'/0/2\"}]}]}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json6, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json6, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  // DecodePsbt7
+  const char* request_json7 = "{\"psbt\":\"cHNidP8BAFwCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8AAAAAAAABAPYCAAAAAAEB8Zk/6OcYlULuRQYljhcCAb4pJwPNJ1rLCezhZnL9hIsAAAAAFxYAFKye+AsnrxydlcHbXXYTGTIrxC/F/////wIIBBAkAQAAABYAFAneKgQxy7NET8IsrZ2aD9CWOXIQAOH1BQAAAAAXqRRQn1mF9OkKFPuQ45MW/bTzrJdTB4cCRzBEAiAeB99yHDMiQZ6PNtB+6uR5WXW6DZ0ZYwyjzT3A1JZxcgIgFUKOe+BrZWdQFTkFC9eRo4DwC73bxQl+qXunvkAXEUoBIQJK70Ox1ax7pQFJmNY86sWDlZ0f3GbqJpnNhO6vgqKDBgAAAAABASAA4fUFAAAAABepFFCfWYX06QoU+5Djkxb9tPOsl1MHhwEDBAEAAAABBBYAFJYsTgjzNtOvvDQVydNZrhBARwUgIgYCVlJIRgs8GG3s8T2wbwck/VC0fMPkicMAdsg2PVA4zv4YKnBHYCwAAIAAAACAAAAAgAEAAAABAAAADfwDY2ZkAAZkdW1teTEEAQIDBA38A2NmZAAGZHVtbXkyAQAAAQC/AgAAAAHG0uo24ugCtS3axmXay+0vgxtSY0WeHKc09clF11FeQAAAAABqRzBEAiARuWx9LQ0ujcs3E44YrMRgdSllrdnLh4ffXDSd8OKuZgIgLpOvMbZPUWblYFgZVV2r7Fe+eUMA+ts3BS8x3d6pkFwBIQPj0kSjln4Lh3Zf2obF/ziIX3SZOVO5WEOIrvMLJq9q7P////8BeFHNHQAAAAAZdqkUjSBEOpGWnjvKDiQM0P/k3JjGPeKIrAAAAAAiBgLZ9oiPKFoVpqGICiICwrIwpC13z2LaakispBmCYs2jxxida22GLAAAgAAAAIAAAACAAAAAAAEAAAAA\",\"network\":\"testnet\"}";
+  const char* exp_json7 = "{\"tx\":{\"txid\":\"6014abba7b6cef826488bdd44ce3269616cbfa37bf8e832d9e7703cf144ce646\",\"hash\":\"6014abba7b6cef826488bdd44ce3269616cbfa37bf8e832d9e7703cf144ce646\",\"version\":2,\"size\":92,\"vsize\":92,\"weight\":368,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295}],\"vout\":[]},\"unknown\":[],\"inputs\":[{\"non_witness_utxo\":{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"hash\":\"9cb67d0ba945c8da2342429e19b12e11852e3a032144ca908996ff46f05dd906\",\"version\":2,\"size\":246,\"vsize\":165,\"weight\":657,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"8b84fd7266e1ec09cb5a27cd032729be0102178e250645ee429518e7e83f99f1\",\"vout\":0,\"scriptSig\":{\"asm\":\"0014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\",\"hex\":\"160014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\"},\"txinwitness\":[\"304402201e07df721c3322419e8f36d07eeae4795975ba0d9d19630ca3cd3dc0d4967172022015428e7be06b6567501539050bd791a380f00bbddbc5097ea97ba7be4017114a01\",\"024aef43b1d5ac7ba5014998d63ceac583959d1fdc66ea2699cd84eeaf82a28306\"],\"sequence\":4294967295}],\"vout\":[{\"value\":4899996680,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 09de2a0431cbb3444fc22cad9d9a0fd096397210\",\"hex\":\"001409de2a0431cbb3444fc22cad9d9a0fd096397210\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"tb1qp80z5pp3ewe5gn7z9jkemxs06ztrjussjewgau\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"OP_HASH160 509f5985f4e90a14fb90e39316fdb4f3ac975307 OP_EQUAL\",\"hex\":\"a914509f5985f4e90a14fb90e39316fdb4f3ac97530787\",\"reqSigs\":1,\"type\":\"scripthash\",\"addresses\":[\"2MzbWwSa1GsmzGLhYbsYRACNhgx4RjqGtTi\"]}}]},\"witness_utxo\":{\"amount\":100000000,\"scriptPubKey\":{\"asm\":\"OP_HASH160 509f5985f4e90a14fb90e39316fdb4f3ac975307 OP_EQUAL\",\"hex\":\"a914509f5985f4e90a14fb90e39316fdb4f3ac97530787\",\"type\":\"scripthash\",\"address\":\"2MzbWwSa1GsmzGLhYbsYRACNhgx4RjqGtTi\"}},\"sighash\":\"ALL\",\"redeem_script\":{\"asm\":\"0 962c4e08f336d3afbc3415c9d359ae1040470520\",\"hex\":\"0014962c4e08f336d3afbc3415c9d359ae1040470520\",\"type\":\"witness_v0_keyhash\"},\"bip32_derivs\":[{\"pubkey\":\"02565248460b3c186decf13db06f0724fd50b47cc3e489c30076c8363d5038cefe\",\"master_fingerprint\":\"2a704760\",\"path\":\"44'/0'/0'/1/1\"}],\"unknown\":[{\"key\":\"fc03636664000664756d6d7931\",\"value\":\"01020304\"},{\"key\":\"fc03636664000664756d6d7932\",\"value\":\"00\"}]},{\"non_witness_utxo\":{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"hash\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"version\":2,\"size\":191,\"vsize\":191,\"weight\":764,\"locktime\":0,\"vin\":[{\"txid\":\"c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26\",\"vout\":1,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d\",\"vout\":0,\"scriptSig\":{\"asm\":\"\",\"hex\":\"\"},\"sequence\":4294967295},{\"txid\":\"8b84fd7266e1ec09cb5a27cd032729be0102178e250645ee429518e7e83f99f1\",\"vout\":0,\"scriptSig\":{\"asm\":\"0014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\",\"hex\":\"160014ac9ef80b27af1c9d95c1db5d761319322bc42fc5\"},\"txinwitness\":[\"304402201e07df721c3322419e8f36d07eeae4795975ba0d9d19630ca3cd3dc0d4967172022015428e7be06b6567501539050bd791a380f00bbddbc5097ea97ba7be4017114a01\",\"024aef43b1d5ac7ba5014998d63ceac583959d1fdc66ea2699cd84eeaf82a28306\"],\"sequence\":4294967295},{\"txid\":\"405e51d745c9f534a71c9e4563521b832fedcbda65c6da2db502e8e236ead2c6\",\"vout\":0,\"scriptSig\":{\"asm\":\"3044022011b96c7d2d0d2e8dcb37138e18acc460752965add9cb8787df5c349df0e2ae6602202e93af31b64f5166e5605819555dabec57be794300fadb37052f31dddea9905c01 03e3d244a3967e0b87765fda86c5ff38885f74993953b9584388aef30b26af6aec\",\"hex\":\"473044022011b96c7d2d0d2e8dcb37138e18acc460752965add9cb8787df5c349df0e2ae6602202e93af31b64f5166e5605819555dabec57be794300fadb37052f31dddea9905c012103e3d244a3967e0b87765fda86c5ff38885f74993953b9584388aef30b26af6aec\"},\"sequence\":4294967295}],\"vout\":[{\"value\":4899996680,\"n\":0,\"scriptPubKey\":{\"asm\":\"0 09de2a0431cbb3444fc22cad9d9a0fd096397210\",\"hex\":\"001409de2a0431cbb3444fc22cad9d9a0fd096397210\",\"reqSigs\":1,\"type\":\"witness_v0_keyhash\",\"addresses\":[\"tb1qp80z5pp3ewe5gn7z9jkemxs06ztrjussjewgau\"]}},{\"value\":100000000,\"n\":1,\"scriptPubKey\":{\"asm\":\"OP_HASH160 509f5985f4e90a14fb90e39316fdb4f3ac975307 OP_EQUAL\",\"hex\":\"a914509f5985f4e90a14fb90e39316fdb4f3ac97530787\",\"reqSigs\":1,\"type\":\"scripthash\",\"addresses\":[\"2MzbWwSa1GsmzGLhYbsYRACNhgx4RjqGtTi\"]}},{\"value\":499995000,\"n\":0,\"scriptPubKey\":{\"asm\":\"OP_DUP OP_HASH160 8d20443a91969e3bca0e240cd0ffe4dc98c63de2 OP_EQUALVERIFY OP_CHECKSIG\",\"hex\":\"76a9148d20443a91969e3bca0e240cd0ffe4dc98c63de288ac\",\"reqSigs\":1,\"type\":\"pubkeyhash\",\"addresses\":[\"mtPAE24cZ3k6NMCcxQJUbSpZnSVaCu96Wj\"]}}]},\"bip32_derivs\":[{\"pubkey\":\"02d9f6888f285a15a6a1880a2202c2b230a42d77cf62da6a48aca4198262cda3c7\",\"master_fingerprint\":\"9d6b6d86\",\"path\":\"44'/0'/0'/0/1\"}]}],\"outputs\":[],\"fee\":599995000}";
+  ret = CfdRequestExecuteJson(handle, "DecodePsbt", request_json7, &respons_json);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (respons_json != nullptr) {
+    EXPECT_STREQ(exp_json7, respons_json);
+    CfdFreeStringBuffer(respons_json);
+  }
+  respons_json = NULL;
+
+  if (ret != kCfdSuccess) {
+    char* str_buffer = nullptr;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("dummy_except", str_buffer);
+      CfdFreeStringBuffer(str_buffer);
+      str_buffer = nullptr;
+    }
+  }
+
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);
 }
@@ -358,6 +479,257 @@ TEST(cfdcapi_common, CfdSerializeByteData) {
 
   ret = CfdSerializeByteData(handle, nullptr, &output);
   EXPECT_EQ(kCfdIllegalArgumentError, ret);
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdEncryptDecryptAES) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* target_data = "74657374207465737420746573742074657374";
+  const char* exp_aes = "752fe203af4a4d427997e5d2c8b246530e0546b66d2982a49e333e77295dccea";
+  ret = CfdEncryptAES(handle,
+      "616975656F616975656F616975656F616975656F616975656F616975656F6169",
+      "",
+      target_data,
+      &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(exp_aes, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdDecryptAES(handle,
+      "616975656F616975656F616975656F616975656F616975656F616975656F6169",
+      "",
+      exp_aes,
+      &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("7465737420746573742074657374207465737400000000000000000000000000", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdEncryptDecryptAES_CBC) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* target_data = "74657374207465737420746573742074657374";
+  const char* exp_aes = "2ef199bb7d160f94fc17fa5f01b220c630d6b19a5973f4b313868c921fc10d22";
+  ret = CfdEncryptAES(handle,
+      "616975656F616975656F616975656F616975656F616975656F616975656F6169",
+      "33343536373839303132333435363738",
+      target_data,
+      &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(exp_aes, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdDecryptAES(handle,
+      "616975656F616975656F616975656F616975656F616975656F616975656F6169",
+      "33343536373839303132333435363738",
+      exp_aes,
+      &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(target_data, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdEncodeDecodeBase64) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* target_data = "54686520717569636b2062726f776e20666f78206a756d7073206f766572203133206c617a7920646f67732e";
+  const char* exp = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=";
+  ret = CfdEncodeBase64(handle, target_data, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(exp, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdDecodeBase64(handle, exp, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(target_data, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdEncodeDecodeBase58) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* target_data = "0488b21e051431616f00000000e6ba4088246b104837c62bd01fd8ba1cf2931ad1a5376c2360a1f112f2cfc63c02acf89ab4e3daa79bceef2ebecee2af92712e6bf5e4b0d10c74bbecc27ac13da8";
+  const char* exp = "9XpNiCWvYUYz78YLbbNYoBMUef5GNJooCQ9i2nf9AH95Njpp4AbuEcmL5iVAwxa6LdR6FyRPeGFEmkFDr3KPGww6peFFtqtabW75Ush4TR";
+  ret = CfdEncodeBase58(handle, target_data, false, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(exp, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdDecodeBase58(handle, exp, false, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(target_data, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdEncodeDecodeBase58Check) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* target_data = "0488b21e051431616f00000000e6ba4088246b104837c62bd01fd8ba1cf2931ad1a5376c2360a1f112f2cfc63c02acf89ab4e3daa79bceef2ebecee2af92712e6bf5e4b0d10c74bbecc27ac13da8";
+  const char* exp = "xpub6FZeZ5vwcYiT6r7ZYKJhyUqBxMBvzSmb6SpPQCsSenGPrVjKk5SGW4JJpc7cKERN8w9KnJZcMgJA4B2cHnpGq5TahYrDvZSBY2EMLKPRMTT";
+  ret = CfdEncodeBase58(handle, target_data, true, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(exp, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdDecodeBase58(handle, exp, true, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ(target_data, output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdHashMessageByHex) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* message_hex = "001412012222880A";
+
+  ret = CfdRipemd160(handle, message_hex, false, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("5f4e6799b6d87fbf4cee7820b8a168b13225dbc8", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdSha256(handle, message_hex, false, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("7c90e7f25d3c26b098d43ae18cfc67e2d6c200f8acf8b16737c3ec6143e8ba8b", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdHash160(handle, message_hex, false, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("1097f123808affe262cc5b7cb6acfa84a7a61bb6", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdHash256(handle, message_hex, false, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("c6a3953d698f9ed23812c40bcf7aba724d66fbd9f771ffed8f5d6d2b4b267bcf", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_common, CfdHashMessageByText) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  const char* message = "The quick brown fox jumps over the lazy dog";
+
+  ret = CfdRipemd160(handle, message, true, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("37f332f68db77bd9d7edd4969571ad671cf9dd3b", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdSha256(handle, message, true, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdHash160(handle, message, true, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("0e3397b4abc7a382b3ea2365883c3c7ca5f07600", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
+
+  ret = CfdHash256(handle, message, true, &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("6d37795021e544d82b41850edf7aabab9a0ebe274e54a519840c4666f35b3937", output);
+    CfdFreeStringBuffer(output);
+    output = nullptr;
+  }
 
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);

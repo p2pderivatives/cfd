@@ -305,6 +305,35 @@ TEST(cfdcapi_key, CompressUncompressTest) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_key, GetPubkeyFingerprint) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* output = nullptr;
+  ret = CfdGetPubkeyFingerprint(handle,
+        "03662a01c232918c9deb3b330272483c3e4ec0c6b5da86df59252835afeb4ab5f9", &output);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    EXPECT_STREQ("7df5646a", output);
+    CfdFreeStringBuffer(output);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("7df5646a", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 TEST(cfdcapi_key, CombinePubkeysTest1) {
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
@@ -969,6 +998,88 @@ TEST(cfdcapi_key, SchnorrKeyTest) {
     EXPECT_STREQ("", str_buffer);
     CfdFreeStringBuffer(str_buffer);
     str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_key, SchnorrSignatureTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  struct CfdSchnorrSignatureTestData {
+    const char* signature;
+    const char* sighash_signature;
+    int sighash_type;
+    bool anyone_can_pay;
+  };
+  const struct CfdSchnorrSignatureTestData exp_datas[] = {
+    {  // sighash all
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8",
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce801",
+      kCfdSigHashAll,
+      false
+    },
+    {  // sighash default
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8",
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8",
+      kCfdSigHashDefault,
+      false
+    },
+    {  // sighash none
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8",
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce802",
+      kCfdSigHashNone,
+      false
+    },
+    {  // sighash single
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8",
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce803",
+      kCfdSigHashSingle,
+      false
+    },
+    {  // sighash single + anyone can pay
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8",
+      "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce883",
+      kCfdSigHashSingle,
+      true
+    },
+  };
+  size_t list_size = sizeof(exp_datas) / sizeof(struct CfdSchnorrSignatureTestData);
+
+  for (size_t idx = 0; idx < list_size; ++idx) {
+    char* sig = nullptr;
+    int sighash_type = 0;
+    bool anyone_can_pay = false;
+    ret = CfdAddSighashTypeInSchnorrSignature(
+        handle, exp_datas[idx].signature, exp_datas[idx].sighash_type,
+        exp_datas[idx].anyone_can_pay, &sig);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(exp_datas[idx].sighash_signature, sig);
+      CfdFreeStringBuffer(sig);
+      sig = nullptr;
+
+      ret = CfdGetSighashTypeFromSchnorrSignature(
+          handle, exp_datas[idx].sighash_signature, &sighash_type, &anyone_can_pay);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        EXPECT_EQ(exp_datas[idx].sighash_type, sighash_type);
+        EXPECT_EQ(exp_datas[idx].anyone_can_pay, anyone_can_pay);
+      }
+    }
+
+    if (ret != kCfdSuccess) {
+      char* message = nullptr;
+      ret = CfdGetLastErrorMessage(handle, &message);
+      if (ret == kCfdSuccess) {
+        EXPECT_STREQ("", message);
+        CfdFreeStringBuffer(message);
+      }
+    }
   }
 
   ret = CfdFreeHandle(handle);

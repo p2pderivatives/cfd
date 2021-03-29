@@ -577,8 +577,13 @@ Amount ElementsTransactionApi::EstimateFee(
   uint32_t rangeproof_size_cache = 0;
   uint32_t asset_count = 0;
   uint32_t not_witness_count = 0;
-  ElementsAddressApi address_api;
   for (const auto& utxo : utxos) {
+    NetType net_type = NetType::kLiquidV1;
+    if (!utxo.utxo.address.GetAddress().empty()) {
+      net_type = utxo.utxo.address.GetNetType();
+    }
+    ElementsAddressFactory factory(net_type);
+
     uint32_t pegin_btc_tx_size = 0;
     txin_size = 0;
     wit_size = 0;
@@ -590,8 +595,7 @@ Amount ElementsTransactionApi::EstimateFee(
     // check descriptor
     std::string descriptor = utxo.utxo.descriptor;
     // set dummy NetType for getting AddressType.
-    auto data =
-        address_api.ParseOutputDescriptor(descriptor, NetType::kLiquidV1, "");
+    auto data = factory.ParseOutputDescriptor(descriptor, "");
 
     AddressType addr_type;
     if (utxo.utxo.address.GetAddress().empty() ||
@@ -668,7 +672,7 @@ Amount ElementsTransactionApi::EstimateFee(
     witness_size += wit_size;
     if (wit_size == 0) ++not_witness_count;
   }
-  if ((not_witness_count != 0) &&
+  if ((witness_size != 0) && (not_witness_count != 0) &&
       (not_witness_count < static_cast<uint32_t>(utxos.size()))) {
     // append witness size for p2pkh or p2sh
     witness_size += not_witness_count * 4;
@@ -677,13 +681,20 @@ Amount ElementsTransactionApi::EstimateFee(
   uint32_t utxo_vsize =
       AbstractTransaction::GetVsizeFromSize(size, witness_size);
 
+  uint32_t tx_witness_size = 0;
+  uint32_t tx_size = 0;
+  txc.GetSizeIgnoreTxIn(
+      is_blind, &tx_witness_size, &tx_size, exponent, minimum_bits,
+      asset_count);
   uint32_t tx_vsize =
-      txc.GetVsizeIgnoreTxIn(is_blind, exponent, minimum_bits, asset_count);
+      AbstractTransaction::GetVsizeFromSize(tx_size, tx_witness_size);
 
   FeeCalculator fee_calc(effective_fee_rate);
   Amount tx_fee_amount = fee_calc.GetFee(tx_vsize);
   Amount utxo_fee_amount = fee_calc.GetFee(utxo_vsize);
-  Amount fee = tx_fee_amount + utxo_fee_amount;
+  uint32_t total_vsize = AbstractTransaction::GetVsizeFromSize(
+      tx_size + size, tx_witness_size + witness_size);
+  Amount fee = fee_calc.GetFee(total_vsize);
 
   if (txout_fee) *txout_fee = tx_fee_amount;
   if (utxo_fee) *utxo_fee = utxo_fee_amount;
@@ -829,7 +840,6 @@ void CollectUtxoDataByFundRawTransaction(
  * @param[in] txin_amount_map           txin amount map
  * @param[in] tx_amount_map             tx amount map
  * @param[in] target_values             target amounts
- * @param[in] input_amount_map          input amount map
  * @param[in] input_max_map             input max amount map
  * @param[in] selected_coins            select utxo list
  * @param[in] utxodata_list             utxo list
@@ -851,7 +861,6 @@ void CalculateFeeAndFundTransaction(
     const std::map<std::string, int64_t>& txin_amount_map,
     const std::map<std::string, int64_t>& tx_amount_map,
     const std::map<std::string, int64_t>& target_values,
-    const std::map<std::string, int64_t>& input_amount_map,
     const std::map<std::string, int64_t>& input_max_map,
     const std::vector<Utxo>& selected_coins,
     const std::vector<UtxoData>& utxodata_list,
@@ -907,7 +916,7 @@ void CalculateFeeAndFundTransaction(
   int64_t txin_amount = 0;
   int64_t tx_amount = 0;
   int64_t target_value = 0;
-  int64_t utxo_value = 0;
+  // int64_t utxo_value = 0;
   int64_t max_utxo_value = 0;
   if (txin_amount_map.find(fee_asset_str) != txin_amount_map.end())
     txin_amount = txin_amount_map.at(fee_asset_str);
@@ -915,8 +924,6 @@ void CalculateFeeAndFundTransaction(
     tx_amount = tx_amount_map.at(fee_asset_str);
   if (target_values.find(fee_asset_str) != target_values.end())
     target_value = target_values.at(fee_asset_str);
-  if (input_amount_map.find(fee_asset_str) != input_amount_map.end())
-    utxo_value = input_amount_map.at(fee_asset_str);
   if (input_max_map.find(fee_asset_str) != input_max_map.end())
     max_utxo_value = input_max_map.at(fee_asset_str);
 
@@ -1315,8 +1322,8 @@ ConfidentialTransactionController ElementsTransactionApi::FundRawTransaction(
   if (use_fee) {
     CalculateFeeAndFundTransaction(
         *this, addr_factory, txin_amount_map, tx_amount_map, target_values,
-        input_amount_map, input_max_map, selected_coins, utxodata_list,
-        fee_asset, selected_txin_utxos, reserve_txout_address, net_type,
+        input_max_map, selected_coins, utxodata_list, fee_asset,
+        selected_txin_utxos, reserve_txout_address, net_type,
         is_blind_estimate_fee, utxo_filter, option, utxo_list, &ctxc,
         append_txout_addresses, estimate_fee);
   }

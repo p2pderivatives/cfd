@@ -430,7 +430,7 @@ TEST(CoinSelection, SelectCoins_Simple_SelectCoinsBnB)
       exp_filter, option_params, tx_fee, &select_value, &fee_value, &use_bnb)));
   EXPECT_EQ(select_utxos.size(), 2);
   EXPECT_EQ(select_value.GetSatoshiValue(), static_cast<int64_t>(100001090));
-  EXPECT_EQ(fee_value.GetSatoshiValue(), static_cast<int64_t>(360));
+  EXPECT_EQ(fee_value.GetSatoshiValue(), static_cast<int64_t>(368));
   if (select_utxos.size() == 2) {
     EXPECT_EQ(select_utxos[0].amount, static_cast<int64_t>(85062500));
     EXPECT_EQ(select_utxos[1].amount, static_cast<int64_t>(14938590));
@@ -472,7 +472,7 @@ TEST(CoinSelection, SelectCoins_Simple_SelectCoinsBnB_single)
       exp_filter, option_params, tx_fee, &select_value, &fee_value, &use_bnb)));
   EXPECT_EQ(select_utxos.size(), 1);
   EXPECT_EQ(select_value.GetSatoshiValue(), static_cast<int64_t>(155062500));
-  EXPECT_EQ(fee_value.GetSatoshiValue(), static_cast<int64_t>(180));
+  EXPECT_EQ(fee_value.GetSatoshiValue(), static_cast<int64_t>(184));
   if (select_utxos.size() == 1) {
     EXPECT_EQ(select_utxos[0].amount, static_cast<int64_t>(155062500));
   }
@@ -514,7 +514,7 @@ TEST(CoinSelection, SelectCoins_Simple_SelectCoinsBnB_empty)
       exp_filter, option_params, tx_fee, &select_value, &fee_value, &use_bnb)));
   EXPECT_EQ(select_utxos.size(), 3);
   EXPECT_EQ(select_value.GetSatoshiValue(), static_cast<int64_t>(115063590));
-  EXPECT_EQ(fee_value.GetSatoshiValue(), static_cast<int64_t>(270));
+  EXPECT_EQ(fee_value.GetSatoshiValue(), static_cast<int64_t>(276));
   if (select_utxos.size() == 3) {
     EXPECT_EQ(select_utxos[0].amount, static_cast<int64_t>(61062500));
     EXPECT_EQ(select_utxos[1].amount, static_cast<int64_t>(39062500));
@@ -671,7 +671,7 @@ TEST(CoinSelection, ConvertToUtxo)
   EXPECT_EQ(utxo.vout, vout);
   EXPECT_EQ(utxo.script_length, locking_script.GetData().GetDataSize());
   EXPECT_EQ(utxo.address_type, static_cast<uint16_t>(AddressType::kP2wpkhAddress));
-  EXPECT_EQ(utxo.witness_size_max, static_cast<uint16_t>(108));
+  EXPECT_EQ(utxo.witness_size_max, static_cast<uint16_t>(109));
   EXPECT_EQ(utxo.uscript_size_max, static_cast<uint16_t>(0));
   EXPECT_EQ(utxo.amount, amount.GetSatoshiValue());
   EXPECT_EQ(utxo.binary_data, binary_data);
@@ -694,7 +694,7 @@ TEST(CoinSelection, ConvertToUtxo)
   EXPECT_EQ(utxo.vout, vout);
   EXPECT_EQ(utxo.script_length, locking_script.GetData().GetDataSize());
   EXPECT_EQ(utxo.address_type, static_cast<uint16_t>(AddressType::kP2wpkhAddress));
-  EXPECT_EQ(utxo.witness_size_max, static_cast<uint16_t>(108));
+  EXPECT_EQ(utxo.witness_size_max, static_cast<uint16_t>(109));
   EXPECT_EQ(utxo.uscript_size_max, static_cast<uint16_t>(0));
   EXPECT_EQ(utxo.amount, amount.GetSatoshiValue());
   EXPECT_EQ(utxo.binary_data, binary_data);
@@ -1097,7 +1097,7 @@ TEST(CoinSelection, SelectCoins_SelectCoinsBnB_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()], 100001090);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 364);
+  EXPECT_EQ(fee.GetSatoshiValue(), 368);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1145,7 +1145,7 @@ TEST(CoinSelection, SelectCoins_SelectCoinsBnB_single_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()], 155062500);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 182);
+  EXPECT_EQ(fee.GetSatoshiValue(), 184);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1195,7 +1195,7 @@ TEST(CoinSelection, SelectCoins_SelectCoinsBnB_empty_with_asset)
   if (map_select_value.size() == 1) {
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()], 115063590);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 273);
+  EXPECT_EQ(fee.GetSatoshiValue(), 276);
   EXPECT_EQ(map_searched_bnb.size(), 1);
   if (map_searched_bnb.size() == 1) {
     EXPECT_FALSE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1285,7 +1285,7 @@ TEST(CoinSelection, SelectCoins_CoinSelectBnB_with_multiple_asset)
     EXPECT_EQ(map_select_value[exp_dummy_asset_a.GetHex()], 100001090);
     EXPECT_EQ(map_select_value[exp_dummy_asset_b.GetHex()], 347180050);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 728);
+  EXPECT_EQ(fee.GetSatoshiValue(), 736);
   EXPECT_EQ(map_searched_bnb.size(), 2);
   if (map_searched_bnb.size() == 2) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);
@@ -1343,7 +1343,7 @@ TEST(CoinSelection, SelectCoins_with_multiple_asset_fee_only_target)
     EXPECT_EQ(map_select_value[exp_dummy_asset_b.GetHex()], 347180050);
     EXPECT_EQ(map_select_value[exp_dummy_asset_c.GetHex()], 37654200);
   }
-  EXPECT_EQ(fee.GetSatoshiValue(), 910);
+  EXPECT_EQ(fee.GetSatoshiValue(), 920);
   EXPECT_EQ(map_searched_bnb.size(), 3);
   if (map_searched_bnb.size() == 3) {
     EXPECT_TRUE(map_searched_bnb[exp_dummy_asset_a.GetHex()]);

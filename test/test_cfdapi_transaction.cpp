@@ -105,9 +105,9 @@ TEST(TransactionApi, EstimateFee_CheckRealValue) {
   TransactionApi api;
   calc_fee = api.EstimateFee(
       txc.GetHex(), utxos, &tx_fee, &utxo_fee, effective_fee_rate);
-  EXPECT_EQ(calc_fee.GetSatoshiValue(), 7660);
-  EXPECT_EQ(tx_fee.GetSatoshiValue(), 1500);
-  EXPECT_EQ(utxo_fee.GetSatoshiValue(), 6160);
+  EXPECT_EQ(calc_fee.GetSatoshiValue(), 7740);
+  EXPECT_EQ(tx_fee.GetSatoshiValue(), 1540);
+  EXPECT_EQ(utxo_fee.GetSatoshiValue(), 6200);
 
   ByteData tx;
 
@@ -140,6 +140,38 @@ TEST(TransactionApi, EstimateFee_CheckRealValue) {
   EXPECT_EQ(minimum_fee, 7640);
 }
 
+TEST(TransactionApi, EstimateFee_TaprootSchnorr) {
+  std::string tx_hex = "0200000000010116d975e4c2cea30f72f4f5fe528f5a0727d9ea149892a50c030d44423088ea2f0000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50000000000";
+  AddressFactory factory(NetType::kRegtest);
+  // Address1
+  UtxoData utxo1;
+  utxo1.block_height = 0;
+  utxo1.binary_data = nullptr;
+  utxo1.txid = Txid("2fea883042440d030ca5929814ead927075a8f52fef5f4720fa3cec2e475d916");
+  utxo1.vout = 0;
+  utxo1.locking_script = Script("51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb");
+  // utxo1.redeem_script = Script("");
+  utxo1.address = factory.GetAddressByLockingScript(utxo1.locking_script);
+  utxo1.descriptor = "raw(51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb)";
+  utxo1.amount = Amount(int64_t{2499999000});
+  utxo1.address_type = AddressType::kTaprootAddress;
+
+  TransactionContext txc(tx_hex);
+  std::vector<cfd::UtxoData> utxos{utxo1};
+  EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
+
+  // check estimateFee
+  double effective_fee_rate = 2.0;
+  Amount calc_fee;
+  Amount utxo_fee;
+  Amount tx_fee;
+  TransactionApi api;
+  calc_fee = api.EstimateFee(
+      txc.GetHex(), utxos, &tx_fee, &utxo_fee, effective_fee_rate);
+  EXPECT_EQ(calc_fee.GetSatoshiValue(), 101*2);  // upper
+  EXPECT_EQ(tx_fee.GetSatoshiValue(), 43*2);  // upper
+  EXPECT_EQ(utxo_fee.GetSatoshiValue(), 58*2);
+}
 
 TEST(TransactionApi, FundRawTransaction_MillionAmountValue) {
   AddressFactory factory(NetType::kRegtest);
@@ -212,7 +244,7 @@ TEST(TransactionApi, FundRawTransaction_MillionAmountValue) {
   auto tx_obj = api.FundRawTransaction(
       txc.GetHex(), utxos, target_value, selected_txin_utxos, address3.GetAddress(),
       effective_fee_rate, &estimate_fee, nullptr, &option, nullptr, NetType::kRegtest);
-  EXPECT_EQ(estimate_fee.GetSatoshiValue(), 8280);
+  EXPECT_EQ(estimate_fee.GetSatoshiValue(), 8360);
 
   txc = TransactionContext(tx_obj.GetHex());
   EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
@@ -241,7 +273,7 @@ TEST(TransactionApi, FundRawTransaction_MillionAmountValue) {
 
   EXPECT_NO_THROW(tx = txc.Finalize());
   EXPECT_EQ(txc.GetFeeAmount().GetSatoshiValue(), estimate_fee.GetSatoshiValue());
-  EXPECT_STREQ(tx.GetHex().c_str(), "02000000000103e3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a473044022059cdb9324ed00b687a40d79b571b6fdd6a6722f1c06990cb59d7f6285c3fe10a022019c6a8effa8d2424c7776360dbebb7bf4109dc8ae4a1f365096140cfe866d9b001210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffff03f058dd62b22102001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac0000e941cc6b010016001445663e592ff613587f0fdd6e74034c5239710dcab806000000000000160014f330ed8383f8afdc977dd88600eb8ff120ba15e4024730440220472e5bfb0d4d76fbe3a5803582d6255c8d50281c83952db666bf51a52090ddf702202022598b524d76e26dff12a0bb9e5a97548c396675166bb8a6b559768a29ff9501210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2702473044022040d76c0f8e164c1a8623e299fc7a04a29138a40557ea07a7f535a14d0c684cda02201d33ee4ae92e673f0b6b5cb55bc5d5eef7b6eca31b1fb636fe92dce50a99daf801210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b0000000000");
+  EXPECT_STREQ(tx.GetHex().c_str(), "02000000000103e3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a4730440220644d3014684db32df93e6e342e2d0872aa6272d3a9cdce021138592ef78fc2a8022054a2a85c6339dee9578d9989920100f0660bd45b9cf7b14444f012bf5ee0bd7601210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffff03f058dd62b22102001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac0000e941cc6b010016001445663e592ff613587f0fdd6e74034c5239710dca6806000000000000160014f330ed8383f8afdc977dd88600eb8ff120ba15e40247304402202ece1dae47832c07863b5052133c9af652e9521e0fbaf4ef7558ca45ec739ca902205ad29147c0f5f16277a7a00391f8b5d43b9b6c149721cdb4591ba18c701dbd5f01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2702473044022058e88c67379c5b5c49dfef09eb069833ba9ae7cd6f8a5f9bdcf657ed8ad91b820220039739df97dc8488a93f61000cbade6d48df737238519660a02071795aabd74801210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b0000000000");
   EXPECT_EQ(txc.GetVsize(), 413);
 
   uint32_t minimum_fee = txc.GetVsize() * static_cast<uint32_t>(effective_fee_rate);
@@ -320,7 +352,7 @@ TEST(TransactionApi, FundRawTransaction_LimitAmountValue) {
   auto tx_obj = api.FundRawTransaction(
       txc.GetHex(), utxos, target_value, selected_txin_utxos, address3.GetAddress(),
       effective_fee_rate, &estimate_fee, nullptr, &option, nullptr, NetType::kRegtest);
-  EXPECT_EQ(estimate_fee.GetSatoshiValue(), 8280);
+  EXPECT_EQ(estimate_fee.GetSatoshiValue(), 8360);
 
   txc = TransactionContext(tx_obj.GetHex());
   EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
@@ -349,7 +381,7 @@ TEST(TransactionApi, FundRawTransaction_LimitAmountValue) {
 
   EXPECT_NO_THROW(tx = txc.Finalize());
   EXPECT_EQ(txc.GetFeeAmount().GetSatoshiValue(), estimate_fee.GetSatoshiValue());
-  EXPECT_STREQ(tx.GetHex().c_str(), "02000000000103e3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a473044022011d7db13ea4f19e2768dcd172638bc425d7bfb96d0da1b13dda3eccbeb2dca6e02203b0d30ffb300391da30f53f2c4827383b7199e4b2ad4eae7e26120cef2edc63f01210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffff03f0187a10f35a00001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac00008d49fd1a070016001445663e592ff613587f0fdd6e74034c5239710dcab806000000000000160014f330ed8383f8afdc977dd88600eb8ff120ba15e40247304402204aa7696f33a2fbf5177d1eea9539aea9b668cb7f71f4cc040f679a1595dd369a02203c3f88e4e18d0514d303a78026c22cfdc9a1c8f62e8a2083ed48d8df9f2fc15a01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a27024730440220090a80c1f5a5c0299725342894a972fe1841d5a82c0836bb304d88b59f5ca96d02201399cbb2264b7d00a59c2c9534169688ba8830e69b9bb7a1709bfea50deebc8d01210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b0000000000");
+  EXPECT_STREQ(tx.GetHex().c_str(), "02000000000103e3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a473044022029f4ce58206fe107b1dd6cbaf3246391a55cdd639cce10fdf545a8c131e17ebf022022b47d656c8666b188c6b16f9e10f6718bbbd420c390fe7a039f9c4323596d1c01210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffff03f0187a10f35a00001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac00008d49fd1a070016001445663e592ff613587f0fdd6e74034c5239710dca6806000000000000160014f330ed8383f8afdc977dd88600eb8ff120ba15e40247304402204f83d997acfadec69e45d1719794850ebc3f5bee41057aeefefed8e678e0ed6802206c7653837d7b70343b0dac4f47170b261885c4fcad35b346d0da02d0cc342b7b01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a270247304402206089cce85471b83b7afafc4c8363ca10124d831914a27817fa77e27e5a5f5b2e02200cf2c185a1caa93f84ecd25cc4b67cbf04ba3857ca4310688245a53491b9e6f601210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567b0000000000");
   EXPECT_EQ(txc.GetVsize(), 413);
 
   uint32_t minimum_fee = txc.GetVsize() * static_cast<uint32_t>(effective_fee_rate);

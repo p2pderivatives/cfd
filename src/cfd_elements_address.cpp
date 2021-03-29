@@ -2,8 +2,7 @@
 /**
  * @file cfd_elements_address.cpp
  *
- * @brief \~english implementation of classes related to address operation for Elements 
- *   \~japanese Elements用Address操作関連クラスの実装
+ * @brief implementation of classes related to address operation for Elements 
  */
 #ifndef CFD_DISABLE_ELEMENTS
 #include "cfd/cfd_elements_address.h"
@@ -70,12 +69,14 @@ ElementsAddressFactory::ElementsAddressFactory(
 ElementsConfidentialAddress ElementsAddressFactory::GetConfidentialAddress(
     const Address& unblinded_address,
     const ConfidentialKey& confidential_key) {
-  return ElementsConfidentialAddress(unblinded_address, confidential_key);
+  ElementsConfidentialAddress obj(unblinded_address, confidential_key);
+  return obj;
 }
 
 ElementsConfidentialAddress ElementsAddressFactory::GetConfidentialAddress(
     const std::string& address) const {
-  return ElementsConfidentialAddress(address, prefix_list_);
+  ElementsConfidentialAddress obj(address, prefix_list_);
+  return obj;
 }
 
 Address ElementsAddressFactory::CreatePegInAddress(

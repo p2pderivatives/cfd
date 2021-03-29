@@ -30,6 +30,7 @@ using cfd::core::Txid;
 #ifndef CFD_DISABLE_ELEMENTS
 using cfd::core::ConfidentialAssetId;
 #endif  // CFD_DISABLE_ELEMENTS
+using cfd::UtxoData;
 
 /**
  * @brief Coin関連のAPIクラス

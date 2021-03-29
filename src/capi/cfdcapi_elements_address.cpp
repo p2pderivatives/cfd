@@ -15,8 +15,8 @@
 #include <vector>
 
 #include "capi/cfdc_internal.h"
+#include "cfd/cfd_address.h"
 #include "cfd/cfd_elements_address.h"
-#include "cfd/cfdapi_address.h"
 #include "cfd/cfdapi_elements_address.h"
 #include "cfdc/cfdcapi_address.h"
 #include "cfdc/cfdcapi_common.h"
@@ -26,7 +26,6 @@
 #include "cfdcore/cfdcore_logger.h"
 
 using cfd::ElementsAddressFactory;
-using cfd::api::AddressApi;
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::CfdError;

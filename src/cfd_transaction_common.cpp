@@ -64,6 +64,114 @@ constexpr uint32_t kSequenceEnableLockTimeMax = 0xfffffffeU;
 constexpr uint32_t kSequenceDisableLockTime = 0xffffffffU;
 
 // -----------------------------------------------------------------------------
+// UtxoData
+// -----------------------------------------------------------------------------
+UtxoData::UtxoData() {
+  // do nothing
+}
+
+#ifndef CFD_DISABLE_ELEMENTS
+UtxoData::UtxoData(
+    uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
+    uint32_t vout, const Script& locking_script, const Script& redeem_script,
+    const Address& address, const std::string& descriptor,
+    const Amount& amount, AddressType address_type, void* binary_data,
+    const ConfidentialAssetId& asset,
+    const ElementsConfidentialAddress& confidential_address,
+    const BlindFactor& asset_blind_factor,
+    const BlindFactor& amount_blind_factor,
+    const ConfidentialValue& value_commitment,
+    const Script& scriptsig_template)
+    : block_height(block_height),
+      block_hash(block_hash),
+      txid(txid),
+      vout(vout),
+      locking_script(locking_script),
+      redeem_script(redeem_script),
+      address(address),
+      descriptor(descriptor),
+      amount(amount),
+      address_type(address_type),
+      binary_data(binary_data),
+      asset(asset),
+      confidential_address(confidential_address),
+      asset_blind_factor(asset_blind_factor),
+      amount_blind_factor(amount_blind_factor),
+      value_commitment(value_commitment),
+      scriptsig_template(scriptsig_template) {
+  // do nothing
+}
+#else
+UtxoData::UtxoData(
+    uint64_t block_height, const BlockHash& block_hash, const Txid& txid,
+    uint32_t vout, const Script& locking_script, const Script& redeem_script,
+    const Address& address, const std::string& descriptor,
+    const Amount& amount, AddressType address_type, void* binary_data,
+    const Script& scriptsig_template)
+    : block_height(block_height),
+      block_hash(block_hash),
+      txid(txid),
+      vout(vout),
+      locking_script(locking_script),
+      redeem_script(redeem_script),
+      address(address),
+      descriptor(descriptor),
+      amount(amount),
+      address_type(address_type),
+      binary_data(binary_data),
+      scriptsig_template(scriptsig_template) {
+  // do nothing
+}
+#endif  // CFD_DISABLE_ELEMENTS
+
+UtxoData::UtxoData(const UtxoData& object) {
+  block_height = object.block_height;
+  block_hash = object.block_hash;
+  txid = object.txid;
+  vout = object.vout;
+  locking_script = object.locking_script;
+  redeem_script = object.redeem_script;
+  address = object.address;
+  descriptor = object.descriptor;
+  amount = object.amount;
+  address_type = object.address_type;
+  binary_data = object.binary_data;
+#ifndef CFD_DISABLE_ELEMENTS
+  asset = object.asset;
+  confidential_address = object.confidential_address;
+  asset_blind_factor = object.asset_blind_factor;
+  amount_blind_factor = object.amount_blind_factor;
+  value_commitment = object.value_commitment;
+#endif  // CFD_DISABLE_ELEMENTS
+  scriptsig_template = object.scriptsig_template;
+}
+
+UtxoData& UtxoData::operator=(const UtxoData& object) & {
+  if (this != &object) {
+    block_height = object.block_height;
+    block_hash = object.block_hash;
+    txid = object.txid;
+    vout = object.vout;
+    locking_script = object.locking_script;
+    redeem_script = object.redeem_script;
+    address = object.address;
+    descriptor = object.descriptor;
+    amount = object.amount;
+    address_type = object.address_type;
+    binary_data = object.binary_data;
+#ifndef CFD_DISABLE_ELEMENTS
+    asset = object.asset;
+    confidential_address = object.confidential_address;
+    asset_blind_factor = object.asset_blind_factor;
+    amount_blind_factor = object.amount_blind_factor;
+    value_commitment = object.value_commitment;
+#endif  // CFD_DISABLE_ELEMENTS
+    scriptsig_template = object.scriptsig_template;
+  }
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
 // UtxoUtil
 // -----------------------------------------------------------------------------
 std::vector<Utxo> UtxoUtil::ConvertToUtxo(const std::vector<UtxoData>& utxos) {
@@ -80,7 +188,7 @@ std::vector<Utxo> UtxoUtil::ConvertToUtxo(const std::vector<UtxoData>& utxos) {
 void UtxoUtil::ConvertToUtxo(
     const UtxoData& utxo_data, Utxo* utxo, UtxoData* dest) {
   if (utxo != nullptr) {
-    UtxoData output = utxo_data;
+    UtxoData output(utxo_data);
     memset(utxo, 0, sizeof(Utxo));
     utxo->block_height = utxo_data.block_height;
     utxo->vout = utxo_data.vout;
@@ -126,8 +234,9 @@ void UtxoUtil::ConvertToUtxo(
         DescriptorScriptReference& script_ref = ref_list[0];
         output.locking_script = script_ref.GetLockingScript();
         locking_script_bytes = output.locking_script.GetData().GetBytes();
-        if (script_ref.GetScriptType() !=
-            DescriptorScriptType::kDescriptorScriptRaw) {
+        if ((script_ref.GetScriptType() !=
+             DescriptorScriptType::kDescriptorScriptRaw) ||
+            script_ref.HasAddress()) {
           output.address_type = script_ref.GetAddressType();
           output.address = script_ref.GenerateAddress(net_type);
           if (ref_list[ref_list.size() - 1].HasRedeemScript()) {
@@ -141,13 +250,13 @@ void UtxoUtil::ConvertToUtxo(
 
     if (!locking_script_bytes.empty()) {
       // do nothing
-    } else if (!utxo_data.address.GetAddress().empty()) {
-      output.locking_script = utxo_data.address.GetLockingScript();
+    } else if (!output.address.GetAddress().empty()) {
+      output.locking_script = output.address.GetLockingScript();
       locking_script_bytes = output.locking_script.GetData().GetBytes();
-      AddressType addr_type = utxo_data.address.GetAddressType();
+      AddressType addr_type = output.address.GetAddressType();
       if ((addr_type == AddressType::kP2shAddress) &&
-          ((utxo_data.address_type == AddressType::kP2shP2wshAddress) ||
-           (utxo_data.address_type == AddressType::kP2shP2wpkhAddress))) {
+          ((output.address_type == AddressType::kP2shP2wshAddress) ||
+           (output.address_type == AddressType::kP2shP2wpkhAddress))) {
         // direct set. output.address_type;
       } else {
         output.address_type = addr_type;
@@ -161,6 +270,12 @@ void UtxoUtil::ConvertToUtxo(
         utxo->address_type = AddressType::kP2wshAddress;
       } else if (utxo_data.locking_script.IsP2pkhScript()) {
         utxo->address_type = AddressType::kP2pkhAddress;
+      } else if (utxo_data.locking_script.IsTaprootScript()) {
+        utxo->address_type = AddressType::kTaprootAddress;
+      } else if (
+          utxo_data.locking_script.IsWitnessProgram() &&
+          (utxo_data.locking_script.GetElementList()[0].GetNumber() != 0)) {
+        utxo->address_type = AddressType::kWitnessUnknown;
       } else {  // TODO(k-matsuzawa): unbknown type is convert to p2sh
         utxo->address_type = AddressType::kP2shAddress;
       }
@@ -315,12 +430,14 @@ SignParameter::SignParameter(const SignParameter& sign_parameter) {
 }
 
 SignParameter& SignParameter::operator=(const SignParameter& sign_parameter) {
-  data_ = sign_parameter.GetData();
-  data_type_ = sign_parameter.GetDataType();
-  related_pubkey_ = sign_parameter.GetRelatedPubkey();
-  der_encode_ = sign_parameter.IsDerEncode();
-  sighash_type_ = sign_parameter.GetSigHashType();
-  op_code_ = sign_parameter.GetOpCode();
+  if (this != &sign_parameter) {
+    data_ = sign_parameter.GetData();
+    data_type_ = sign_parameter.GetDataType();
+    related_pubkey_ = sign_parameter.GetRelatedPubkey();
+    der_encode_ = sign_parameter.IsDerEncode();
+    sighash_type_ = sign_parameter.GetSigHashType();
+    op_code_ = sign_parameter.GetOpCode();
+  }
   return *this;
 }
 

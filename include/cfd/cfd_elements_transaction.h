@@ -2,7 +2,7 @@
 /**
  * @file cfd_elements_transaction.h
  *
- * @brief Elements Transaction操作の関連クラス定義
+ * @brief Related class definitions for Elements Transaction operations
  */
 #ifndef CFD_INCLUDE_CFD_CFD_ELEMENTS_TRANSACTION_H_
 #define CFD_INCLUDE_CFD_CFD_ELEMENTS_TRANSACTION_H_
@@ -26,7 +26,7 @@
 #include "cfdcore/cfdcore_util.h"
 
 /**
- * @brief cfd名前空間
+ * @brief cfd namespace
  */
 namespace cfd {
 
@@ -136,9 +136,9 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   using ConfidentialTransaction::GetTxInIndex;
   /**
-   * @brief TxInのindexを取得する.
+   * @brief Get the index of TxIn.
    * @param[in] outpoint  TxIn txid and vout
-   * @return 条件に合致するTxInのindex番号
+   * @return TxIn index
    */
   virtual uint32_t GetTxInIndex(const OutPoint& outpoint) const;
   /**
@@ -146,34 +146,34 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   using ConfidentialTransaction::GetTxOutIndex;
   /**
-   * @brief TxOutのindexを取得する.
+   * @brief Get the index of TxOut.
    * @param[in] address  address
-   * @return 条件に合致するTxOutのindex番号
+   * @return TxOut index
    */
   virtual uint32_t GetTxOutIndex(const Address& address) const;
   /**
-   * @brief TxInの有無を確認する.
+   * @brief Check if TxIn exists.
    * @param[in] outpoint  TxIn txid and vout
    * @param[out] index  txout index.
-   * @retval true  存在
-   * @retval false 未存在
+   * @retval true   exist
+   * @retval false  not exist
    */
   bool IsFindTxIn(const OutPoint& outpoint, uint32_t* index = nullptr) const;
   /**
-   * @brief TxOutの有無を確認する.
+   * @brief Check if TxOut exists.
    * @param[in] locking_script  locking script
    * @param[out] index  txout index.
-   * @retval true  存在
-   * @retval false 未存在
+   * @retval true   exist
+   * @retval false  not exist
    */
   bool IsFindTxOut(
       const Script& locking_script, uint32_t* index = nullptr) const;
   /**
-   * @brief TxOutの有無を確認する.
+   * @brief Check if TxOut exists.
    * @param[in] address  address
    * @param[out] index  txout index.
-   * @retval true  存在
-   * @retval false 未存在
+   * @retval true   exist
+   * @retval false  not exist
    */
   bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
   /**
@@ -202,9 +202,9 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   using ConfidentialTransaction::AddTxIn;
   /**
-   * @brief TxInを追加する.
+   * @brief Add TxIn.
    * @param[in] outpoint  TxIn txid and vout
-   * @return 追加したTxInのindex位置
+   * @return Index position of added TxIn
    */
   virtual uint32_t AddTxIn(const OutPoint& outpoint);
   /**
@@ -212,22 +212,22 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   using ConfidentialTransaction::AddTxOut;
   /**
-   * @brief TxOutを追加する.
-   * @param[in] address  送金先unblindedアドレス
-   * @param[in] value  送金額
+   * @brief Add TxOut.
+   * @param[in] address  Remittance destination unblinded address
+   * @param[in] value  Amount
    * @param[in] asset AssetID
-   * @return 追加したTxOutのIndex番号
+   * @return TxOut Index
    */
   virtual uint32_t AddTxOut(
       const Address& address, const Amount& value,
       const ConfidentialAssetId& asset);
   /**
-   * @brief TxOutを追加する.
-   * @param[in] address  送金先confidentialアドレス
-   * @param[in] value  送金額
+   * @brief Add TxOut.
+   * @param[in] address  Remittance destination confidential address
+   * @param[in] value  Amount
    * @param[in] asset AssetID
-   * @param[in] remove_nonce  nonceの強制削除フラグ
-   * @return 追加したTxOutのIndex番号
+   * @param[in] remove_nonce  Nonce forced delete flag
+   * @return TxOut Index
    */
   virtual uint32_t AddTxOut(
       const ElementsConfidentialAddress& address,
@@ -235,16 +235,16 @@ class CFD_EXPORT ConfidentialTransactionContext
       const ConfidentialAssetId& asset, bool remove_nonce = false);
 
   /**
-   * @brief TxInを除外したサイズを取得する。
-   * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
-   * @param[out] witness_area_size     witness area size
-   * @param[out] no_witness_area_size  no witness area size
-   * @param[in] exponent               rangeproof exponent value.
+   * @brief Get the size excluding TxIn.
+   * @param[in] is_blinded              Flag to get the expected size when blind
+   * @param[out] witness_area_size      witness area size
+   * @param[out] no_witness_area_size   no witness area size
+   * @param[in] exponent                rangeproof exponent value.
    *   -1 to 18. -1 is public value. 0 is most private.
-   * @param[in] minimum_bits           rangeproof blinding bits.
+   * @param[in] minimum_bits            rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
-   * @param[in] asset_count            input asset count.
-   * @return TxInを除外したTxサイズ(Serialize)
+   * @param[in] asset_count             input asset count.
+   * @return Tx size excluding TxIn (Serialize)
    */
   uint32_t GetSizeIgnoreTxIn(
       bool is_blinded = false, uint32_t* witness_area_size = nullptr,
@@ -253,14 +253,14 @@ class CFD_EXPORT ConfidentialTransactionContext
       uint32_t asset_count = 0) const;
 
   /**
-   * @brief TxInを除外した仮想サイズを取得する。
-   * @param[in] is_blinded    blind時の想定サイズを取得するフラグ
-   * @param[in] exponent                  rangeproof exponent value.
+   * @brief Get the virtual size excluding TxIn.
+   * @param[in] is_blinded      Flag to get the expected size when blind
+   * @param[in] exponent        rangeproof exponent value.
    *   -1 to 18. -1 is public value. 0 is most private.
-   * @param[in] minimum_bits              rangeproof blinding bits.
+   * @param[in] minimum_bits    rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
-   * @param[in] asset_count               input asset count.
-   * @return TxInを除外したTx仮想サイズ(Serialize)
+   * @param[in] asset_count     input asset count.
+   * @return Tx virtual size excluding TxIn (Serialize)
    */
   uint32_t GetVsizeIgnoreTxIn(
       bool is_blinded = false, int exponent = 0,
@@ -268,33 +268,33 @@ class CFD_EXPORT ConfidentialTransactionContext
       uint32_t asset_count = 0) const;
 
   /**
-   * @brief feeのtxout indexを取得する.
+   * @brief Get the txout index of fee.
    * @param[out] index  txout index.
-   * @retval true  fee存在
-   * @retval false fee未存在
+   * @retval true   fee exist
+   * @retval false  fee not found
    */
   bool IsFindFeeTxOut(uint32_t* index = nullptr) const;
 
   /**
-   * @brief TxOutのFee額を取得する.
+   * @brief Get the Fee amount for TxOut.
    * @param[out] asset    fee asset.
-   * @return Fee額
+   * @return Fee amount
    */
   Amount GetFeeAmount(ConfidentialAssetId* asset = nullptr) const;
 
   /**
-   * @brief TxOutのFee情報を更新する. Fee未存在時は自動追加する。
-   * @param[in] value Fee額
+   * @brief Update Fee information of TxOut. If Fee does not exist, it will be added automatically.
+   * @param[in] value Fee amount
    * @param[in] asset AssetID
-   * @return 更新したTxOutのIndex番号
+   * @return Updated TxOut index
    */
   uint32_t UpdateFeeAmount(
       const Amount& value, const ConfidentialAssetId& asset);
 
   /**
-   * @brief 簡易のFee計算を行う.
-   * @param[in] append_feature_signed_size  sign分のサイズ加算フラグ
-   * @param[in] append_signed_witness       sign分の加算をwitness扱いとするか
+   * @brief Perform a simple Fee calculation.
+   * @param[in] append_feature_signed_size  size addition flag for sign
+   * @param[in] append_signed_witness       Whether to treat the addition of sign as witness
    * @return Fee Amount
    */
   Amount CalculateSimpleFee(
@@ -329,14 +329,14 @@ class CFD_EXPORT ConfidentialTransactionContext
       Address* btc_derive_address = nullptr);
 
   /**
-   * @brief PeginWitnessに文字列から得られるバイトデータを追加する.
-   * @param[in] outpoint  TxIn txid and vout
-   * @param[in] amount peginしたinputのamount
-   * @param[in] asset_id 送金先アセットID
-   * @param[in] mainchain_genesis_block_hash mainchainのgenesis_blockのhash値
-   * @param[in] claim_script pegin請求用スクリプト
-   * @param[in] mainchain_pegin_transaction peginしたmainchainのtransaction
-   * @param[in] tx_out_proof peginしたtransactionが取り込まれた際のproof値
+   * @brief Add byte data obtained from the string to PeginWitness.
+   * @param[in] outpoint    TxIn txid and vout
+   * @param[in] amount      amount of pegin input
+   * @param[in] asset_id    Remittance destination asset ID
+   * @param[in] mainchain_genesis_block_hash hash of genesis block in mainchain
+   * @param[in] claim_script pegin claim script
+   * @param[in] mainchain_pegin_transaction pegin mainchain transaction
+   * @param[in] tx_out_proof Proof value when pegin transaction is captured
    */
   void AddPeginTxIn(  // AddPeginWitness
       const OutPoint& outpoint, const Amount& amount,
@@ -498,6 +498,13 @@ class CFD_EXPORT ConfidentialTransactionContext
   void CollectInputUtxo(const std::vector<UtxoData>& utxos);
 
   /**
+   * @brief Get UTXO by outpoint
+   * @param[in] outpoint  TxIn txid and vout
+   * @return UTXO
+   */
+  UtxoData GetTxInUtxoData(const OutPoint& outpoint) const;
+
+  /**
    * @brief Execute blinding txout using utxo data.
    * @param[in] confidential_addresses     txout confidential address list.
    *   (if set nullptr, confidential key collect from nonce.)
@@ -567,66 +574,55 @@ class CFD_EXPORT ConfidentialTransactionContext
    * @return transaction raw data.
    */
   ByteData Finalize();
-#if 0
-  /**
-   * @brief clear sign area all.
-   */
-  void ClearSign();
-  /**
-   * @brief clear sign area on outpoint.
-   * @param[in] outpoint    utxo target.
-   */
-  void ClearSign(const OutPoint& outpoint);
-#endif
 
   // sign-api
   /**
-   * @brief 指定されたPubkeyHash形式のTxInのSignatureHashを計算する.
+   * @brief Calculates the TxIn Signature Hash in the specified PubkeyHash format.
    * @param[in] outpoint TxIn txid and vout
-   * @param[in] pubkey SignatureHashの公開鍵
-   * @param[in] sighash_type SigHashType値
-   * @param[in] value TxInで指定したUTXOのamount
-   * @param[in] version TxInで指定したUTXOのWitnessVersion
-   * @return 算出されたSignatureHashのHex文字列
+   * @param[in] pubkey  Public key
+   * @param[in] sighash_type SigHash type
+   * @param[in] value UTXO amount specified by TxIn
+   * @param[in] version Witness Version of UTXO specified by TxIn
+   * @return Signature hash
    */
   virtual ByteData CreateSignatureHash(
       const OutPoint& outpoint, const Pubkey& pubkey, SigHashType sighash_type,
       const Amount& value, WitnessVersion version) const;
   /**
-   * @brief 指定されたScriptHash形式のTxInのSignatureHashを計算する.
-   * @details OP_CODESEPARATORが存在するScriptについては未対応
+   * @brief Calculates the TxIn Signature Hash in the specified ScriptHash format.
+   * @details Not supported for Scripts with OP_CODESEPARATOR
    * @param[in] outpoint TxIn txid and vout
-   * @param[in] redeem_script ScriptHashのRedeem Script
-   * @param[in] sighash_type SigHashType値
-   * @param[in] value TxInで指定したUTXOのamount
-   * @param[in] version TxInで指定したUTXOのWitnessVersion
-   * @return 算出されたSignatureHashのHex文字列
+   * @param[in] redeem_script   Script Hash Redeem Script
+   * @param[in] sighash_type    SigHash type
+   * @param[in] value UTXO amount specified by TxIn
+   * @param[in] version Witness Version of UTXO specified by TxIn
+   * @return Signature hash
    */
   virtual ByteData CreateSignatureHash(
       const OutPoint& outpoint, const Script& redeem_script,
       SigHashType sighash_type, const Amount& value,
       WitnessVersion version) const;
   /**
-   * @brief 指定されたPubkeyHash形式のTxInのSignatureHashを計算する.
+   * @brief Calculates the TxIn Signature Hash in the specified PubkeyHash format.
    * @param[in] outpoint TxIn txid and vout
-   * @param[in] pubkey SignatureHashの公開鍵
-   * @param[in] sighash_type SigHashType値
-   * @param[in] value TxInで指定したUTXOのValueCommitment
-   * @param[in] version TxInで指定したUTXOのWitnessVersion
-   * @return 算出されたSignatureHashのHex文字列
+   * @param[in] pubkey  Public key
+   * @param[in] sighash_type SigHash type
+   * @param[in] value UTXO Value Commitment specified by TxIn
+   * @param[in] version Witness Version of UTXO specified by TxIn
+   * @return Signature hash
    */
   virtual ByteData CreateSignatureHash(
       const OutPoint& outpoint, const Pubkey& pubkey, SigHashType sighash_type,
       const ConfidentialValue& value, WitnessVersion version) const;
   /**
-   * @brief 指定されたScriptHash形式のTxInのSignatureHashを計算する.
-   * @details OP_CODESEPARATORが存在するScriptについては未対応
+   * @brief Calculates the TxIn Signature Hash in the specified ScriptHash format.
+   * @details Not supported for Scripts with OP_CODESEPARATOR
    * @param[in] outpoint TxIn txid and vout
-   * @param[in] redeem_script ScriptHashのRedeem Script
-   * @param[in] sighash_type SigHashType値
-   * @param[in] value TxInで指定したUTXOのValueCommitment
-   * @param[in] version TxInで指定したUTXOのWitnessVersion
-   * @return 算出されたSignatureHashのHex文字列
+   * @param[in] redeem_script   Script Hash Redeem Script
+   * @param[in] sighash_type    SigHash type
+   * @param[in] value UTXO Value Commitment specified by TxIn
+   * @param[in] version Witness Version of UTXO specified by TxIn
+   * @return Signature hash
    */
   virtual ByteData CreateSignatureHash(
       const OutPoint& outpoint, const Script& redeem_script,
@@ -634,14 +630,14 @@ class CFD_EXPORT ConfidentialTransactionContext
       WitnessVersion version) const;
 
   /**
-   * @brief 指定されたPubkeyHash形式のTxInに署名する.
-   * @param[in] outpoint    TxIn txid and vout
-   * @param[in] pubkey      SignatureHashの公開鍵
-   * @param[in] privkey     SignatureHashの秘密鍵
-   * @param[in] sighash_type SigHashType値
-   * @param[in] value TxInで指定したUTXOのamount
-   * @param[in] address_type address-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
-   * @param[in] has_grind_r signature計算時のオプション
+   * @brief Sign the specified TxIn with pubkey hash.
+   * @param[in] outpoint        outpoint
+   * @param[in] pubkey          Public key
+   * @param[in] privkey         Private key
+   * @param[in] sighash_type    SigHash Type
+   * @param[in] value           amount of UTXO
+   * @param[in] address_type    address-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
+   * @param[in] has_grind_r     Grind-R option for sign.
    */
   void SignWithPrivkeySimple(
       const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
@@ -650,14 +646,14 @@ class CFD_EXPORT ConfidentialTransactionContext
       bool has_grind_r = true);
 
   /**
-   * @brief 指定されたPubkeyHash形式のTxInに署名する.
-   * @param[in] outpoint    TxIn txid and vout
-   * @param[in] pubkey      SignatureHashの公開鍵
-   * @param[in] privkey     SignatureHashの秘密鍵
-   * @param[in] sighash_type SigHashType値
-   * @param[in] value TxInで指定したUTXOのValueCommitment
-   * @param[in] address_type address-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
-   * @param[in] has_grind_r signature計算時のオプション
+   * @brief Sign the specified TxIn with pubkey hash.
+   * @param[in] outpoint        outpoint
+   * @param[in] pubkey          Public key
+   * @param[in] privkey         Private key
+   * @param[in] sighash_type    SigHash Type
+   * @param[in] value           value commitment of UTXO
+   * @param[in] address_type    address-type.(P2WPKH, P2SH-P2WPKH, P2PKH)
+   * @param[in] has_grind_r     Grind-R option for sign.
    */
   void SignWithPrivkeySimple(
       const OutPoint& outpoint, const Pubkey& pubkey, const Privkey& privkey,
@@ -691,11 +687,12 @@ class CFD_EXPORT ConfidentialTransactionContext
 
   /**
    * @brief add multisig sign data to target outpoint.
-   * @details 追加するsignatureの順序は、redeem
-   * scriptのpubkeyとsignatures内のrelatedPubkeyで
-   *   対応をとって自動的に整列される.
-   * (relatedPubkeyが設定されていない場合は、relatedPubkeyが
-   *   設定されているsignatureを追加した後にsignParamの順序でsignatureを追加)
+   * @details The order of the signatures to be added is \
+   *    automatically arranged by correspondence between \
+   *    the pubkey of the redeem script and the relatedPubkey \
+   *    in the signatures.
+   *    (If relatedPubkey is not set, add signatures in the order of \
+   *    signParam after adding signatures with relatedPubkey set)
    * @param[in] outpoint          TxIn txid and vout
    * @param[in] signatures        signature list
    * @param[in] redeem_script     redeem script
@@ -711,7 +708,6 @@ class CFD_EXPORT ConfidentialTransactionContext
    * @param[in] sign_params     sign data list
    * @param[in] insert_witness  use witness
    * @param[in] clear_stack     clear stack data before add.
-   * @return SignDataが付与されたTransactionController
    */
   void AddSign(
       const OutPoint& outpoint, const std::vector<SignParameter>& sign_params,
@@ -758,15 +754,15 @@ class CFD_EXPORT ConfidentialTransactionContext
       WitnessVersion version = WitnessVersion::kVersionNone) const;
 
   /**
-   * @brief ロックタイムからデフォルトのシーケンス番号を取得する。
-   * @retval 0xffffffff     locktime値無効
-   * @retval 0xfffffffe     locktime値有効
+   * @brief Get the default sequence number from the lock time.
+   * @retval 0xffffffff     locktime disable
+   * @retval 0xfffffffe     locktime enable
    */
   uint32_t GetDefaultSequence() const;
 
   /**
-   * @brief ロックタイムからlocktime値無効のシーケンス番号を取得する。
-   * @retval 0xffffffff     locktime値無効
+   * @brief Get the default sequence number from the lock time.
+   * @retval 0xffffffff     locktime disable
    */
   static uint32_t GetLockTimeDisabledSequence();
 
@@ -787,11 +783,30 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   virtual void CallbackStateChange(uint32_t type);
 
+  /**
+   * @brief find target outpoint utxo list.
+   * @param[in] outpoint    outpoint
+   * @param[out] utxo       utxo
+   * @retval true   exist
+   * @retval false  not exist
+   */
+  bool IsFindUtxoMap(const OutPoint& outpoint, UtxoData* utxo = nullptr) const;
+
+  /**
+   * @brief find target outpoint from list.
+   * @param[in] list        outpoint list
+   * @param[in] outpoint    outpoint
+   * @retval true   exist
+   * @retval false  not exist
+   */
+  bool IsFindOutPoint(
+      const std::vector<OutPoint>& list, const OutPoint& outpoint) const;
+
  private:
   /**
    * @brief utxo map.
    */
-  std::map<OutPoint, UtxoData> utxo_map_;
+  std::vector<UtxoData> utxo_map_;
   /**
    * @brief utxo signed map. (outpoint, SigHashType)
    */
@@ -799,11 +814,11 @@ class CFD_EXPORT ConfidentialTransactionContext
   /**
    * @brief utxo verify map. (outpoint)
    */
-  std::set<OutPoint> verify_map_;
+  std::vector<OutPoint> verify_map_;
   /**
    * @brief utxo verify ignore map. (outpoint)
    */
-  std::set<OutPoint> verify_ignore_map_;
+  std::vector<OutPoint> verify_ignore_map_;
 };
 
 // ----------------------------------------------------------------------------
