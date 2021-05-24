@@ -147,6 +147,20 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
       AddressType address_type, const Script& tweak_fedpegscript) const;
 
   /**
+   * @brief Create peg-in address for mainchain according \
+   *    to net_type from fedpegscript with tweak added
+   * @param[in] mainchain_net_type    mainchain network type
+   * @param[in] address_type          address type (p2sh, p2wsh, p2sh-p2wsh)
+   * @param[in] tweak_fedpegscript
+   *     A script that combines pubkey inside fedpegscript with tweak.
+   *     (ref: cfd::core::ContractHashUtil)
+   * @return peg-in address for mainchain
+   */
+  static Address CreatePegInAddress(
+      NetType mainchain_net_type, AddressType address_type,
+      const Script& tweak_fedpegscript);
+
+  /**
    * @brief check confidential address's network type is valid.
    * @param[in] conf_addr confidential address which is checked network type
    * @param[in] net_type check network type (ref: cfd::core::NetType)

@@ -83,6 +83,8 @@ struct CfdCapiMultisigScript {
  */
 struct CfdCapiOutputDescriptor {
   char prefix[kPrefixLength];  //!< buffer prefix
+  //! root data
+  std::vector<DescriptorScriptData>* script_root;
   //! script list
   std::vector<DescriptorScriptData>* script_list;
   //! multisig key list
@@ -456,11 +458,13 @@ int CfdParseDescriptor(
         AllocBuffer(kPrefixOutputDescriptor, sizeof(CfdCapiOutputDescriptor)));
     buffer->script_list = new std::vector<DescriptorScriptData>();
     buffer->multisig_key_list = new std::vector<DescriptorKeyData>();
+    buffer->script_root = new std::vector<DescriptorScriptData>(1);
     buffer->script_list->assign(script_list.begin(), script_list.end());
     // *(buffer->script_list) = script_list;
     buffer->multisig_key_list->assign(
         multisig_key_list.begin(), multisig_key_list.end());
     // *(buffer->multisig_key_list) = multisig_key_list;
+    (*buffer->script_root)[0] = desc_data;
     if (max_index != nullptr) {
       *max_index = static_cast<uint32_t>(script_list.size() - 1);
     }
@@ -478,6 +482,135 @@ int CfdParseDescriptor(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdGetDescriptorRootData(
+    void* handle, void* descriptor_handle, int* script_type,
+    char** locking_script, char** address, int* hash_type,
+    char** redeem_script, int* key_type, char** pubkey, char** ext_pubkey,
+    char** ext_privkey, char** schnorr_pubkey, char** tree_string,
+    bool* is_multisig, uint32_t* max_key_num, uint32_t* req_sig_num) {
+  int ret = CfdErrorCode::kCfdUnknownError;
+  char* work_locking_script = nullptr;
+  char* work_address = nullptr;
+  char* work_redeem_script = nullptr;
+  char* work_pubkey = nullptr;
+  char* work_ext_pubkey = nullptr;
+  char* work_ext_privkey = nullptr;
+  char* work_schnorr_pubkey = nullptr;
+  char* work_tree_string = nullptr;
+  try {
+    cfd::Initialize();
+    CheckBuffer(descriptor_handle, kPrefixOutputDescriptor);
+
+    CfdCapiOutputDescriptor* buffer =
+        static_cast<CfdCapiOutputDescriptor*>(descriptor_handle);
+    if ((buffer->script_root == nullptr) || buffer->script_root->empty()) {
+      warn(CFD_LOG_SOURCE, "invalid script_root.");
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError,
+          "Failed to parameter. invalid script_root.");
+    }
+
+    const DescriptorScriptData& desc_data = buffer->script_root->at(0);
+    bool is_taproot = (desc_data.address_type == AddressType::kTaprootAddress);
+    if (script_type != nullptr) *script_type = desc_data.type;
+    if ((locking_script != nullptr) && (!desc_data.locking_script.IsEmpty())) {
+      work_locking_script = CreateString(desc_data.locking_script.GetHex());
+    }
+    if ((address != nullptr) && (!desc_data.address.GetAddress().empty())) {
+      std::string addr = desc_data.address.GetAddress();
+      if (!addr.empty()) work_address = CreateString(addr);
+    }
+    if (hash_type != nullptr) {
+      *hash_type = desc_data.address_type;
+    }
+    if ((redeem_script != nullptr) && (!desc_data.redeem_script.IsEmpty())) {
+      work_redeem_script = CreateString(desc_data.redeem_script.GetHex());
+    }
+    if (key_type != nullptr) {
+      *key_type = desc_data.key_type;
+    }
+
+    Pubkey pubkey_obj;
+    ExtPubkey ext_pubkey_obj;
+    ExtPrivkey ext_privkey_obj;
+    SchnorrPubkey schnorr_pubkey_obj;
+    switch (desc_data.key_type) {
+      case DescriptorKeyType::kDescriptorKeyBip32Priv:
+        ext_privkey_obj = ExtPrivkey(desc_data.key);
+        ext_pubkey_obj = ext_privkey_obj.GetExtPubkey();
+        pubkey_obj = ext_pubkey_obj.GetPubkey();
+        break;
+      case DescriptorKeyType::kDescriptorKeyBip32:
+        ext_pubkey_obj = ExtPubkey(desc_data.key);
+        pubkey_obj = ext_pubkey_obj.GetPubkey();
+        break;
+      case DescriptorKeyType::kDescriptorKeySchnorr:
+        if (!desc_data.key.empty()) {
+          schnorr_pubkey_obj = SchnorrPubkey(desc_data.key);
+        }
+        break;
+      case DescriptorKeyType::kDescriptorKeyPublic:
+      default:
+        if (!desc_data.key.empty()) pubkey_obj = Pubkey(desc_data.key);
+        break;
+    }
+    if (is_taproot && (schnorr_pubkey != nullptr)) {
+      if (pubkey_obj.IsValid()) {
+        auto spk = SchnorrPubkey::FromPubkey(pubkey_obj);
+        work_schnorr_pubkey = CreateString(spk.GetHex());
+      } else if (schnorr_pubkey_obj.IsValid()) {
+        work_schnorr_pubkey = CreateString(schnorr_pubkey_obj.GetHex());
+      }
+    }
+    if (is_taproot && desc_data.tree.IsValid()) {
+      work_tree_string = CreateString(desc_data.tree.ToString());
+    }
+    if ((pubkey != nullptr) && (pubkey_obj.IsValid())) {
+      work_pubkey = CreateString(pubkey_obj.GetHex());
+    }
+    if ((ext_pubkey != nullptr) && (ext_pubkey_obj.IsValid())) {
+      work_ext_pubkey = CreateString(ext_pubkey_obj.ToString());
+    }
+    if ((ext_privkey != nullptr) && (ext_privkey_obj.IsValid())) {
+      work_ext_privkey = CreateString(ext_privkey_obj.ToString());
+    }
+    if (is_multisig != nullptr) {
+      *is_multisig = !buffer->multisig_key_list->empty();
+      if (!buffer->multisig_key_list->empty()) {
+        *is_multisig = true;
+        if (max_key_num != nullptr) {
+          *max_key_num =
+              static_cast<uint32_t>(buffer->multisig_key_list->size());
+        }
+        if (req_sig_num != nullptr) {
+          *req_sig_num = static_cast<uint32_t>(desc_data.multisig_req_sig_num);
+        }
+      }
+    }
+
+    if (work_locking_script != nullptr) *locking_script = work_locking_script;
+    if (work_address != nullptr) *address = work_address;
+    if (work_redeem_script != nullptr) *redeem_script = work_redeem_script;
+    if (work_pubkey != nullptr) *pubkey = work_pubkey;
+    if (work_ext_pubkey != nullptr) *ext_pubkey = work_ext_pubkey;
+    if (work_ext_privkey != nullptr) *ext_privkey = work_ext_privkey;
+    if (work_schnorr_pubkey != nullptr) *schnorr_pubkey = work_schnorr_pubkey;
+    if (work_tree_string != nullptr) *tree_string = work_tree_string;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    ret = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(
+      &work_locking_script, &work_address, &work_redeem_script, &work_pubkey,
+      &work_ext_pubkey, &work_ext_privkey);
+  FreeBufferOnError(&work_schnorr_pubkey, &work_tree_string);
+  return ret;
 }
 
 int CfdGetDescriptorData(
@@ -532,6 +665,7 @@ int CfdGetDescriptorData(
     Pubkey pubkey_obj;
     ExtPubkey ext_pubkey_obj;
     ExtPrivkey ext_privkey_obj;
+    SchnorrPubkey schnorr_pubkey_obj;
     switch (desc_data.key_type) {
       case DescriptorKeyType::kDescriptorKeyBip32Priv:
         ext_privkey_obj = ExtPrivkey(desc_data.key);
@@ -542,6 +676,9 @@ int CfdGetDescriptorData(
         ext_pubkey_obj = ExtPubkey(desc_data.key);
         pubkey_obj = ext_pubkey_obj.GetPubkey();
         break;
+      case DescriptorKeyType::kDescriptorKeySchnorr:
+        schnorr_pubkey_obj = SchnorrPubkey(desc_data.key);
+        break;
       case DescriptorKeyType::kDescriptorKeyPublic:
       default:
         if (!desc_data.key.empty()) pubkey_obj = Pubkey(desc_data.key);
@@ -549,6 +686,8 @@ int CfdGetDescriptorData(
     }
     if ((pubkey != nullptr) && (pubkey_obj.IsValid())) {
       work_pubkey = CreateString(pubkey_obj.GetHex());
+    } else if ((pubkey != nullptr) && (schnorr_pubkey_obj.IsValid())) {
+      work_pubkey = CreateString(schnorr_pubkey_obj.GetHex());
     }
     if ((ext_pubkey != nullptr) && (ext_pubkey_obj.IsValid())) {
       work_ext_pubkey = CreateString(ext_pubkey_obj.ToString());
@@ -675,6 +814,10 @@ int CfdFreeDescriptorHandle(void* handle, void* descriptor_handle) {
     if (descriptor_handle != nullptr) {
       CfdCapiOutputDescriptor* descriptor_struct =
           static_cast<CfdCapiOutputDescriptor*>(descriptor_handle);
+      if (descriptor_struct->script_root != nullptr) {
+        delete descriptor_struct->script_root;
+        descriptor_struct->script_root = nullptr;
+      }
       if (descriptor_struct->script_list != nullptr) {
         delete descriptor_struct->script_list;
         descriptor_struct->script_list = nullptr;

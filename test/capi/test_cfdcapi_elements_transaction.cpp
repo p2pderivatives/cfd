@@ -1960,4 +1960,274 @@ TEST(cfdcapi_elements_transaction, CfdGetValueCommitment) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_elements_transaction, CfdAddPeginTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* tx_string = nullptr;
+  int64_t satoshi;
+
+  void* create_handle = nullptr;
+  ret = CfdInitializeTransaction(handle, kCfdNetworkLiquidv1, 2, 0, nullptr, &create_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == create_handle));
+  if (ret == kCfdSuccess) {
+    satoshi = 209998999992700;
+    ret = CfdAddTxPeginInput(
+        handle, create_handle,
+        "4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3", 2,
+        satoshi, "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f",
+        "0014e8d28b573816ddfcf98578d7b28543e273f5a72a",
+        "02000000014578ddc14da3e19445b6e7b4c61d4af711d29e2703161aa9c11e4e6b0ea08843010000006b483045022100eea27e89c3cf2867393263bece040f34c03e0cddfa93a1a18c0d2e4322a37df7022074273c0ab3836affba53737c83673ca6c0d69bffdf722b4accfd7c0a9b2ea4e60121020bfcdbda850cd250c3995dfdb426dc40a9c8a5b378be2bf39f6b0642a783daf2feffffff02281d2418010000001976a914b56872c7b363bfb3f5af84d071ff282cf2abfe3988ac00e1f5050000000017a9141d4796c6e855ae00acecb0c20f65dd8bbeffb1ec87d1000000",
+        "03000030ffba1d575800bf37a1ee1962dee7e153c18bcfc93cd013e7c297d5363b36cc2d63d5c4a9fdc746b9d3f4f62995d611c34ee9740ff2b5193ce458fdac6d173800ec402e5affff7f200500000002000000027ce06590120cf8c2bef7726200f0fa655940cadcf62708d7dc9f8f2a417c890b81af4d4299758e7e7a0daa6e7e3d3ec37f97df4ef2392ae5e6d286fc5e7e01d90105");
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    satoshi = 200000;
+    ret = CfdAddTransactionOutput(
+      handle, create_handle, satoshi, nullptr, nullptr,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    satoshi = 209998999792700;
+    ret = CfdAddTransactionOutput(
+      handle, create_handle, satoshi,
+      "CTEyBCf1WzQDpbv6sXLTnFaknGK2UJMHqjyGJjQGq9NEytBR2JLHR9cHJSk4MbLVcKQYWsWERUEYN6R3", "",
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdFinalizeTransaction(handle, create_handle, &tx_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("020000000101a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0200004000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000030d4000000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000befe33c92c3c03f234757d0e00e6a7a7a3b4b2b31fb0328d7b9f755cd1093d9f61892fef3116871976a91435ef6d4b59f26089dfe2abca21408e15fee42a3388ac0000000000000006087c39cc33febe00002025b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a200f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206160014e8d28b573816ddfcf98578d7b28543e273f5a72ae002000000014578ddc14da3e19445b6e7b4c61d4af711d29e2703161aa9c11e4e6b0ea08843010000006b483045022100eea27e89c3cf2867393263bece040f34c03e0cddfa93a1a18c0d2e4322a37df7022074273c0ab3836affba53737c83673ca6c0d69bffdf722b4accfd7c0a9b2ea4e60121020bfcdbda850cd250c3995dfdb426dc40a9c8a5b378be2bf39f6b0642a783daf2feffffff02281d2418010000001976a914b56872c7b363bfb3f5af84d071ff282cf2abfe3988ac00e1f5050000000017a9141d4796c6e855ae00acecb0c20f65dd8bbeffb1ec87d10000009703000030ffba1d575800bf37a1ee1962dee7e153c18bcfc93cd013e7c297d5363b36cc2d63d5c4a9fdc746b9d3f4f62995d611c34ee9740ff2b5193ce458fdac6d173800ec402e5affff7f200500000002000000027ce06590120cf8c2bef7726200f0fa655940cadcf62708d7dc9f8f2a417c890b81af4d4299758e7e7a0daa6e7e3d3ec37f97df4ef2392ae5e6d286fc5e7e01d9010500000000", tx_string);
+      CfdFreeStringBuffer(tx_string);
+    }
+  }
+
+  CfdFreeTransactionHandle(handle, create_handle);
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_elements_transaction, CfdAddPegoutTest) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* tx_string = nullptr;
+  int64_t satoshi;
+
+  void* create_handle = nullptr;
+  ret = CfdInitializeTransaction(handle, kCfdNetworkLiquidv1, 2, 0, nullptr, &create_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == create_handle));
+  if (ret == kCfdSuccess) {
+    ret = CfdAddTransactionInput(
+      handle, create_handle, "4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3", 0,
+      4294967293U);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    satoshi = 209998999992700;
+    ret = CfdAddTransactionOutput(
+      handle, create_handle, satoshi,
+      "XBMr6srTXmWuHifFd8gs54xYfiCBsvrksA", "",
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    satoshi = 1000000000;
+    char* mainchain_address = nullptr;
+    ret = CfdAddTxPegoutOutput(
+      handle, create_handle,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225", satoshi,
+      kCfdNetworkRegtest, kCfdNetworkElementsRegtest,
+      "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
+      "0214156e4ae9168289b4d0c034da94025121d33ad8643663454885032d77640e3d",
+      "cVPA9nh4bHhKXinBCLkJJTD3UgfiizWRykXfFegwZzKMNYAKG9RL",
+      "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*))",
+      0, "030e07d4f657c0c169e04fac5d5a8096adb099874834be59ad1e681e22d952ccda0214156e4ae9168289b4d0c034da94025121d33ad8643663454885032d77640e3d",
+      &mainchain_address);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo", mainchain_address);
+      CfdFreeStringBuffer(mainchain_address);
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    satoshi = 7300;
+    ret = CfdAddTransactionOutput(
+      handle, create_handle, satoshi,
+      nullptr, nullptr,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdFinalizeTransaction(handle, create_handle, &tx_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("020000000001a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000fdffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000befe33cc397c0017a914001d6db698e75a5a8af771730c4ab258af30546b870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000003b9aca00009e6a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f17a914a722b257cabc3b8e7d46f8fb293f893f368219da872103700dcb030588ed828d85f645b48971de0d31e8c0244da46710d18681627f5a4a4101044e949dcf8ac2daac82a3e4999ee28e2711661793570c4daab34cd38d76a425d6bfe102f3fea8be12109925fad32c78b65afea4de1d17a826e7375d0e2d00660125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000001c84000000000000", tx_string);
+      CfdFreeStringBuffer(tx_string);
+    }
+  }
+
+  CfdFreeTransactionHandle(handle, create_handle);
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_elements_transaction, CfdSetIssueTest) {
+  const char* base_tx = "0200000001017f3da365db9401a4d3facf68d2ccb6372bb714491987e5d035d2b474721078c601000000171600149a417c11cb67e1dc522997f07e1ff89e960d5ff1fdffffff020135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c84010000000002f9c1ec0017a914c9cbab5b0f3430e824b1961bf8e876be43d3fee0870135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000000e07400000000000000000247304402207ab059e55e3e4337e88e1a6db00b7549110065eb5770880b1081dcdcdcf1c9a402207a3a0bc7d0d40661f54eff63c67838260a489984138d24eeee04b689f393bf2e012103753cff6c6123d25d99a3d02dc050a2c6b3ea40bcc04029c4330a4d30cb5390770000000000";
+  const char* exp_tx = "0200000001017f3da365db9401a4d3facf68d2ccb6372bb714491987e5d035d2b474721078c601000080171600149a417c11cb67e1dc522997f07e1ff89e960d5ff1fdffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000002540be40001000000003b9aca00040135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c84010000000002f9c1ec0017a914c9cbab5b0f3430e824b1961bf8e876be43d3fee0870135e7a177b434ee0799be6dcffc945a1d892f2e0fdfc5975ba0f80d3bdbab9c8401000000000000e07400000107ec1ec7027d89071814d5ccd1f5ea4cee45e598287fc8f59acbb1d9129081dc0100000002540be400001976a914144f003aa8dd6408ba0e8ee91757cf1f1976315c88ac01aaf1579c847497d406605b4ef875a2b37164f4c5b9e5d2a23b2b2a16e132ec0501000000003b9aca00001976a914ae8cab151547d6f6e25b62b41200368dfdabe62b88ac0000000000000247304402207ab059e55e3e4337e88e1a6db00b7549110065eb5770880b1081dcdcdcf1c9a402207a3a0bc7d0d40661f54eff63c67838260a489984138d24eeee04b689f393bf2e012103753cff6c6123d25d99a3d02dc050a2c6b3ea40bcc04029c4330a4d30cb539077000000000000000000";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* tx_string = nullptr;
+
+  void* create_handle = nullptr;
+  ret = CfdInitializeTransaction(handle, kCfdNetworkLiquidv1, 2, 0,
+      base_tx, &create_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == create_handle));
+  if (ret == kCfdSuccess) {
+    char* entropy = nullptr;
+    char* asset_string = nullptr;
+    char* token_string = nullptr;
+    ret = CfdSetIssueAsset(
+        handle, create_handle,
+        "c678107274b4d235d0e587194914b72b37b6ccd268cffad3a40194db65a33d7f", 1,
+        nullptr, 10000000000, "2dbH8YS7rqRDM1F7EXrGBXvZywXxuEQtZ2z",
+        nullptr, 1000000000, "2dqLgUheB1R4gw7G2DKuxBeMr1jdgxECAoG", nullptr,
+        false, &entropy, &asset_string, &token_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("0a002ed099bd2d52f4bb04d36ebc159c838f0557461d462127845b996e61cb70", entropy);
+      EXPECT_STREQ("dc819012d9b1cb9af5c87f2898e545ee4ceaf5d1ccd5141807897d02c71eec07", asset_string);
+      EXPECT_STREQ("05ec32e1162a2b3ba2d2e5b9c5f46471b3a275f84e5b6006d49774849c57f1aa", token_string);
+      CfdFreeStringBuffer(entropy);
+      CfdFreeStringBuffer(asset_string);
+      CfdFreeStringBuffer(token_string);
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdFinalizeTransaction(handle, create_handle, &tx_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(exp_tx, tx_string);
+      CfdFreeStringBuffer(tx_string);
+    }
+  }
+
+  CfdFreeTransactionHandle(handle, create_handle);
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_elements_transaction, CfdSetReissueTest) {
+  const char* base_tx = "0200000000025e67a3542db02871642bdf0923d33ac5bd1105f3421520297f01617c6323918d0000000000ffffffff5e67a3542db02871642bdf0923d33ac5bd1105f3421520297f01617c6323918d0200000000ffffffff03017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c18010000000029b9270003f4f10478f5fae2c77c44fdb2a304109a9ae8ba7cab1c125deba9e618ca737e851976a91484c2ef274919355bb532a5bbdbfa95490c5d749388ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b97049c03b69e5ef61aef08565404bc3c98d6e4dfd1e02eb94138617d9b3eb12ec790885317a91401e940d9dcd77a5043356941641aa2fd6ec6a68887017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c18010000000000002710000000000000";
+  const char* exp_tx = "0200000000025e67a3542db02871642bdf0923d33ac5bd1105f3421520297f01617c6323918d0000000000ffffffff5e67a3542db02871642bdf0923d33ac5bd1105f3421520297f01617c6323918d0200008000ffffffffcf9a1b9aeb2de6a7b7c3177433dced0951fd728dffbe8c935ccb80698f2e08c80683fe0819a4f9770c8a7cd5824e82975c825e017aff8ba0d6a5eb4959cf9c6f010000000029b927000004017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c18010000000029b9270003f4f10478f5fae2c77c44fdb2a304109a9ae8ba7cab1c125deba9e618ca737e851976a91484c2ef274919355bb532a5bbdbfa95490c5d749388ac017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c1801000000003b97049c03b69e5ef61aef08565404bc3c98d6e4dfd1e02eb94138617d9b3eb12ec790885317a91401e940d9dcd77a5043356941641aa2fd6ec6a68887017981c1f171d7973a1fd922652f559f47d6d1506a4be2394b27a54951957f6c18010000000000002710000001cdb0ed311810e61036ac9255674101497850f5eee5e4320be07479c05473cbac010000000029b9270003f234757d0e00e6a7a7a3b4b2b31fb0328d7b9f755cd1093d9f61892fef3116871976a91435ef6d4b59f26089dfe2abca21408e15fee42a3388ac00000000";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  char* tx_string = nullptr;
+
+  void* create_handle = nullptr;
+  ret = CfdInitializeTransaction(handle, kCfdNetworkLiquidv1, 2, 0, base_tx, &create_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == create_handle));
+  if (ret == kCfdSuccess) {
+    char* asset_string = nullptr;
+    ret = CfdSetReissueAsset(
+      handle, create_handle,
+      "8d9123637c61017f29201542f30511bdc53ad32309df2b647128b02d54a3675e", 2,
+      700000000,
+      "c8082e8f6980cb5c938cbeff8d72fd5109eddc337417c3b7a7e62deb9a1b9acf",
+      "6f9ccf5949eba5d6a08bff7a015e825c97824e82d57c8a0c77f9a41908fe8306",
+      "CTEyBCf1WzQDpbv6sXLTnFaknGK2UJMHqjyGJjQGq9NEytBR2JLHR9cHJSk4MbLVcKQYWsWERUEYN6R3",
+      nullptr, &asset_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("accb7354c07974e00b32e4e5eef55078490141675592ac3610e6101831edb0cd", asset_string);
+      CfdFreeStringBuffer(asset_string);
+    }
+  }
+
+  if (ret == kCfdSuccess) {
+    ret = CfdFinalizeTransaction(handle, create_handle, &tx_string);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(exp_tx, tx_string);
+      CfdFreeStringBuffer(tx_string);
+    }
+  }
+
+  CfdFreeTransactionHandle(handle, create_handle);
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 #endif  // CFD_DISABLE_ELEMENTS

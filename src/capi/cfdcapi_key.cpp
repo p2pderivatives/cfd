@@ -134,7 +134,14 @@ int CfdCalculateEcSignature(
           "Failed to parameter. signature is null.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     Privkey private_key;
     if (!IsEmptyString(wif)) {
       private_key = Privkey::FromWif(
@@ -742,7 +749,7 @@ int CfdGetSighashTypeFromSchnorrSignature(
     SchnorrSignature sig(signature);
     auto sighash_type_obj = sig.GetSigHashType();
     if (sighash_type != nullptr) {
-      *sighash_type = static_cast<int>(sighash_type_obj.GetSigHashAlgorithm());
+      *sighash_type = static_cast<int>(sighash_type_obj.GetSigHashFlag());
     }
     if (anyone_can_pay != nullptr) {
       *anyone_can_pay = sighash_type_obj.IsAnyoneCanPay();
@@ -945,7 +952,7 @@ int CfdDecodeSignatureFromDer(
     ByteData sig =
         CryptoUtil::ConvertSignatureFromDer(ByteData(der_signature), &type);
     *signature = CreateString(sig.GetHex());
-    if (sighash_type) *sighash_type = int{type.GetSigHashAlgorithm()};
+    if (sighash_type) *sighash_type = static_cast<int>(type.GetSigHashFlag());
     if (sighash_anyone_can_pay)
       *sighash_anyone_can_pay = type.IsAnyoneCanPay();
 
@@ -1002,7 +1009,14 @@ int CfdCreateKeyPair(
   try {
     cfd::Initialize();
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
 
     KeyApi api;
     Pubkey pubkey_obj;
@@ -1056,7 +1070,14 @@ int CfdGetPrivkeyFromWif(
     }
 
     size_t wif_len = strnlen(wif, kPrivkeyWifUncompressSize + 1);
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     Privkey key = Privkey::FromWif(
         wif, net_type, (wif_len != kPrivkeyWifUncompressSize));
     *privkey = CreateString(key.GetHex());
@@ -1091,7 +1112,14 @@ int CfdGetPrivkeyWif(
           "Failed to parameter. privkey is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     Privkey key(privkey);
     std::string privkey_wif = key.ConvertWif(net_type, is_compressed);
     *wif = CreateString(privkey_wif);
@@ -1644,7 +1672,14 @@ int CfdCreateExtkeyFromSeed(
           "Failed to parameter. seed is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     ExtKeyType output_key_type = static_cast<ExtKeyType>(key_type);
     HDWalletApi api;
     std::string key = api.CreateExtkeyFromSeed(
@@ -1682,7 +1717,14 @@ CFDC_API int CfdCreateExtkey(
           "Failed to parameter. key is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     std::string key_str = key;
     std::string chain_code_str = chain_code;
     std::string parent_key_str;
@@ -1762,7 +1804,14 @@ int CfdCreateExtkeyFromParent(
           "Failed to parameter. extkey is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     ExtKeyType output_key_type = static_cast<ExtKeyType>(key_type);
     HDWalletApi api;
     std::string key = api.CreateExtkeyFromParent(
@@ -1803,7 +1852,14 @@ int CfdCreateExtkeyFromParentPath(
     if (!IsEmptyString(path)) {
       path_string = path;
     }
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     ExtKeyType output_key_type = static_cast<ExtKeyType>(key_type);
     HDWalletApi api;
     std::string key = api.CreateExtkeyFromPathString(
@@ -1839,7 +1895,14 @@ int CfdCreateExtPubkey(
           "Failed to parameter. extkey is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     HDWalletApi api;
     std::string key = api.CreateExtPubkey(extkey, net_type);
     *ext_pubkey = CreateString(key);
@@ -1870,7 +1933,14 @@ int CfdGetPrivkeyFromExtkey(
           "Failed to parameter. extkey is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     HDWalletApi api;
     std::string key;
     if (privkey != nullptr) {
@@ -1916,7 +1986,14 @@ int CfdGetPubkeyFromExtkey(
           "Failed to parameter. extkey is null or empty.");
     }
 
-    cfd::core::NetType net_type = ConvertNetType(network_type, nullptr);
+    bool is_bitcoin = true;
+    cfd::core::NetType net_type = ConvertNetType(network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      warn(CFD_LOG_SOURCE, "privkey's network_type is invalid.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. privkey's network_type is invalid.");
+    }
     HDWalletApi api;
     std::string key = api.GetPubkeyFromExtkey(extkey, net_type);
     *pubkey = CreateString(key);

@@ -498,6 +498,184 @@ std::vector<Utxo> CfdGetElementsUtxoListByC(bool use_asset) {
   return utxos;
 }
 
+std::vector<UtxoData> CfdGetElementsUtxoDataListByC(bool use_asset) {
+  // mnemonic: token hair neglect leader furnace obtain sadness tool you father paddle skate remain carry impact dinosaur correct essay rent illness predict mercy exist ring
+  // xpriv: xprv9s21ZrQH143K4QXrTfC9L43GKCuLcDiBCWjyVqfZUTzoPJWUstD4HTJKGz1U5jAGZzKshcX6cCyZ1ZdxSUQLz92pEZWEGwxa39ks2vhTsfA
+  // derive: 44h/0h/0h/0/*
+  std::vector<UtxoData> utxos;
+  {
+    Txid txid("7ca81dd22c934747f4f5ab7844178445fe931fb248e0704c062b8f4fbd3d500a");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(312500000);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_ca;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(0329165ca5832de80305c92d4b1415f10340d267ba05cbffcfe02d386dc5020e4d))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("30f71f39d210f7ee291b0969c6935debf11395b0935dca84d30c810a75339a0a");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(78125000);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_ca;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(022db3cb17d98db6cd8d513f88b095dbe80ef9e57acd5b1d9e8bd7f24618079451))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("9e1ead91c432889cb478237da974dd1e9009c9e22694fd1e3999c40a1ef59b0a");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(1250000000);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_ca;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(032d04e0b1474a82ad68c0ef37e1a7cf6c75ef01b22c00882e8e4e127a942823a1))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("8f4af7ee42e62a3d32f25ca56f618fb2f5df3d4c3a9c59e2c3646c5535a3d40a");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(39062500);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_ca;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(03a7fb569db921abf70f1b6b9ad9ac863196deecd99d606b139bba7d740d1cc5bf))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("4d97d0119b90421818bff4ec9033e5199199b53358f56390cb20f8148e76f40a");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(156250000);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_ca;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(02df74fc8124ff6f3982e90afb318f3e955b10f58c4c6014b3a767e16160f811d9))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("b9720ed2265a4ced42425bffdb4ef90a473b4106811a802fce53f7c57487fa0b");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(int64_t{2500000000});
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_ca;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(029222484db385d268a2a4604ea40fd2228401061f741ad9da8c907ba9df29c2d3))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("0000000000000000000000000000000000000000000000000000000000000b01");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(26918400);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_cb;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(038f9011753b74fa0134d4b64a1491f99e0c4c0e16da616627c1f6a93c5e7555c0))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("0000000000000000000000000000000000000000000000000000000000000b02");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(750000);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_cb;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(0302f567f9671b570dbcf179f3ba5f2fb381ea7e8db6ab9e0968c07d40325c3fcd))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("0000000000000000000000000000000000000000000000000000000000000b03");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(346430050);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_cb;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(034ff60d8fb18ae88019f6f905cfaa0e1841f75edfa1f3c0a5bfaf77b796243901))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("0000000000000000000000000000000000000000000000000000000000000b04");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(18476350);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_cb;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(029f2126cd8b55af7cc3cee8154c44de7cb7cb214809f81144d6b323d9c7a3993e))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("0000000000000000000000000000000000000000000000000000000000000c01");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(37654200);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_cc;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(02f1d2c28388e3fd609ff383f022b615f1cd8a1931632706f63bfb6e253875ca03))";
+    utxos.push_back(utxo);
+  }
+  {
+    Txid txid("0000000000000000000000000000000000000000000000000000000000000c02");
+    UtxoData utxo;
+    utxo.txid = txid;
+    utxo.vout = 0;
+    utxo.amount = Amount(127030000);
+#ifndef CFD_DISABLE_ELEMENTS
+    if (use_asset)
+      utxo.asset = exp_dummy_asset_cc;
+#endif  // CFD_DISABLE_ELEMENTS
+    utxo.descriptor = "sh(wpkh(02cca4482dc1e7d54c879c0d9069e3d66c3bf91b2bf46eddc74f18d76c659dfd10))";
+    utxos.push_back(utxo);
+  }
+/*
+0:  A,  312500000
+1:  A,   78125000
+2:  A, 1250000000
+3:  A,   39062500
+4:  A,  156250000
+5:  A, 2500000000
+6:  B,   26918400
+7:  B,     750000
+8:  B,  346430050
+9:  B,   18476350
+10: C,   37654200
+11: C,  127030000
+*/
+  return utxos;
+}
+
 // SelectCoins(BTC) =====================================================
 
 TEST(cfdcapi_coin, CfCoinSelection_BTC1) {
@@ -790,6 +968,111 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
     CfdFreeStringBuffer(str_buffer);
     str_buffer = NULL;
   }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_coin, CfCoinSelection_Asset2) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  auto convert_to_byte = [](const uint8_t* byte_array, size_t size) -> ByteData {
+    std::vector<uint8_t> bytes(size);
+    memcpy(bytes.data(), byte_array, bytes.size());
+    return ByteData(bytes);
+  };
+
+  void* coin_select_handle = nullptr;
+  std::vector<UtxoData> utxos = CfdGetElementsUtxoDataListByC(true);
+  int64_t tx_fee_amount = 2000;
+  double effective_fee_rate = -1;
+  double long_term_fee_rate = -1;
+  double dust_fee_rate = -1;
+  int64_t knapsack_min_change = -1;
+
+  ret = CfdInitializeCoinSelection(
+    handle, static_cast<uint32_t>(utxos.size()), 3,
+    exp_dummy_asset_ca.GetHex().c_str(), tx_fee_amount,
+    effective_fee_rate, long_term_fee_rate, dust_fee_rate,
+    knapsack_min_change, &coin_select_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_NE(nullptr, coin_select_handle);
+
+  if (ret == kCfdSuccess) {
+    for (int32_t index = 0; index < static_cast<int32_t>(utxos.size()); ++index) {
+      const auto& utxo = utxos[index];
+      ret = CfdAddCoinSelectionUtxoTemplate(
+          handle, coin_select_handle, index,
+          utxo.txid.GetHex().c_str(), utxo.vout,
+          utxo.amount.GetSatoshiValue(), utxo.asset.GetHex().c_str(),
+          utxo.descriptor.c_str(), utxo.scriptsig_template.GetHex().c_str());
+      EXPECT_EQ(kCfdSuccess, ret);
+    }
+
+    ret = CfdAddCoinSelectionAmount(handle, coin_select_handle, 0, 115800000,
+         exp_dummy_asset_ca.GetHex().c_str());
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdAddCoinSelectionAmount(handle, coin_select_handle, 1, 347180040,
+        exp_dummy_asset_cb.GetHex().c_str());
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdAddCoinSelectionAmount(handle, coin_select_handle, 2, 37654100,
+        exp_dummy_asset_cc.GetHex().c_str());
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    int64_t utxo_fee_amount = 0;
+    ret = CfdFinalizeCoinSelection(handle, coin_select_handle, &utxo_fee_amount);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(9200, utxo_fee_amount);
+
+    int32_t utxo_index = 0;
+    std::vector<int32_t> indexes;
+    for (uint32_t index = 0; index < utxos.size(); ++index) {
+      ret = CfdGetSelectedCoinIndex(
+          handle, coin_select_handle, index, &utxo_index);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (utxo_index == -1) {
+        break;
+      }
+      indexes.push_back(utxo_index);
+    }
+    EXPECT_EQ(5, indexes.size());
+
+    if (indexes.size() == 5) {
+      EXPECT_EQ(8, indexes[0]);
+      EXPECT_EQ(7, indexes[1]);
+      EXPECT_EQ(10, indexes[2]);
+      EXPECT_EQ(1, indexes[3]);
+      EXPECT_EQ(3, indexes[4]);
+      /*
+      req:
+            A,  115800000
+            B,  347180050
+            C,   37654200
+      res:
+        8:  B,  346430050
+        7:  B,     750000
+        10: C,   37654200
+        1:  A,   78125000
+        3:  A,   39062500
+      */
+    }
+
+    int64_t amount = 0;
+    ret = CfdGetSelectedCoinAssetAmount(handle, coin_select_handle, 0, &amount);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(117187500, amount);
+    ret = CfdGetSelectedCoinAssetAmount(handle, coin_select_handle, 1, &amount);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(347180050, amount);
+    ret = CfdGetSelectedCoinAssetAmount(handle, coin_select_handle, 2, &amount);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(37654200, amount);
+  }
+  ret = CfdFreeCoinSelectionHandle(handle, coin_select_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
 
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);

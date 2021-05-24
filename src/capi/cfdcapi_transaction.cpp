@@ -96,6 +96,9 @@ namespace capi {
 //! prefix: data for fee estimation
 constexpr const char* const kPrefixFundRawTxData = "FundRawTxData";
 
+//! prefix: data for split txout
+constexpr const char* const kPrefixSplitTxOut = "SplitTxOut";
+
 /**
  * @brief cfd-capi FundTargetAmount構造体.
  */
@@ -107,8 +110,9 @@ struct CfdCapiFundTargetAmount {
 };
 
 /**
- * @brief cfd-capi CfdCapiFundRawTxData構造体.
- * @details 最大情報量が多すぎるため、flat structにはしない。
+ * @brief cfd-capi CfdCapiFundRawTxData struct.
+ * @details It is not a flat struct because
+ *   the maximum amount of information is too large.
  */
 struct CfdCapiFundRawTxData {
   char prefix[kPrefixLength];  //!< buffer prefix
@@ -142,6 +146,17 @@ struct CfdCapiFundRawTxData {
   int exponent;
   /// blind minimum bits (int64)
   int minimum_bits;
+};
+
+/**
+ * @brief cfd-capi SplitTxOutData struct.
+ */
+struct CfdCapiSplitTxOutData {
+  char prefix[kPrefixLength];                //!< buffer prefix
+  NetType net_type;                          //!< network type
+  std::vector<Amount>* amount_list;          //!< amount list
+  std::vector<Script>* locking_script_list;  //!< locking script list
+  std::vector<std::string>* nonce_list;      //!< nonce list
 };
 
 /**
@@ -196,6 +211,7 @@ using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiFundRawTxData;
 using cfd::capi::CfdCapiFundTargetAmount;
 using cfd::capi::CfdCapiMultisigSignData;
+using cfd::capi::CfdCapiSplitTxOutData;
 using cfd::capi::CfdCapiTransactionData;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertAddressType;
@@ -212,6 +228,7 @@ using cfd::capi::kAssetSize;
 using cfd::capi::kMultisigMaxKeyNum;
 using cfd::capi::kPrefixFundRawTxData;
 using cfd::capi::kPrefixMultisigSignData;
+using cfd::capi::kPrefixSplitTxOut;
 using cfd::capi::kPrefixTransactionData;
 using cfd::capi::kPubkeyHexSize;
 using cfd::capi::kSignatureHexSize;
@@ -385,6 +402,320 @@ int CfdAddTransactionOutput(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdCreateSplitTxOutHandle(
+    void* handle, void* create_handle, void** split_output_handle) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  CfdCapiSplitTxOutData* buffer = nullptr;
+  try {
+    cfd::Initialize();
+    if (split_output_handle == nullptr) {
+      warn(CFD_LOG_SOURCE, "split output handle is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. split output handle is null.");
+    }
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+
+    bool is_bitcoin = false;
+    auto network_type = ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (!is_bitcoin) {
+#ifndef CFD_DISABLE_ELEMENTS
+      info(CFD_LOG_SOURCE, "net_type[{}]", tx_data->net_type);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    buffer = static_cast<CfdCapiSplitTxOutData*>(
+        AllocBuffer(kPrefixSplitTxOut, sizeof(CfdCapiSplitTxOutData)));
+    buffer->net_type = network_type;
+    buffer->amount_list = new std::vector<Amount>();
+    buffer->locking_script_list = new std::vector<Script>();
+    buffer->nonce_list = new std::vector<std::string>();
+    *split_output_handle = buffer;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  CfdFreeSplitTxOutHandle(handle, buffer);
+  return result;
+}
+
+int CfdAddSplitTxOutData(
+    void* handle, void* split_output_handle, int64_t amount,
+    const char* address, const char* direct_locking_script,
+    const char* direct_nonce) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(split_output_handle, kPrefixSplitTxOut);
+    CfdCapiSplitTxOutData* split_data =
+        static_cast<CfdCapiSplitTxOutData*>(split_output_handle);
+
+    if (IsEmptyString(address) && IsEmptyString(direct_locking_script)) {
+      warn(CFD_LOG_SOURCE, "address and script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. address and script is null.");
+    }
+
+    if ((split_data->amount_list == nullptr) ||
+        (split_data->locking_script_list == nullptr) ||
+        (split_data->nonce_list == nullptr)) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid split output handle state. list is null");
+    }
+
+    Script script;
+    if ((split_data->net_type == NetType::kMainnet) ||
+        (split_data->net_type == NetType::kTestnet) ||
+        (split_data->net_type == NetType::kRegtest)) {
+      if (!IsEmptyString(address)) {
+        Address addr(address);
+        script = addr.GetLockingScript();
+      } else {
+        script = Script(direct_locking_script);
+      }
+      split_data->amount_list->emplace_back(Amount(amount));
+      split_data->locking_script_list->emplace_back(script);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      std::string nonce;
+      if (!IsEmptyString(direct_nonce)) nonce = std::string(direct_nonce);
+      if (!IsEmptyString(address)) {
+        auto prefix_list = cfd::core::GetElementsAddressFormatList();
+        Address addr;
+        if (ElementsConfidentialAddress::IsConfidentialAddress(
+                address, prefix_list)) {
+          ElementsConfidentialAddress confidential_addr(address, prefix_list);
+          addr = confidential_addr.GetUnblindedAddress();
+          nonce = confidential_addr.GetConfidentialKey().GetHex();
+        } else {
+          addr = Address(address, prefix_list);
+        }
+        script = addr.GetLockingScript();
+      } else {
+        script = Script(direct_locking_script);
+      }
+      split_data->amount_list->emplace_back(Amount(amount));
+      split_data->locking_script_list->emplace_back(script);
+      split_data->nonce_list->emplace_back(nonce);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdSplitTxOut(
+    void* handle, void* create_handle, void* split_output_handle,
+    uint32_t txout_index) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CheckBuffer(split_output_handle, kPrefixSplitTxOut);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    CfdCapiSplitTxOutData* split_data =
+        static_cast<CfdCapiSplitTxOutData*>(split_output_handle);
+
+    if ((split_data->amount_list == nullptr) ||
+        (split_data->locking_script_list == nullptr) ||
+        (split_data->nonce_list == nullptr) ||
+        split_data->amount_list->empty()) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid split output handle state. list is null");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      tx->SplitTxOut(
+          txout_index, *split_data->amount_list,
+          *split_data->locking_script_list);
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      std::vector<ConfidentialNonce> nonce_list;
+      for (const auto nonce : *split_data->nonce_list) {
+        nonce_list.emplace_back(nonce);
+      }
+      tx->SplitTxOut(
+          txout_index, *split_data->amount_list,
+          *split_data->locking_script_list, nonce_list);
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdFreeSplitTxOutHandle(void* handle, void* split_output_handle) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    if (split_output_handle != nullptr) {
+      CheckBuffer(split_output_handle, kPrefixSplitTxOut);
+      CfdCapiSplitTxOutData* data =
+          static_cast<CfdCapiSplitTxOutData*>(split_output_handle);
+      if (data->amount_list != nullptr) {
+        delete data->amount_list;
+        data->amount_list = nullptr;
+      }
+      if (data->locking_script_list != nullptr) {
+        delete data->locking_script_list;
+        data->locking_script_list = nullptr;
+      }
+      if (data->nonce_list != nullptr) {
+        delete data->nonce_list;
+        data->nonce_list = nullptr;
+      }
+    }
+    FreeBuffer(
+        split_output_handle, kPrefixSplitTxOut, sizeof(CfdCapiSplitTxOutData));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+#if 0
+/*
+int CfdUpdateTxInSequence(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    uint32_t sequence) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+    warn(CFD_LOG_SOURCE, "txid[{}] vout[{}] sequence[{}]",
+        std::string(txid), vout, sequence);
+
+    // FIXME Not implemented. You need to add the API for cfd-core first.
+    return CfdErrorCode::kCfdInternalError;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+*/
+#endif
+
+int CfdUpdateWitnessStack(
+    void* handle, void* create_handle, int stack_type, const char* txid,
+    uint32_t vout, uint32_t stack_index, const char* stack_item) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (stack_item == nullptr) {
+      warn(CFD_LOG_SOURCE, "stack_item is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. stack_item is null or empty.");
+    }
+    if (IsEmptyString(txid)) {
+      warn(CFD_LOG_SOURCE, "txid is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null or empty.");
+    }
+
+    Txid txid_obj(txid);
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      TransactionContext* tx =
+          static_cast<TransactionContext*>(tx_data->tx_obj);
+      uint32_t index = tx->GetTxInIndex(OutPoint(txid_obj, vout));
+      tx->SetScriptWitnessStack(index, stack_index, ByteData(stack_item));
+    } else {
+#ifndef CFD_DISABLE_ELEMENTS
+      ConfidentialTransactionContext* tx =
+          static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+      uint32_t index = tx->GetTxInIndex(OutPoint(txid_obj, vout));
+      if (stack_type == kCfdTxWitnessStackNormal) {
+        tx->SetScriptWitnessStack(index, stack_index, ByteData(stack_item));
+      } else if (stack_type == kCfdTxWitnessStackPegin) {
+        tx->SetPeginWitnessStack(index, stack_index, ByteData(stack_item));
+      } else {
+        warn(CFD_LOG_SOURCE, "Invalid stack type[{}]", stack_type);
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Invalid stack type.");
+      }
+#else
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Elements is not supported.");
+#endif  // CFD_DISABLE_ELEMENTS
+    }
+
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
 }
 
 int CfdClearWitnessStack(
@@ -3637,12 +3968,20 @@ int CfdGetTxInIndexByHandle(
 int CfdGetTxOutIndexByHandle(
     void* handle, void* tx_data_handle, const char* address,
     const char* direct_locking_script, uint32_t* index) {
+  return CfdGetTxOutIndexWithOffsetByHandle(
+      handle, tx_data_handle, 0, address, direct_locking_script, index);
+}
+
+int CfdGetTxOutIndexWithOffsetByHandle(
+    void* handle, void* tx_data_handle, uint32_t offset, const char* address,
+    const char* direct_locking_script, uint32_t* index) {
   try {
     cfd::Initialize();
     CheckBuffer(tx_data_handle, kPrefixTransactionData);
     CfdCapiTransactionData* tx_data =
         static_cast<CfdCapiTransactionData*>(tx_data_handle);
 
+    std::vector<uint32_t> indexes;
     bool is_find = false;
     bool is_bitcoin = false;
     ConvertNetType(tx_data->net_type, &is_bitcoin);
@@ -3653,10 +3992,10 @@ int CfdGetTxOutIndexByHandle(
       TransactionContext* tx =
           static_cast<TransactionContext*>(tx_data->tx_obj);
       if (!IsEmptyString(direct_locking_script)) {
-        is_find = tx->IsFindTxOut(Script(direct_locking_script), index);
+        tx->IsFindTxOut(Script(direct_locking_script), index, &indexes);
       } else if (!IsEmptyString(address)) {
         Address addr(address);
-        is_find = tx->IsFindTxOut(addr, index);
+        tx->IsFindTxOut(addr, index, &indexes);
       } else {
         // do nothing
       }
@@ -3665,7 +4004,7 @@ int CfdGetTxOutIndexByHandle(
       ConfidentialTransactionContext* tx =
           static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
       if (!IsEmptyString(direct_locking_script)) {
-        is_find = tx->IsFindTxOut(Script(direct_locking_script), index);
+        tx->IsFindTxOut(Script(direct_locking_script), index, &indexes);
       } else if (!IsEmptyString(address)) {
         ElementsAddressFactory address_factory;
         std::string addr_str(address);
@@ -3676,10 +4015,17 @@ int CfdGetTxOutIndexByHandle(
         } else {
           addr = address_factory.GetAddress(addr_str);
         }
-        is_find = tx->IsFindTxOut(addr, index);
+        tx->IsFindTxOut(addr, index, &indexes);
       } else {
         // fee
-        is_find = tx->IsFindFeeTxOut(index);
+        uint32_t temp_index = 0;
+        is_find = tx->IsFindFeeTxOut(&temp_index);
+        if (is_find) {
+          if (offset > temp_index)
+            is_find = false;
+          else if (index != nullptr)
+            *index = temp_index;
+        }
       }
 #else
       throw CfdException(
@@ -3687,11 +4033,29 @@ int CfdGetTxOutIndexByHandle(
 #endif  // CFD_DISABLE_ELEMENTS
     }
 
+    if ((!is_find) && (!indexes.empty())) {
+      for (const auto& work_index : indexes) {
+        if (offset <= work_index) {
+          is_find = true;
+          if (index != nullptr) *index = work_index;
+          break;
+        }
+      }
+    }
+
     if (!is_find) {
-      warn(CFD_LOG_SOURCE, "target not found.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. search target is not found.");
+      if (index != nullptr) *index = 0;
+      if (offset == 0) {
+        warn(CFD_LOG_SOURCE, "target not found.");
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError,
+            "Failed to parameter. search target is not found.");
+      } else {
+        warn(CFD_LOG_SOURCE, "target not found by offset.");
+        throw CfdException(
+            CfdError::kCfdOutOfRangeError,
+            "There are no targets after the offset.");
+      }
     }
 
     return CfdErrorCode::kCfdSuccess;

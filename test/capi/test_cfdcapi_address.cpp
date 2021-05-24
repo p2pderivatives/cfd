@@ -30,6 +30,58 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     }
   };
 
+  auto assert_desc_root_data = [&asset_cstr_eq](
+      void* handle, void* descriptor_handle,
+      int exp_script_type,
+      std::string exp_locking_script, std::string exp_address,
+      int exp_hash_type, std::string exp_redeem_script,
+      int exp_key_type, std::string exp_pubkey, std::string exp_ext_pubkey,
+      std::string exp_ext_privkey,
+      std::string exp_schnorr_pubkey, std::string exp_tree_string, 
+      bool exp_is_multisig, uint32_t exp_max_key_num,
+      uint32_t exp_req_sig_num) {
+    uint32_t depth = 0, max_index = 0, max_key_num = 0, req_sig_num = 0;
+    int script_type = 0, hash_type = 0, key_type = 0;
+    char* locking_script = nullptr;
+    char* address = nullptr;
+    char* redeem_script = nullptr;
+    char* pubkey = nullptr;
+    char* ext_pubkey = nullptr;
+    char* ext_privkey = nullptr;
+    char* schnorr_pubkey = nullptr;
+    char* tree_string = nullptr;
+    bool is_multisig = false;
+
+    int ret = CfdGetDescriptorRootData(handle, descriptor_handle,
+        &script_type, &locking_script, &address, &hash_type, &redeem_script,
+        &key_type, &pubkey, &ext_pubkey, &ext_privkey,
+        &schnorr_pubkey, &tree_string, &is_multisig,
+        &max_key_num, &req_sig_num);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(exp_script_type, script_type);
+    asset_cstr_eq(exp_locking_script, locking_script);
+    asset_cstr_eq(exp_address, address);
+    EXPECT_EQ(exp_hash_type, hash_type);
+    asset_cstr_eq(exp_redeem_script, redeem_script);
+    EXPECT_EQ(exp_key_type, key_type);
+    asset_cstr_eq(exp_pubkey, pubkey);
+    asset_cstr_eq(exp_ext_pubkey, ext_pubkey);
+    asset_cstr_eq(exp_ext_privkey, ext_privkey);
+    asset_cstr_eq(exp_schnorr_pubkey, schnorr_pubkey);
+    asset_cstr_eq(exp_tree_string, tree_string);
+    EXPECT_EQ(exp_is_multisig, is_multisig);
+    EXPECT_EQ(exp_max_key_num, max_key_num);
+    EXPECT_EQ(exp_req_sig_num, req_sig_num);
+    CfdFreeStringBuffer(locking_script);
+    CfdFreeStringBuffer(address);
+    CfdFreeStringBuffer(redeem_script);
+    CfdFreeStringBuffer(pubkey);
+    CfdFreeStringBuffer(ext_pubkey);
+    CfdFreeStringBuffer(ext_privkey);
+    CfdFreeStringBuffer(schnorr_pubkey);
+    CfdFreeStringBuffer(tree_string);
+  };
+
   auto assert_desc_data = [&asset_cstr_eq](
       void* handle, void* descriptor_handle, uint32_t index,
       uint32_t exp_max_index, uint32_t exp_depth, int exp_script_type,
@@ -97,6 +149,7 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
 
   // p2ms(p2sh multi) descriptor
   {
+    SCOPED_TRACE("p2ms(p2sh multi) descriptor");
     const char* descriptor = "wsh(multi(1,xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB/1/0/*,xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/*))";
     int net_type = kCfdNetworkMainnet;
     void* descriptor_handle = nullptr;
@@ -108,6 +161,11 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     EXPECT_EQ(0, max_index);
   
     if (ret == kCfdSuccess) {
+      assert_desc_root_data(handle, descriptor_handle,
+          kCfdDescriptorScriptWsh, "002064969d8cdca2aa0bb72cfe88427612878db98a5f07f9a7ec6ec87b85e9f9208b", "bc1qvjtfmrxu524qhdevl6yyyasjs7xmnzjlqlu60mrwepact60eyz9s9xjw0c",
+          kCfdP2wsh, "51210205f8f73d8a553ad3287a506dbd53ed176cadeb200c8e4f7d68a001b1aed871062102c04c4e03921809fcbef9a26da2d62b19b2b4eb383b3e6cfaaef6370e7514477452ae",
+          kCfdDescriptorKeyNull, "", "", "", "", "",
+          true, 2, 1);
       assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
           kCfdDescriptorScriptWsh, "002064969d8cdca2aa0bb72cfe88427612878db98a5f07f9a7ec6ec87b85e9f9208b", "bc1qvjtfmrxu524qhdevl6yyyasjs7xmnzjlqlu60mrwepact60eyz9s9xjw0c",
           kCfdP2wsh, "51210205f8f73d8a553ad3287a506dbd53ed176cadeb200c8e4f7d68a001b1aed871062102c04c4e03921809fcbef9a26da2d62b19b2b4eb383b3e6cfaaef6370e7514477452ae",
@@ -143,6 +201,7 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
 #ifndef CFD_DISABLE_ELEMENTS
   {
     // pkh descriptor
+    SCOPED_TRACE("pkh descriptor");
     const char* descriptor = "pkh(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5)";
     int net_type = kCfdNetworkLiquidv1;
     void* descriptor_handle = nullptr;
@@ -154,6 +213,11 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     EXPECT_EQ(0, max_index);
   
     if (ret == kCfdSuccess) {
+      assert_desc_root_data(handle, descriptor_handle,
+          kCfdDescriptorScriptPkh, "76a91406afd46bcdfd22ef94ac122aa11f241244a37ecc88ac", "PwsjpD1YkjcfZ95WGVZuvGfypkKmpogoA3",
+          kCfdP2pkh, "",
+          kCfdDescriptorKeyPublic, "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5", "", "", "", "",
+          false, 0, 0);
       assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
           kCfdDescriptorScriptPkh, "76a91406afd46bcdfd22ef94ac122aa11f241244a37ecc88ac", "PwsjpD1YkjcfZ95WGVZuvGfypkKmpogoA3",
           kCfdP2pkh, "",
@@ -176,6 +240,7 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
 
   {
     // p2sh-p2wsh(pkh) descriptor
+    SCOPED_TRACE("p2sh-p2wsh(pkh) descriptor");
     const char* descriptor = "sh(wsh(pkh(02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13)))";
     int net_type = kCfdNetworkLiquidv1;
     void* descriptor_handle = nullptr;
@@ -187,6 +252,12 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     EXPECT_EQ(2, max_index);
   
     if (ret == kCfdSuccess) {
+      assert_desc_root_data(handle, descriptor_handle,
+          kCfdDescriptorScriptSh, "a91455e8d5e8ee4f3604aba23c71c2684fa0a56a3a1287", "Gq1mmExLuSEwfzzk6YtUxJ769grv6T5Tak",
+          kCfdP2shP2wsh, "76a914c42e7ef92fdb603af844d064faad95db9bcdfd3d88ac",
+          kCfdDescriptorKeyPublic, "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+          "", "", "", "",
+          false, 0, 0);
       assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
           kCfdDescriptorScriptSh, "a91455e8d5e8ee4f3604aba23c71c2684fa0a56a3a1287", "Gq1mmExLuSEwfzzk6YtUxJ769grv6T5Tak",
           kCfdP2shP2wsh, "0020fc5acc302aab97f821f9a61e1cc572e7968a603551e95d4ba12b51df6581482f",
@@ -220,6 +291,7 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
 
   {
     // p2sh-p2wsh miniscript descriptor
+    SCOPED_TRACE("p2sh-p2wsh miniscript descriptor");
     const char* descriptor = "sh(wsh(c:or_i(andor(c:pk_h(xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB/1/0/*),pk_h(xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/*),pk_h(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5)),pk_k(02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e))))";
     int net_type = kCfdNetworkMainnet;
     void* descriptor_handle = nullptr;
@@ -231,6 +303,11 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
     EXPECT_EQ(1, max_index);
   
     if (ret == kCfdSuccess) {
+      assert_desc_root_data(handle, descriptor_handle,
+          kCfdDescriptorScriptSh, "a914a7a9f411001e3e3db96d7f02fc9ab1d0dc6aa69187", "3GyYN9WnJBoMn8M5tuqVcFJq1BvbAcdPAt",
+          kCfdP2shP2wsh, "6376a914520e6e72bcd5b616bc744092139bd759c31d6bbe88ac6476a91406afd46bcdfd22ef94ac122aa11f241244a37ecc886776a9145ab62f0be26fe9d6205a155403f33e2ad2d31efe8868672102d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e68ac",
+          kCfdDescriptorKeyNull, "", "", "", "", "",
+          false, 0, 0);
       assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
           kCfdDescriptorScriptSh, "a914a7a9f411001e3e3db96d7f02fc9ab1d0dc6aa69187", "3GyYN9WnJBoMn8M5tuqVcFJq1BvbAcdPAt",
           kCfdP2shP2wsh, "0020e29b7f3e543d581c99c92b59d45218b008b82c2d406bba3c7384d52e568124aa",
@@ -255,6 +332,92 @@ TEST(cfdcapi_address, CfdParseDescriptorTest) {
       str_buffer = NULL;
     }
   }
+
+  {
+    // taproot single descriptor
+    SCOPED_TRACE("taproot single descriptor");
+    const char* descriptor = "tr([bd16bee5/0]xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/*)";
+    int net_type = kCfdNetworkMainnet;
+    void* descriptor_handle = nullptr;
+    uint32_t max_index = 0;
+  
+    ret = CfdParseDescriptor(handle, descriptor, net_type, "1", &descriptor_handle, &max_index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_FALSE((nullptr == descriptor_handle));
+    EXPECT_EQ(0, max_index);
+  
+    if (ret == kCfdSuccess) {
+      assert_desc_root_data(handle, descriptor_handle,
+          kCfdDescriptorScriptTaproot, "51208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816", "bc1p33h4j4kre3e9r4yrl35rlgrtyt2w9hw8f94zty9vacmvfgcnlqtq0txdxt",
+          kCfdTaproot, "",
+          kCfdDescriptorKeyBip32, "038c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816", "xpub6EKMC2gSMfKgSwn7V9VZn7x1MvoeeVzSmmtSJ4z2L2d6R4WxvdQMouokypZHVp4fgKycrrQnGr6WJ5ED5jG9Q9FiA1q5gKYUc8u6JHJhdo8",
+          "", "8c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816", "",
+          false, 0, 0);
+      assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
+          kCfdDescriptorScriptTaproot, "51208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816", "bc1p33h4j4kre3e9r4yrl35rlgrtyt2w9hw8f94zty9vacmvfgcnlqtq0txdxt",
+          kCfdTaproot, "",
+          kCfdDescriptorKeyBip32,
+          "038c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816",
+          "xpub6EKMC2gSMfKgSwn7V9VZn7x1MvoeeVzSmmtSJ4z2L2d6R4WxvdQMouokypZHVp4fgKycrrQnGr6WJ5ED5jG9Q9FiA1q5gKYUc8u6JHJhdo8", "",
+          false, 0, 0);
+    }
+    ret = CfdFreeDescriptorHandle(handle, descriptor_handle);
+    ASSERT_EQ(ret, kCfdSuccess);
+
+    ret = CfdGetLastErrorCode(handle);
+    if (ret != kCfdSuccess) {
+      char* str_buffer = NULL;
+      ret = CfdGetLastErrorMessage(handle, &str_buffer);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_STREQ("", str_buffer);
+      CfdFreeStringBuffer(str_buffer);
+      str_buffer = NULL;
+    }
+  }
+
+  {
+    // taproot tapscript descriptor
+    SCOPED_TRACE("taproot tapscript descriptor");
+    const char* descriptor = "tr(ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a,{c:pk_k(8c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816),{c:pk_k([bd16bee5/0]xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/*),thresh(2,c:pk_k(5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc),s:sha256(e38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f),a:hash160(dd69735817e0e3f6f826a9238dc2e291184f0131))}})";
+    int net_type = kCfdNetworkRegtest;
+    void* descriptor_handle = nullptr;
+    uint32_t max_index = 0;
+  
+    ret = CfdParseDescriptor(handle, descriptor, net_type, "1", &descriptor_handle, &max_index);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_FALSE((nullptr == descriptor_handle));
+    EXPECT_EQ(0, max_index);
+  
+    if (ret == kCfdSuccess) {
+      assert_desc_root_data(handle, descriptor_handle,
+          kCfdDescriptorScriptTaproot, "51204f009acbd8c905be4470df1b92c70be16a71d354ba55cc0e6517853f77d79651", "bcrt1pfuqf4j7ceyzmu3rsmude93ctu948r565hf2ucrn9z7zn7a7hjegskj3rsv",
+          kCfdTaproot, "",
+          kCfdDescriptorKeySchnorr, "", "",
+          "", "ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a",
+          "{tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac),{tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac),tl(205cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bcac7c82012088a820e38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f87936b82012088a914dd69735817e0e3f6f826a9238dc2e291184f0131876c935287)}}",
+          false, 0, 0);
+      assert_desc_data(handle, descriptor_handle, 0, max_index, 0,
+          kCfdDescriptorScriptTaproot, "51204f009acbd8c905be4470df1b92c70be16a71d354ba55cc0e6517853f77d79651", "bcrt1pfuqf4j7ceyzmu3rsmude93ctu948r565hf2ucrn9z7zn7a7hjegskj3rsv",
+          kCfdTaproot, "",
+          kCfdDescriptorKeySchnorr,
+          "ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a",
+          "", "",
+          false, 0, 0);
+    }
+    ret = CfdFreeDescriptorHandle(handle, descriptor_handle);
+    ASSERT_EQ(ret, kCfdSuccess);
+
+    ret = CfdGetLastErrorCode(handle);
+    if (ret != kCfdSuccess) {
+      char* str_buffer = NULL;
+      ret = CfdGetLastErrorMessage(handle, &str_buffer);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_STREQ("", str_buffer);
+      CfdFreeStringBuffer(str_buffer);
+      str_buffer = NULL;
+    }
+  }
+
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);
 }

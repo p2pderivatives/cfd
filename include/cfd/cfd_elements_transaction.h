@@ -163,19 +163,24 @@ class CFD_EXPORT ConfidentialTransactionContext
    * @brief Check if TxOut exists.
    * @param[in] locking_script  locking script
    * @param[out] index  txout index.
+   * @param[out] indexes  txout index list.
    * @retval true   exist
    * @retval false  not exist
    */
   bool IsFindTxOut(
-      const Script& locking_script, uint32_t* index = nullptr) const;
+      const Script& locking_script, uint32_t* index = nullptr,
+      std::vector<uint32_t>* indexes = nullptr) const;
   /**
    * @brief Check if TxOut exists.
    * @param[in] address  address
    * @param[out] index  txout index.
+   * @param[out] indexes  txout index list.
    * @retval true   exist
    * @retval false  not exist
    */
-  bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
+  bool IsFindTxOut(
+      const Address& address, uint32_t* index = nullptr,
+      std::vector<uint32_t>* indexes = nullptr) const;
   /**
    * @brief ConfidentialTransaction's GetTxIn.
    */
@@ -196,6 +201,13 @@ class CFD_EXPORT ConfidentialTransactionContext
   Address GetTxOutAddress(
       uint32_t index, NetType net_type = NetType::kLiquidV1,
       bool ignore_error = false) const;
+
+  /**
+   * @brief Get if it is blind.
+   * @retval true  blind
+   * @retval false unblind
+   */
+  bool HasBlinding() const;
 
   /**
    * @brief ConfidentialTransaction's AddTxIn.
@@ -290,6 +302,36 @@ class CFD_EXPORT ConfidentialTransactionContext
    */
   uint32_t UpdateFeeAmount(
       const Amount& value, const ConfidentialAssetId& asset);
+
+  /**
+   * @brief Split output amount.
+   * @param[in] index           txout index
+   * @param[in] amount_list     amount list
+   * @param[in] address_list    address list
+   */
+  void SplitTxOut(
+      uint32_t index, const std::vector<Amount>& amount_list,
+      const std::vector<Address>& address_list);
+  /**
+   * @brief Split output amount.
+   * @param[in] index           txout index
+   * @param[in] amount_list     amount list
+   * @param[in] address_list    address list
+   */
+  void SplitTxOut(
+      uint32_t index, const std::vector<Amount>& amount_list,
+      const std::vector<ElementsConfidentialAddress>& address_list);
+  /**
+   * @brief Split output amount.
+   * @param[in] index                   txout index
+   * @param[in] amount_list             amount list
+   * @param[in] locking_script_list     locking script list
+   * @param[in] nonce_list              nonce list
+   */
+  void SplitTxOut(
+      uint32_t index, const std::vector<Amount>& amount_list,
+      const std::vector<Script>& locking_script_list,
+      const std::vector<ConfidentialNonce>& nonce_list);
 
   /**
    * @brief Perform a simple Fee calculation.

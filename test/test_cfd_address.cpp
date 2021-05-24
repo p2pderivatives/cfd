@@ -588,6 +588,7 @@ struct TestCfdAddressFactoryDescriptorData {
   std::string redeem_script;
   DescriptorKeyType key_type;
   std::string key;
+  std::string tree_string;
   uint32_t multisig_req_sig_num;
 };
 
@@ -604,6 +605,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "",
       DescriptorKeyType::kDescriptorKeyPublic,
       "02a5613bd857b7048924264d1e70e08fb2a7e6527d32b7ab1bb993ac59964ff397",
+      "",
       0
     },
     {
@@ -617,6 +619,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "",
       DescriptorKeyType::kDescriptorKeyPublic,
       "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "",
       0
     },
     {
@@ -630,6 +633,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "",
       DescriptorKeyType::kDescriptorKeyPublic,
       "02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "",
       0
     },
     {
@@ -643,6 +647,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "",
       DescriptorKeyType::kDescriptorKeyPublic,
       "03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556",
+      "",
       0
     },
     {
@@ -656,6 +661,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "",
       DescriptorKeyType::kDescriptorKeyPublic,
       "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "",
       0
     },
     {
@@ -669,6 +675,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "76a914c42e7ef92fdb603af844d064faad95db9bcdfd3d88ac",
       DescriptorKeyType::kDescriptorKeyPublic,
       "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "",
       0
     },
     {
@@ -681,6 +688,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       AddressType::kP2shAddress,
       "5221022f01e5e15cca351daff3843fb70f3c2f0a1bdd05e5af888a67784ef3e10a2a012103acd484e2f0c7f65309ad178a9f559abde09796974c57e714c35f110dfc27ccbe52ae",
       DescriptorKeyType::kDescriptorKeyNull,
+      "",
       "",
       2
     },
@@ -695,6 +703,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "522103a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c72103774ae7f858a9411e5ef4246b70c65aac5649980be5c17891bbec17895da008cb2103d01115d548e7561b15c38f004d734633687cf4419620095bc5b0f47070afe85a53ae",
       DescriptorKeyType::kDescriptorKeyNull,
       "",
+      "",
       2
     },
     {
@@ -708,7 +717,22 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "512103f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa82103499fdf9e895e719cfd64e67f07d38e3226aa7b63678949e6e49b241a60e823e42102d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e53ae",
       DescriptorKeyType::kDescriptorKeyNull,
       "",
+      "",
       1
+    },
+    {
+      "sh(wsh(pkh(02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13)))",
+      NetType::kMainnet,
+      DescriptorScriptType::kDescriptorScriptSh,
+      "a91455e8d5e8ee4f3604aba23c71c2684fa0a56a3a1287",
+      0,
+      "39XGHYpYmJV9sGFoGHZeU2rLkY6r1MJ6C1",
+      AddressType::kP2shP2wshAddress,
+      "76a914c42e7ef92fdb603af844d064faad95db9bcdfd3d88ac",
+      DescriptorKeyType::kDescriptorKeyPublic,
+      "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "",
+      0
     },
     {
       "addr(bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9)",
@@ -720,6 +744,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       AddressType::kP2wshAddress,
       "",
       DescriptorKeyType::kDescriptorKeyNull,
+      "",
       "",
       0
     },
@@ -734,6 +759,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "",
       DescriptorKeyType::kDescriptorKeyNull,
       "",
+      "",
       0
     },
     {
@@ -747,19 +773,49 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       "6376a914520e6e72bcd5b616bc744092139bd759c31d6bbe88ac6476a91406afd46bcdfd22ef94ac122aa11f241244a37ecc886776a9145ab62f0be26fe9d6205a155403f33e2ad2d31efe8868672102d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e68ac",
       DescriptorKeyType::kDescriptorKeyNull,
       "",
+      "",
       0
     },
     {
-      "sh(wsh(c:or_i(andor(c:pk_h(xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB/1/0/44),pk_h(xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/44),pk_h(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5)),pk_k(02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e))))",
-      NetType::kMainnet,
-      DescriptorScriptType::kDescriptorScriptSh,
-      "a914a7a9f411001e3e3db96d7f02fc9ab1d0dc6aa69187",
+      "tr(ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a)",
+      NetType::kRegtest,
+      DescriptorScriptType::kDescriptorScriptTaproot,
+      "5120ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a",
       0,
-      "3GyYN9WnJBoMn8M5tuqVcFJq1BvbAcdPAt",
-      AddressType::kP2shP2wshAddress,
-      "6376a914520e6e72bcd5b616bc744092139bd759c31d6bbe88ac6476a91406afd46bcdfd22ef94ac122aa11f241244a37ecc886776a9145ab62f0be26fe9d6205a155403f33e2ad2d31efe8868672102d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e68ac",
-      DescriptorKeyType::kDescriptorKeyNull,
+      "bcrt1paag57xhtzja2dnzh4vex37ejnjj5p3yy2nmlgem3a4e3ud962gdqqctzwn",
+      AddressType::kTaprootAddress,
       "",
+      DescriptorKeyType::kDescriptorKeySchnorr,
+      "ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a",
+      "",
+      0
+    },
+    {
+      "tr([bd16bee5/0]xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/1)",
+      NetType::kMainnet,
+      DescriptorScriptType::kDescriptorScriptTaproot,
+      "51208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816",
+      0,
+      "bc1p33h4j4kre3e9r4yrl35rlgrtyt2w9hw8f94zty9vacmvfgcnlqtq0txdxt",
+      AddressType::kTaprootAddress,
+      "",
+      DescriptorKeyType::kDescriptorKeyBip32,
+      "xpub6EKMC2gSMfKgSwn7V9VZn7x1MvoeeVzSmmtSJ4z2L2d6R4WxvdQMouokypZHVp4fgKycrrQnGr6WJ5ED5jG9Q9FiA1q5gKYUc8u6JHJhdo8",
+      "",
+      0
+    },
+    {
+      "tr(ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a,{c:pk_k(8c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816),{c:pk_k([bd16bee5/0]xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/1),thresh(2,c:pk_k(5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc),s:sha256(e38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f),a:hash160(dd69735817e0e3f6f826a9238dc2e291184f0131))}})",
+      NetType::kRegtest,
+      DescriptorScriptType::kDescriptorScriptTaproot,
+      "51204f009acbd8c905be4470df1b92c70be16a71d354ba55cc0e6517853f77d79651",
+      0,
+      "bcrt1pfuqf4j7ceyzmu3rsmude93ctu948r565hf2ucrn9z7zn7a7hjegskj3rsv",
+      AddressType::kTaprootAddress,
+      "",
+      DescriptorKeyType::kDescriptorKeySchnorr,
+      "ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a",
+      "{tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac),{tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac),tl(205cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bcac7c82012088a820e38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f87936b82012088a914dd69735817e0e3f6f826a9238dc2e291184f0131876c935287)}}",
       0
     }
   };
@@ -768,9 +824,7 @@ TEST(AddressFactory, ParseOutputDescriptor) {
   for (auto test_data : g_test_cfd_descriptor_data) {
     try {
       AddressFactory factory(test_data.net_type);
-      data = factory.ParseOutputDescriptor(
-          test_data.descriptor);
-
+      data = factory.ParseOutputDescriptor(test_data.descriptor);
       EXPECT_EQ(test_data.type, data.type);
       EXPECT_EQ(test_data.locking_script, data.locking_script.GetHex());
       EXPECT_EQ(test_data.depth, data.depth);
@@ -780,6 +834,11 @@ TEST(AddressFactory, ParseOutputDescriptor) {
       EXPECT_EQ(test_data.key_type, data.key_type);
       EXPECT_EQ(test_data.key, data.key);
       EXPECT_EQ(test_data.multisig_req_sig_num, data.multisig_req_sig_num);
+      if (test_data.tree_string.empty()) {
+        EXPECT_FALSE(data.tree.IsValid());
+      } else {
+        EXPECT_EQ(test_data.tree_string, data.tree.ToString());
+      }
     } catch (const std::exception& e) {
       EXPECT_STREQ("", e.what());
       EXPECT_STREQ("", test_data.descriptor.c_str());

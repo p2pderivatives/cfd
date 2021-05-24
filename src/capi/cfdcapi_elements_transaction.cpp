@@ -110,6 +110,32 @@ struct CfdCapiBlindTxData {
   std::vector<BlindData>* blinder_list;
 };
 
+/**
+ * @brief convert to issuance output parameter.
+ * @param[in] address           address
+ * @param[in] locking_script    locking script
+ * @return issuance output parameter
+ */
+static cfd::IssuanceOutputParameter ConvertToIssuanceParameter(
+    const char* address, const char* locking_script) {
+  cfd::IssuanceOutputParameter data;
+  data.is_remove_nonce = false;
+  if (!IsEmptyString(address)) {
+    auto prefix_list = cfd::core::GetElementsAddressFormatList();
+    Address addr;
+    if (ElementsConfidentialAddress::IsConfidentialAddress(
+            address, prefix_list)) {
+      data.confidential_address =
+          ElementsConfidentialAddress(address, prefix_list);
+    } else {
+      data.address = Address(address, prefix_list);
+    }
+  } else {
+    data.direct_locking_script = Script(locking_script);
+  }
+  return data;
+}
+
 }  // namespace capi
 }  // namespace cfd
 
@@ -124,6 +150,7 @@ using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertAddressType;
 using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::ConvertNetType;
+using cfd::capi::ConvertToIssuanceParameter;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
@@ -2623,6 +2650,365 @@ int CfdAddConfidentialTxOutput(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdSetIssueAsset(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    const char* contract_hash, int64_t asset_amount, const char* asset_address,
+    const char* asset_locking_script, int64_t token_amount,
+    const char* token_address, const char* token_locking_script,
+    bool is_blind_asset, char** entropy, char** asset_string,
+    char** token_string) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_entropy = nullptr;
+  char* work_asset = nullptr;
+  char* work_token = nullptr;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (entropy == nullptr) {
+      warn(CFD_LOG_SOURCE, "entropy is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. entropy is null.");
+    }
+    if (txid == nullptr) {
+      warn(CFD_LOG_SOURCE, "txid is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null.");
+    }
+    if (asset_string == nullptr) {
+      warn(CFD_LOG_SOURCE, "asset_string is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset_string is null.");
+    }
+    if ((token_amount > 0) && (token_string == nullptr)) {
+      warn(CFD_LOG_SOURCE, "token_string is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. token_string is null.");
+    }
+    if ((asset_address == nullptr) && (asset_locking_script == nullptr)) {
+      warn(CFD_LOG_SOURCE, "asset address and script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset address and script is null.");
+    }
+    if ((token_amount > 0) && (token_address == nullptr) &&
+        (token_locking_script == nullptr)) {
+      warn(CFD_LOG_SOURCE, "token address and script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. token address and script is null.");
+    }
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    OutPoint outpoint(Txid(txid), vout);
+    cfd::IssuanceOutputParameter issuance_data =
+        ConvertToIssuanceParameter(asset_address, asset_locking_script);
+    issuance_data.amount = Amount(asset_amount);
+    cfd::IssuanceOutputParameter token_data;
+    if (token_amount > 0) {
+      token_data =
+          ConvertToIssuanceParameter(token_address, token_locking_script);
+      token_data.amount = Amount(token_amount);
+    }
+    ByteData256 contract_hash_obj;
+    if (!IsEmptyString(contract_hash)) {
+      contract_hash_obj = ByteData256(contract_hash);
+    }
+
+    auto data = tx->SetAssetIssuance(
+        outpoint, issuance_data.amount, issuance_data, token_data.amount,
+        token_data, is_blind_asset, contract_hash_obj);
+
+    work_entropy = CreateString(data.entropy.GetHex());
+    work_asset = CreateString(data.asset.GetHex());
+    if (token_string != nullptr) {
+      work_token = CreateString(data.token.GetHex());
+    }
+
+    *entropy = work_entropy;
+    *asset_string = work_asset;
+    if (token_string != nullptr) *token_string = work_token;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_entropy, &work_asset, &work_token);
+  return result;
+}
+
+int CfdSetReissueAsset(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int64_t asset_amount, const char* blinding_nonce, const char* entropy,
+    const char* address, const char* direct_locking_script,
+    char** asset_string) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if ((address == nullptr) && (direct_locking_script == nullptr)) {
+      warn(CFD_LOG_SOURCE, "asset address and script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset address and script is null.");
+    }
+    if (txid == nullptr) {
+      warn(CFD_LOG_SOURCE, "txid is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null.");
+    }
+    if (blinding_nonce == nullptr) {
+      warn(CFD_LOG_SOURCE, "blinding_nonce is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. blinding_nonce is null.");
+    }
+    if (entropy == nullptr) {
+      warn(CFD_LOG_SOURCE, "entropy is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. entropy is null.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    OutPoint outpoint(Txid(txid), vout);
+    cfd::IssuanceOutputParameter issuance_data =
+        ConvertToIssuanceParameter(address, direct_locking_script);
+    issuance_data.amount = Amount(asset_amount);
+
+    auto data = tx->SetAssetReissuance(
+        outpoint, issuance_data.amount, issuance_data,
+        BlindFactor(blinding_nonce), BlindFactor(entropy));
+
+    if (asset_string != nullptr) {
+      *asset_string = CreateString(data.asset.GetHex());
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdAddTxPeginInput(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* asset,
+    const char* mainchain_genesis_block_hash, const char* claim_script,
+    const char* mainchain_tx_hex, const char* txout_proof) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (txid == nullptr) {
+      warn(CFD_LOG_SOURCE, "txid is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txid is null.");
+    }
+    if (asset == nullptr) {
+      warn(CFD_LOG_SOURCE, "asset is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset is null.");
+    }
+    if (mainchain_genesis_block_hash == nullptr) {
+      warn(CFD_LOG_SOURCE, "mainchain_genesis_block_hash is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. mainchain_genesis_block_hash is null.");
+    }
+    if (claim_script == nullptr) {
+      warn(CFD_LOG_SOURCE, "claim_script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. claim_script is null.");
+    }
+    if (mainchain_tx_hex == nullptr) {
+      warn(CFD_LOG_SOURCE, "mainchain_tx_hex is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. mainchain_tx_hex is null.");
+    }
+    if (txout_proof == nullptr) {
+      warn(CFD_LOG_SOURCE, "txout_proof is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. txout_proof is null.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    OutPoint outpoint(Txid(txid), vout);
+    tx->AddPeginTxIn(
+        outpoint, Amount(amount), ConfidentialAssetId(asset),
+        BlockHash(mainchain_genesis_block_hash), Script(claim_script),
+        ByteData(mainchain_tx_hex), ByteData(txout_proof));
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
+}
+
+int CfdAddTxPegoutOutput(
+    void* handle, void* create_handle, const char* asset, int64_t amount,
+    int mainchain_network_type, int elements_network_type,
+    const char* mainchain_genesis_block_hash, const char* online_pubkey,
+    const char* master_online_key, const char* mainchain_output_descriptor,
+    uint32_t bip32_counter, const char* whitelist, char** mainchain_address) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(create_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(create_handle);
+    if (asset == nullptr) {
+      warn(CFD_LOG_SOURCE, "asset is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. asset is null.");
+    }
+    if (mainchain_genesis_block_hash == nullptr) {
+      warn(CFD_LOG_SOURCE, "mainchain_genesis_block_hash is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. mainchain_genesis_block_hash is null.");
+    }
+    if (online_pubkey == nullptr) {
+      warn(CFD_LOG_SOURCE, "online_pubkey is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. online_pubkey is null.");
+    }
+    if (master_online_key == nullptr) {
+      warn(CFD_LOG_SOURCE, "master_online_key is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. master_online_key is null.");
+    }
+    if (mainchain_output_descriptor == nullptr) {
+      warn(CFD_LOG_SOURCE, "mainchain_output_descriptor is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. mainchain_output_descriptor is null.");
+    }
+    if (whitelist == nullptr) {
+      warn(CFD_LOG_SOURCE, "whitelist is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. whitelist is null.");
+    }
+
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+
+    auto mainchain_net_type =
+        ConvertNetType(mainchain_network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid mainchain network type.");
+    }
+    auto elements_net_type =
+        ConvertNetType(elements_network_type, &is_bitcoin);
+    if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Invalid network type.");
+    }
+    Privkey master_online_privkey;
+    if (Privkey::HasWif(master_online_key)) {
+      master_online_privkey = Privkey::FromWif(master_online_key);
+    } else {
+      master_online_privkey = Privkey(master_online_key);
+    }
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    Address btc_derive_address;
+    tx->AddPegoutTxOut(
+        Amount(amount), ConfidentialAssetId(asset),
+        BlockHash(mainchain_genesis_block_hash), Address(), mainchain_net_type,
+        Pubkey(online_pubkey), master_online_privkey,
+        mainchain_output_descriptor, bip32_counter, ByteData(whitelist),
+        elements_net_type, &btc_derive_address);
+
+    if (mainchain_address != nullptr) {
+      *mainchain_address = CreateString(btc_derive_address.GetAddress());
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return result;
 }
 
 };  // extern "C"

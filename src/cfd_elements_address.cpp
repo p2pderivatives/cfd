@@ -105,14 +105,26 @@ Address ElementsAddressFactory::CreatePegInAddress(
 
 Address ElementsAddressFactory::CreatePegInAddress(
     AddressType address_type, const Script& tweak_fedpegscript) const {
+  NetType type = type_;
+  if (type == NetType::kLiquidV1)
+    type = NetType::kMainnet;
+  else if (type == NetType::kElementsRegtest)
+    type = NetType::kRegtest;
+  return CreatePegInAddress(type, address_type, tweak_fedpegscript);
+}
+
+Address ElementsAddressFactory::CreatePegInAddress(
+    NetType mainchain_net_type, AddressType address_type,
+    const Script& tweak_fedpegscript) {
   if (address_type == AddressType::kP2shAddress) {
-    return Address(type_, tweak_fedpegscript);
+    return Address(mainchain_net_type, tweak_fedpegscript);
   } else if (address_type == AddressType::kP2wshAddress) {
-    return Address(type_, WitnessVersion::kVersion0, tweak_fedpegscript);
+    return Address(
+        mainchain_net_type, WitnessVersion::kVersion0, tweak_fedpegscript);
   } else if (address_type == AddressType::kP2shP2wshAddress) {
     Script witness_program =
         ScriptUtil::CreateP2wshLockingScript(tweak_fedpegscript);
-    return Address(type_, witness_program);
+    return Address(mainchain_net_type, witness_program);
   } else {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError,

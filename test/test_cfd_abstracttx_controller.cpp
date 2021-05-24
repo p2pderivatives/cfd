@@ -30,6 +30,7 @@ static constexpr uint32_t expect_absttx_default_sequence_num = 0xffffffffU;
 static constexpr uint32_t expect_absttx_enablelt_sequence_num = 0xfffffffeU;
 
 TEST(AbstractTransactionController, DefaultConstructorTest) {
+  // cfd::Initialize();
   const std::string expect_tx_hex = "02000000000000000000";
   TestTransactionController txc = TestTransactionController();
   EXPECT_STREQ(txc.GetHex().c_str(), expect_tx_hex.c_str());

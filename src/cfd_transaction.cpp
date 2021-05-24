@@ -208,7 +208,17 @@ bool TransactionContext::IsFindTxIn(
 }
 
 bool TransactionContext::IsFindTxOut(
-    const Script& locking_script, uint32_t* index) const {
+    const Script& locking_script, uint32_t* index,
+    std::vector<uint32_t>* indexes) const {
+  if (indexes != nullptr) {
+    for (uint32_t idx = 0; idx < static_cast<uint32_t>(vout_.size()); ++idx) {
+      if (locking_script.Equals(vout_[idx].GetLockingScript())) {
+        indexes->emplace_back(idx);
+      }
+    }
+    if ((index != nullptr) && (!indexes->empty())) *index = (*indexes)[0];
+    return !indexes->empty();
+  }
   try {
     uint32_t temp_index = GetTxOutIndex(locking_script);
     if (index != nullptr) *index = temp_index;
@@ -223,7 +233,11 @@ bool TransactionContext::IsFindTxOut(
 }
 
 bool TransactionContext::IsFindTxOut(
-    const Address& address, uint32_t* index) const {
+    const Address& address, uint32_t* index,
+    std::vector<uint32_t>* indexes) const {
+  if (indexes != nullptr) {
+    return IsFindTxOut(address.GetLockingScript(), index, indexes);
+  }
   try {
     uint32_t temp_index = GetTxOutIndex(address);
     if (index != nullptr) *index = temp_index;
@@ -356,6 +370,54 @@ Amount TransactionContext::GetFeeAmount() const {
     return Amount();
   }
   return result;
+}
+
+void TransactionContext::SplitTxOut(
+    uint32_t index, const std::vector<Amount>& amount_list,
+    const std::vector<Address>& address_list) {
+  std::vector<Script> locking_script_list;
+  for (const auto& addr : address_list) {
+    locking_script_list.emplace_back(addr.GetLockingScript());
+  }
+  SplitTxOut(index, amount_list, locking_script_list);
+}
+
+void TransactionContext::SplitTxOut(
+    uint32_t index, const std::vector<Amount>& amount_list,
+    const std::vector<Script>& locking_script_list) {
+  static const Amount kMinimumAmount(int64_t{100});
+
+  if (amount_list.size() != locking_script_list.size()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Unmatch list count.");
+  } else if (amount_list.empty()) {
+    throw CfdException(CfdError::kCfdIllegalArgumentError, "list is empty.");
+  }
+
+  auto ref = GetTxOut(index);
+  Amount total_amount = kMinimumAmount;
+  for (const auto& amount : amount_list) total_amount += amount;
+
+  if (ref.GetValue() < total_amount) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "The Amount is too large.");
+  }
+  Amount update_amount = ref.GetValue() - (total_amount - kMinimumAmount);
+
+  ByteData prev_tx = GetData();
+  try {
+    SetTxOutValue(index, update_amount);
+    for (size_t txout_idx = 0; txout_idx < amount_list.size(); ++txout_idx) {
+      if (locking_script_list[txout_idx].IsEmpty()) {
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Locking script is empty.");
+      }
+      AddTxOut(amount_list[txout_idx], locking_script_list[txout_idx]);
+    }
+  } catch (const CfdException& except) {
+    SetFromHex(prev_tx.GetHex());  // rollback
+    throw except;
+  }
 }
 
 void TransactionContext::SignWithKey(

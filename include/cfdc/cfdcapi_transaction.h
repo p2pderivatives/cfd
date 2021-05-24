@@ -101,6 +101,35 @@ CFDC_API int CfdAddTransactionOutput(
     const char* asset_string);
 
 /**
+ * @brief split transaction output.
+ * @param[in] handle                cfd handle.
+ * @param[in] create_handle         create transaction handle.
+ * @param[in] split_output_handle   split output handle.
+ * @param[in] txout_index           txout index
+ * @return CfdErrorCode
+ * @see CfdInitializeTransaction
+ * @see CfdCreateSplitTxOutHandle
+ */
+CFDC_API int CfdSplitTxOut(
+    void* handle, void* create_handle, void* split_output_handle,
+    uint32_t txout_index);
+
+/**
+ * @brief update witness stack on transaction input.
+ * @param[in] handle            cfd handle.
+ * @param[in] create_handle     create transaction handle.
+ * @param[in] stack_type        witness stack type.(see: CfdTxWitnessStackType)
+ * @param[in] txid              txin txid.
+ * @param[in] vout              txin vout.
+ * @param[in] stack_index       witness stack index.
+ * @param[in] stack_item        update witness stack item.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdUpdateWitnessStack(
+    void* handle, void* create_handle, int stack_type, const char* txid,
+    uint32_t vout, uint32_t stack_index, const char* stack_item);
+
+/**
  * @brief clear witness stack on transaction input.
  * @param[in] handle            cfd handle.
  * @param[in] create_handle     create transaction handle.
@@ -297,6 +326,43 @@ CFDC_API int CfdFinalizeTransaction(
  * @see CfdInitializeTransaction
  */
 CFDC_API int CfdFreeTransactionHandle(void* handle, void* create_handle);
+
+/**
+ * @brief create split output handle.
+ * @param[in] handle                cfd handle.
+ * @param[in] create_handle         create transaction handle.
+ * @param[out] split_output_handle  split output handle.
+ *   Call 'CfdFreeSplitTxOutHandle' after you are finished using it.
+ * @return CfdErrorCode
+ * @see CfdSplitTxOut
+ */
+CFDC_API int CfdCreateSplitTxOutHandle(
+    void* handle, void* create_handle, void** split_output_handle);
+
+/**
+ * @brief Add split txout data.
+ * @param[in] handle                    cfd handle.
+ * @param[in] split_output_handle       split output handle.
+ * @param[in] amount                    amount.
+ * @param[in] address                   address. (or confidential address)
+ * @param[in] direct_locking_script     direct locking script.
+ * @param[in] direct_nonce              direct nonce.
+ * @return CfdErrorCode
+ * @see CfdSplitTxOut
+ */
+CFDC_API int CfdAddSplitTxOutData(
+    void* handle, void* split_output_handle, int64_t amount,
+    const char* address, const char* direct_locking_script,
+    const char* direct_nonce);
+
+/**
+ * @brief free split output handle.
+ * @param[in] handle                cfd handle.
+ * @param[in] split_output_handle   split output handle.
+ * @return CfdErrorCode
+ * @see CfdSplitTxOut
+ */
+CFDC_API int CfdFreeSplitTxOutHandle(void* handle, void* split_output_handle);
 
 /**
  * @brief update txout's amount.
@@ -839,6 +905,20 @@ CFDC_API int CfdGetTxInIndexByHandle(
  */
 CFDC_API int CfdGetTxOutIndexByHandle(
     void* handle, void* tx_data_handle, const char* address,
+    const char* direct_locking_script, uint32_t* index);
+
+/**
+ * @brief get tx-output index with offset.
+ * @param[in] handle                 cfd handle.
+ * @param[in] tx_data_handle         transaction data handle.
+ * @param[in] offset                 search start offset.
+ * @param[in] address                txout address.
+ * @param[in] direct_locking_script  txout locking script. (not use address)
+ * @param[out] index                 txout index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetTxOutIndexWithOffsetByHandle(
+    void* handle, void* tx_data_handle, uint32_t offset, const char* address,
     const char* direct_locking_script, uint32_t* index);
 
 /**

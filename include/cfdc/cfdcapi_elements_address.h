@@ -43,18 +43,31 @@ CFDC_API int CfdParseConfidentialAddress(
     void* handle, const char* confidential_address, char** address,
     char** confidential_key, int* network_type);
 
-#if 0
-/*
-class CFD_EXPORT ElementsAddressApi {
- public:
-  Address CreatePegInAddress(
-      NetType net_type, AddressType address_type, const Script& fedpegscript,
-      const Pubkey& pubkey, Script* claim_script = nullptr,
-      Script* tweak_fedpegscript = nullptr,
-      std::vector<AddressFormatData>* prefix_list = nullptr);
-};
-*/
-#endif
+/**
+ * @brief Get pegin address.
+ * @param[in] handle                    cfd handle.
+ * @param[in] mainchain_network_type    cfd handle.
+ * @param[in] fedpeg_script             cfd handle.
+ * @param[in] hash_type                 pegin hash type.
+ *    (current is p2sh-segwit only. after dynafed, can use bech32.)
+ * @param[in] pubkey                    pegin utxo pubkey.
+ *   (if set redeem_script, pubkey is unused.)
+ * @param[in] redeem_script             pegin utxo redeem script.
+ * @param[out] pegin_address            pegin mainchain address.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] claim_script             claim script.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] tweaked_fedpeg_script    tweaked redpeg script.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return error code
+ */
+CFDC_API int CfdGetPeginAddress(
+    void* handle, int mainchain_network_type, const char* fedpeg_script,
+    int hash_type, const char* pubkey, const char* redeem_script,
+    char** pegin_address, char** claim_script, char** tweaked_fedpeg_script);
 
 #ifdef __cplusplus
 #if 0
