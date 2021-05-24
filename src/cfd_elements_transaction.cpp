@@ -190,7 +190,17 @@ bool ConfidentialTransactionContext::IsFindTxIn(
 }
 
 bool ConfidentialTransactionContext::IsFindTxOut(
-    const Script& locking_script, uint32_t* index) const {
+    const Script& locking_script, uint32_t* index,
+    std::vector<uint32_t>* indexes) const {
+  if (indexes != nullptr) {
+    for (uint32_t idx = 0; idx < static_cast<uint32_t>(vout_.size()); ++idx) {
+      if (locking_script.Equals(vout_[idx].GetLockingScript())) {
+        indexes->emplace_back(idx);
+      }
+    }
+    if ((index != nullptr) && (!indexes->empty())) *index = (*indexes)[0];
+    return !indexes->empty();
+  }
   try {
     uint32_t temp_index = GetTxOutIndex(locking_script);
     if (index != nullptr) *index = temp_index;
@@ -205,7 +215,11 @@ bool ConfidentialTransactionContext::IsFindTxOut(
 }
 
 bool ConfidentialTransactionContext::IsFindTxOut(
-    const Address& address, uint32_t* index) const {
+    const Address& address, uint32_t* index,
+    std::vector<uint32_t>* indexes) const {
+  if (indexes != nullptr) {
+    return IsFindTxOut(address.GetLockingScript(), index, indexes);
+  }
   try {
     uint32_t temp_index = GetTxOutIndex(address);
     if (index != nullptr) *index = temp_index;
@@ -241,6 +255,13 @@ Address ConfidentialTransactionContext::GetTxOutAddress(
     }
     return Address();
   }
+}
+
+bool ConfidentialTransactionContext::HasBlinding() const {
+  for (const auto& txout : vout_) {
+    if (txout.GetConfidentialValue().HasBlinding()) return true;
+  }
+  return false;
 }
 
 uint32_t ConfidentialTransactionContext::AddTxOut(
@@ -360,10 +381,94 @@ uint32_t ConfidentialTransactionContext::UpdateFeeAmount(
   return index;
 }
 
+void ConfidentialTransactionContext::SplitTxOut(
+    uint32_t index, const std::vector<Amount>& amount_list,
+    const std::vector<Address>& address_list) {
+  std::vector<Script> locking_script_list;
+  std::vector<ConfidentialNonce> nonce_list(address_list.size());
+  for (const auto& addr : address_list) {
+    locking_script_list.emplace_back(addr.GetLockingScript());
+  }
+  SplitTxOut(index, amount_list, locking_script_list, nonce_list);
+}
+
+void ConfidentialTransactionContext::SplitTxOut(
+    uint32_t index, const std::vector<Amount>& amount_list,
+    const std::vector<ElementsConfidentialAddress>& address_list) {
+  std::vector<Script> locking_script_list;
+  std::vector<ConfidentialNonce> nonce_list;
+  for (const auto& addr : address_list) {
+    locking_script_list.emplace_back(
+        addr.GetUnblindedAddress().GetLockingScript());
+    nonce_list.emplace_back(addr.GetConfidentialKey());
+  }
+  SplitTxOut(index, amount_list, locking_script_list, nonce_list);
+}
+
+void ConfidentialTransactionContext::SplitTxOut(
+    uint32_t index, const std::vector<Amount>& amount_list,
+    const std::vector<Script>& locking_script_list,
+    const std::vector<ConfidentialNonce>& nonce_list) {
+  static const Amount kMinimumAmount(int64_t{100});
+
+  if ((amount_list.size() != locking_script_list.size()) ||
+      (amount_list.size() != nonce_list.size())) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Unmatch each list count.");
+  } else if (amount_list.empty()) {
+    throw CfdException(CfdError::kCfdIllegalArgumentError, "list is empty.");
+  } else if (HasBlinding()) {
+    throw CfdException(CfdError::kCfdIllegalStateError, "Already blinded.");
+  }
+
+  auto ref = GetTxOut(index);
+  if (ref.GetLockingScript().IsEmpty()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Target is fee output.");
+  }
+
+  auto asset = ref.GetAsset();
+  auto base_amount = ref.GetConfidentialValue().GetAmount();
+  Amount total_amount;
+  ConfidentialAssetId fee_asset;
+  auto fee = GetFeeAmount(&fee_asset);
+  bool has_fee_asset = false;
+  if (fee > 0) {
+    has_fee_asset = (asset.GetHex() == fee_asset.GetHex());
+    total_amount = kMinimumAmount;
+  }
+
+  for (const auto& amount : amount_list) total_amount += amount;
+
+  if (base_amount < total_amount) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "The Amount is too large.");
+  }
+  if (has_fee_asset) total_amount -= kMinimumAmount;
+  Amount update_amount = base_amount - total_amount;
+
+  ByteData prev_tx = GetData();
+  try {
+    SetTxOutValue(index, update_amount);
+    for (size_t txout_idx = 0; txout_idx < amount_list.size(); ++txout_idx) {
+      if (locking_script_list[txout_idx].IsEmpty()) {
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Locking script is empty.");
+      }
+      AddTxOut(
+          amount_list[txout_idx], asset, locking_script_list[txout_idx],
+          nonce_list[txout_idx]);
+    }
+  } catch (const CfdException& except) {
+    SetFromHex(prev_tx.GetHex());  // rollback
+    throw except;
+  }
+}
+
 Amount ConfidentialTransactionContext::CalculateSimpleFee(
     bool append_feature_signed_size, bool append_signed_witness) const {
   static constexpr uint32_t kP2wpkhWitnessSize = 72 + 33 + 3;
-  // 簡易計算
+
   uint32_t size = GetTotalSize();
   uint32_t vsize = GetVsize();
   uint32_t rate = FeeCalculator::kRelayMinimumFee;
@@ -441,7 +546,7 @@ IssuanceParameter ConfidentialTransactionContext::SetAssetIssuance(
   std::vector<IssuanceOutputParameter> issue_output_list;
   std::vector<IssuanceOutputParameter> token_output_list;
   issue_output_list.push_back(issue_output);
-  token_output_list.push_back(token_output);
+  if (token_amount != 0) token_output_list.push_back(token_output);
   return SetAssetIssuance(
       outpoint, issue_amount, issue_output_list, token_amount,
       token_output_list, is_blind, contract_hash);
@@ -493,9 +598,11 @@ IssuanceParameter ConfidentialTransactionContext::SetAssetIssuance(
   set_func(
       issue_output_list, &asset_output_amount_list, &asset_locking_script_list,
       &asset_nonce_list);
-  set_func(
-      token_output_list, &token_output_amount_list, &token_locking_script_list,
-      &token_nonce_list);
+  if (token_amount != 0) {
+    set_func(
+        token_output_list, &token_output_amount_list,
+        &token_locking_script_list, &token_nonce_list);
+  }
 
   return SetAssetIssuance(
       txin_index, issue_amount, asset_output_amount_list,

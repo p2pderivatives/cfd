@@ -877,24 +877,118 @@ CFDC_API int CfdAddConfidentialTxOutput(
     const char* address, const char* direct_locking_script,
     const char* asset_string, const char* nonce);
 
-/* 
-int CfdAddConfidentialTxPeginInput(
+/**
+ * @brief set issue transaction data.
+ * @param[in] handle                cfd handle.
+ * @param[in] create_handle         create transaction handle.
+ * @param[in] txid                  target txin txid.
+ * @param[in] vout                  target txin vout.
+ * @param[in] contract_hash         contract hash. (Specify null if disabled)
+ * @param[in] asset_amount          asset amount.
+ * @param[in] asset_address         asset destination address.
+ *    (either address or lockingScript)
+ * @param[in] asset_locking_script  asset for direct locking script.
+ *    (either address or lockingScript)
+ * @param[in] token_amount          token amount.
+ * @param[in] token_address         token destination address.
+ *    (either address or lockingScript)
+ * @param[in] token_locking_script  token for direct locking script.
+ *    (either address or lockingScript)
+ * @param[in] is_blind_asset        has blinding issuance asset & amount.
+ * @param[out] entropy              entropy hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] asset_string         asset hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] token_string         token hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ * @see CfdInitializeTransaction
+ */
+CFDC_API int CfdSetIssueAsset(
     void* handle, void* create_handle, const char* txid, uint32_t vout,
-    uint32_t sequence);
-int CfdAddConfidentialTxPegoutOutput(
-    void* handle, void* create_handle, const char* asset_string,
-    int64_t value_satoshi, const char* value_commitment, const char* address,
-    const char* direct_locking_script);
+    const char* contract_hash, int64_t asset_amount, const char* asset_address,
+    const char* asset_locking_script, int64_t token_amount,
+    const char* token_address, const char* token_locking_script,
+    bool is_blind_asset, char** entropy, char** asset_string,
+    char** token_string);
 
-int CfdAddPeginWitnessStack(
-    void* handle, const char* tx_hex_string, const char* txid, uint32_t vout,
-    const char* hex_data, char** tx_string);
+/**
+ * @brief set reissue transaction data.
+ * @param[in] handle                cfd handle.
+ * @param[in] create_handle         create transaction handle.
+ * @param[in] txid                  target txin txid.
+ * @param[in] vout                  target txin vout.
+ * @param[in] asset_amount          asset amount.
+ * @param[in] blinding_nonce        blinding nonce.
+ * @param[in] entropy               issuance entropy.
+ * @param[in] address               asset destination address.
+ *    (either address or lockingScript)
+ * @param[in] direct_locking_script  asset for direct locking script.
+ *    (either address or lockingScript)
+ * @param[out] asset_string         asset hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ * @see CfdInitializeTransaction
+ */
+CFDC_API int CfdSetReissueAsset(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int64_t asset_amount, const char* blinding_nonce, const char* entropy,
+    const char* address, const char* direct_locking_script,
+    char** asset_string);
 
-  * SetRawIssueAsset
-    - SetIssueAsset
-      - Asset, Token, Entropy
-      - TxOutIndex
-*/
+/**
+ * @brief add pegin transaction input.
+ * @param[in] handle                cfd handle.
+ * @param[in] create_handle         create transaction handle.
+ * @param[in] txid                  target txin txid.
+ * @param[in] vout                  target txin vout.
+ * @param[in] amount                satoshi amount.
+ * @param[in] asset                 asset.
+ * @param[in] mainchain_genesis_block_hash      genesis block hash.
+ * @param[in] claim_script          claim script.
+ * @param[in] mainchain_tx_hex      mainchain transaction hex.
+ * @param[in] txout_proof           mainchain txout proof.
+ * @return CfdErrorCode
+ * @see CfdInitializeTransaction
+ */
+CFDC_API int CfdAddTxPeginInput(
+    void* handle, void* create_handle, const char* txid, uint32_t vout,
+    int64_t amount, const char* asset,
+    const char* mainchain_genesis_block_hash, const char* claim_script,
+    const char* mainchain_tx_hex, const char* txout_proof);
+
+/**
+ * @brief add pegout transaction output.
+ * @param[in] handle                cfd handle.
+ * @param[in] create_handle         create transaction handle.
+ * @param[in] asset                 asset.
+ * @param[in] amount                satoshi amount.
+ * @param[in] mainchain_network_type            mainchain network type.
+ * @param[in] elements_network_type             elements network type.
+ * @param[in] mainchain_genesis_block_hash      genesis block hash.
+ * @param[in] online_pubkey         whitelist online pubkey.
+ * @param[in] master_online_key     whitelist online privkey.
+ * @param[in] mainchain_output_descriptor       mainchain output descriptor.
+ *   for generating mainchain address.
+ *    (liquidv1 current is pkh only. after dynafed, can use segwit address.)
+ * @param[in] bip32_counter         bip32 counter. (for derive descriptor)
+ * @param[in] whitelist             pegout whitelist.
+ * @param[out] mainchain_address    mainchain address.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ * @see CfdInitializeTransaction
+ */
+CFDC_API int CfdAddTxPegoutOutput(
+    void* handle, void* create_handle, const char* asset, int64_t amount,
+    int mainchain_network_type, int elements_network_type,
+    const char* mainchain_genesis_block_hash, const char* online_pubkey,
+    const char* master_online_key, const char* mainchain_output_descriptor,
+    uint32_t bip32_counter, const char* whitelist, char** mainchain_address);
 
 #ifdef __cplusplus
 #if 0

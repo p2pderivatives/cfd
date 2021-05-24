@@ -1012,7 +1012,7 @@ int CfdSetPsbtFinalizeScript(
     if (is_witness) {
       Script scriptsig_obj(scriptsig);
       bool is_multi_first = script.IsMultisigScript();
-      for (const auto item : scriptsig_obj.GetElementList()) {
+      for (const auto& item : scriptsig_obj.GetElementList()) {
         if (is_multi_first) {
           if (item.GetOpCode() == ScriptOperator::OP_0) {
             script_stack.emplace_back(ByteData());
@@ -1110,8 +1110,7 @@ int CfdGetPsbtSighashType(
       *sighash_type = 0;
     } else {
       auto sighash_type_obj = psbt_obj->psbt->GetTxInSighashType(outpoint);
-      *sighash_type =
-          static_cast<uint32_t>(sighash_type_obj.GetSigHashAlgorithm());
+      *sighash_type = sighash_type_obj.GetSigHashFlag();
     }
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -1696,7 +1695,7 @@ int CfdGetPsbtBip32Data(
     KeyData key;
     bool has_extpubkey = pk_obj.HasExtPubkey();
     Pubkey target_pubkey = pk_obj.GetPubkey();
-    for (const auto temp_key : key_list) {
+    for (const auto& temp_key : key_list) {
       if (temp_key.GetPubkey().Equals(target_pubkey)) {
         if (has_extpubkey) {
           if (temp_key.GetExtPubkey().GetData().Equals(
@@ -1793,7 +1792,7 @@ int CfdGetPsbtPubkeyList(
       ByteData empty_fingerprint;
       std::string empty_path;
       key_list.reserve(pk_list.size());
-      for (const auto pubkey : pk_list) {
+      for (const auto& pubkey : pk_list) {
         key_list.emplace_back(pubkey, empty_path, empty_fingerprint);
       }
     }

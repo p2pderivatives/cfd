@@ -2,13 +2,13 @@
 /**
  * @file cfdapi_elements_transaction.cpp
  *
- * @brief \~english implementation of Confidential Transaction that uses cfd-api
- *   \~japanese cfd-apiで利用するConfidential Transaction操作の実装ファイル
+ * @brief implementation of Confidential Transaction that uses cfd-api
  */
 #ifndef CFD_DISABLE_ELEMENTS
 #include "cfd/cfdapi_elements_transaction.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <map>
 #include <set>

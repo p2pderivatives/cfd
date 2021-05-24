@@ -432,6 +432,19 @@ DescriptorScriptData AddressFactory::ParseOutputDescriptor(
       multisig_keys = script_refs[0].GetKeyList();
       result.multisig_req_sig_num = script_refs[0].GetReqNum();
       break;
+    case DescriptorScriptType::kDescriptorScriptTaproot:
+      key_ref = script_refs[0].GetKeyList()[0];
+      result.tree = script_refs[0].GetScriptTree();
+      result.key_type = key_ref.GetKeyType();
+      if (key_ref.HasExtPrivkey()) {
+        result.key = key_ref.GetExtPrivkey().ToString();
+      } else if (key_ref.HasExtPubkey()) {
+        result.key = key_ref.GetExtPubkey().ToString();
+      } else {
+        result.key_type = DescriptorKeyType::kDescriptorKeySchnorr;
+        result.key = key_ref.GetSchnorrPubkey().GetHex();
+      }
+      break;
     case DescriptorScriptType::kDescriptorScriptRaw:
     case DescriptorScriptType::kDescriptorScriptAddr:
     default:

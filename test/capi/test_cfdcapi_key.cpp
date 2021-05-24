@@ -238,6 +238,30 @@ TEST(cfdcapi_key, PrivkeyAndPubkeyTest) {
       CfdFreeStringBuffer(wif2);
     }
 
+    void* handle2 = NULL;
+    ret = CfdCreateHandle(&handle2);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_FALSE((NULL == handle2));
+
+    ret = CfdGetPrivkeyWif(handle2, privkey, kCfdNetworkElementsRegtest,
+        false, &wif2);
+    EXPECT_EQ(kCfdIllegalArgumentError, ret);
+    if (ret == kCfdIllegalArgumentError) {
+      char* err_msg = NULL;
+      ret = CfdGetLastErrorMessage(handle2, &err_msg);
+      EXPECT_EQ(kCfdSuccess, ret);
+#ifndef CFD_DISABLE_ELEMENTS
+      EXPECT_STREQ("Failed to parameter. privkey's network_type is invalid.",
+          err_msg);
+#else  // CFD_DISABLE_ELEMENTS
+      EXPECT_STREQ("Illegal network type.", err_msg);
+#endif  // CFD_DISABLE_ELEMENTS
+      CfdFreeStringBuffer(err_msg);
+      err_msg = NULL;
+    }
+    ret = CfdFreeHandle(handle2);
+    EXPECT_EQ(kCfdSuccess, ret);
+
     ret = CfdGetPubkeyFromPrivkey(handle, privkey, nullptr, false, &pubkey2);
     EXPECT_EQ(kCfdSuccess, ret);
     if (ret == kCfdSuccess) {
@@ -1067,7 +1091,7 @@ TEST(cfdcapi_key, SchnorrSignatureTest) {
           handle, exp_datas[idx].sighash_signature, &sighash_type, &anyone_can_pay);
       EXPECT_EQ(kCfdSuccess, ret);
       if (ret == kCfdSuccess) {
-        EXPECT_EQ(exp_datas[idx].sighash_type, sighash_type);
+        EXPECT_EQ(exp_datas[idx].sighash_type, sighash_type & 0x1f);
         EXPECT_EQ(exp_datas[idx].anyone_can_pay, anyone_can_pay);
       }
     }

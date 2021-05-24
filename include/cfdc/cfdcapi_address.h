@@ -131,7 +131,19 @@ enum CfdSighashType {
   /** SIGHASH_NONE */
   kCfdSigHashNone = 0x02,
   /** SIGHASH_SINGLE */
-  kCfdSigHashSingle = 0x03
+  kCfdSigHashSingle = 0x03,
+  /** SIGHASH_ALL|ANYONECANPAY */
+  kCfdSigHashAllPlusAnyoneCanPay = 0x81,
+  /** SIGHASH_NONE|ANYONECANPAY */
+  kCfdSigHashNonePlusAnyoneCanPay = 0x82,
+  /** SIGHASH_SINGLE|ANYONECANPAY */
+  kCfdSigHashSinglePlusAnyoneCanPay = 0x83,
+  /** SIGHASH_ALL|RANGEPROOF */
+  kCfdSigHashAllPlusRangeproof = 0x41,
+  /** SIGHASH_NONE|RANGEPROOF */
+  kCfdSigHashNonePlusRangeproof = 0x42,
+  /** SIGHASH_SINGLE|RANGEPROOF */
+  kCfdSigHashSinglePlusRangeproof = 0x43
 };
 
 /**
@@ -159,7 +171,11 @@ enum CfdDescriptorScriptType {
   /** address */
   kCfdDescriptorScriptAddr,
   /** raw script */
-  kCfdDescriptorScriptRaw
+  kCfdDescriptorScriptRaw,
+  /** miniscript (internal) */
+  kCfdDescriptorScriptMiniscript,
+  /** taproot */
+  kCfdDescriptorScriptTaproot,
 };
 
 /**
@@ -173,7 +189,9 @@ enum CfdDescriptorKeyType {
   /** bip32 extpubkey */
   kCfdDescriptorKeyBip32,
   /** bip32 extprivkey */
-  kCfdDescriptorKeyBip32Priv
+  kCfdDescriptorKeyBip32Priv,
+  /** schnorr (xonly) */
+  kCfdDescriptorKeySchnorr,
 };
 
 /**
@@ -269,6 +287,49 @@ CFDC_API int CfdParseDescriptor(
     void* handle, const char* descriptor, int network_type,
     const char* bip32_derivation_path, void** descriptor_handle,
     uint32_t* max_index);
+
+/**
+ * @brief get parsed output descriptor data.
+ * @param[in] handle             handle pointer.
+ * @param[in] descriptor_handle  handle of getting descriptor data.
+ * @param[out] script_type       script type.
+ * @param[out] locking_script    locking script.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] address           address string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] hash_type         hash type. (see CfdHashType)
+ * @param[out] redeem_script     redeem script.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] key_type          key type. (see CfdDescriptorKeyType)
+ * @param[out] pubkey            pubkey hex.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] ext_pubkey        ext pubkey string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] ext_privkey       ext privkey string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] schnorr_pubkey    schnorr(xonly) pubkey.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] tree_string       script tree string.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] is_multisig       has multisig.
+ * @param[out] max_key_num       key list count.
+ * @param[out] req_sig_num       number of require multisig signatures.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetDescriptorRootData(
+    void* handle, void* descriptor_handle, int* script_type,
+    char** locking_script, char** address, int* hash_type,
+    char** redeem_script, int* key_type, char** pubkey, char** ext_pubkey,
+    char** ext_privkey, char** schnorr_pubkey, char** tree_string,
+    bool* is_multisig, uint32_t* max_key_num, uint32_t* req_sig_num);
 
 /**
  * @brief get parsed output descriptor data.

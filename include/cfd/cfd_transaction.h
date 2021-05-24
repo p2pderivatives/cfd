@@ -126,19 +126,24 @@ class CFD_EXPORT TransactionContext : public Transaction {
    * @brief Check if TxOut exists.
    * @param[in] locking_script  locking script
    * @param[out] index  txout index.
+   * @param[out] indexes  txout index list.
    * @retval true   exist
    * @retval false  not exist
    */
   bool IsFindTxOut(
-      const Script& locking_script, uint32_t* index = nullptr) const;
+      const Script& locking_script, uint32_t* index = nullptr,
+      std::vector<uint32_t>* indexes = nullptr) const;
   /**
    * @brief Check if TxOut exists.
    * @param[in] address  address
    * @param[out] index  txout index.
+   * @param[out] indexes  txout index list.
    * @retval true   exist
    * @retval false  not exist
    */
-  bool IsFindTxOut(const Address& address, uint32_t* index = nullptr) const;
+  bool IsFindTxOut(
+      const Address& address, uint32_t* index = nullptr,
+      std::vector<uint32_t>* indexes = nullptr) const;
   /**
    * @brief Transaction's GetTxIn.
    */
@@ -223,10 +228,31 @@ class CFD_EXPORT TransactionContext : public Transaction {
    */
   UtxoData GetTxInUtxoData(const OutPoint& outpoint) const;
   /**
-   * @brief TxOutのFee額を取得する.
-   * @return Fee額
+   * @brief Get the fee amount of TxOut.
+   * @return the fee amount
    */
   Amount GetFeeAmount() const;
+
+  /**
+   * @brief Split output amount.
+   * @param[in] index           txout index
+   * @param[in] amount_list     amount list
+   * @param[in] address_list    address list
+   */
+  void SplitTxOut(
+      uint32_t index, const std::vector<Amount>& amount_list,
+      const std::vector<Address>& address_list);
+
+  /**
+   * @brief Split output amount.
+   * @param[in] index                   txout index
+   * @param[in] amount_list             amount list
+   * @param[in] locking_script_list     locking script list
+   */
+  void SplitTxOut(
+      uint32_t index, const std::vector<Amount>& amount_list,
+      const std::vector<Script>& locking_script_list);
+
   /**
    * @brief sign with privkey.
    * @param[in] outpoint      utxo target.

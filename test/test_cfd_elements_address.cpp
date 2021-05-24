@@ -7,13 +7,6 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_elements_address.h"
 
-
-// https://qiita.com/yohm/items/477bac065f4b772127c7
-
-// The main function are using gtest's main().
-
-// TEST(test_suite_name, test_name)
-
 using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::ByteData;

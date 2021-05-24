@@ -15,6 +15,7 @@
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_util.h"
 #include "jsonapi/autogen/cfd_api_json_autogen.h"  // NOLINT
 #include "jsonapi/cfd_json_transaction.h"  // NOLINT
 
@@ -42,6 +43,7 @@ using cfd::core::Script;
 using cfd::core::ScriptElement;
 using cfd::core::ScriptOperator;
 using cfd::core::SigHashType;
+using cfd::core::StringUtil;
 using cfd::core::Transaction;
 using cfd::core::Txid;
 using cfd::core::TxIn;
@@ -183,10 +185,7 @@ ByteData TransactionJsonApi::ConvertSignDataToSignature(
 
 SigHashType TransactionJsonApi::ConvertSigHashType(
     const std::string& sighash_type_string, bool is_anyone_can_pay) {
-  std::string check_string = sighash_type_string;
-  std::transform(
-      check_string.begin(), check_string.end(), check_string.begin(),
-      ::tolower);
+  std::string check_string = StringUtil::ToLower(sighash_type_string);
   if (check_string == "all") {
     return SigHashType(SigHashAlgorithm::kSigHashAll, is_anyone_can_pay);
   } else if (check_string == "none") {

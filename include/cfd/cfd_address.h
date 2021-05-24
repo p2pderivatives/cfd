@@ -50,6 +50,7 @@ struct DescriptorScriptData {
   DescriptorKeyType key_type;     //!< key type
   std::string key;                //!< key string
   uint32_t multisig_req_sig_num;  //!< multisig num of require signatures
+  TaprootScriptTree tree;         //!< taproot script tree
 };
 
 /**

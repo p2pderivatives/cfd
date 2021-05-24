@@ -23,6 +23,7 @@
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_elements_address.h"
+#include "cfdcore/cfdcore_elements_script.h"
 #include "cfdcore/cfdcore_logger.h"
 
 using cfd::ElementsAddressFactory;
@@ -30,10 +31,12 @@ using cfd::core::Address;
 using cfd::core::AddressType;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::ContractHashUtil;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::Script;
+using cfd::core::ScriptUtil;
 
 using cfd::core::logger::info;
 using cfd::core::logger::warn;
@@ -45,6 +48,7 @@ using cfd::core::logger::warn;
 using cfd::capi::AllocBuffer;
 using cfd::capi::CheckBuffer;
 using cfd::capi::ConvertHashToAddressType;
+using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
 using cfd::capi::FreeBufferOnError;
@@ -165,6 +169,85 @@ int CfdParseConfidentialAddress(
     SetLastFatalError(handle, "unknown error.");
     return CfdErrorCode::kCfdUnknownError;
   }
+}
+
+int CfdGetPeginAddress(
+    void* handle, int mainchain_network_type, const char* fedpeg_script,
+    int hash_type, const char* pubkey, const char* redeem_script,
+    char** pegin_address, char** claim_script, char** tweaked_fedpeg_script) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_address = nullptr;
+  char* work_script = nullptr;
+  char* work_fedpeg_script = nullptr;
+  try {
+    cfd::Initialize();
+    if (pegin_address == nullptr) {
+      warn(CFD_LOG_SOURCE, "pegin_address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pegin_address is null.");
+    }
+    if ((pubkey == nullptr) && (redeem_script == nullptr)) {
+      warn(CFD_LOG_SOURCE, "pubkey and script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. pubkey and script is null.");
+    }
+    if (claim_script == nullptr) {
+      warn(CFD_LOG_SOURCE, "claim_script is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. claim_script is null.");
+    }
+    if (IsEmptyString(fedpeg_script)) {
+      warn(CFD_LOG_SOURCE, "fedpeg_script is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. fedpeg_script is null or empty.");
+    }
+
+    bool is_bitcoin = false;
+    auto net_type = ConvertNetType(mainchain_network_type, &is_bitcoin);
+    if (!is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid network type. need mainchain network type.");
+    }
+    auto addr_type = ConvertHashToAddressType(hash_type);
+    Script claim_script_obj;
+    if ((pubkey != nullptr) && Pubkey::IsValid(ByteData(pubkey))) {
+      claim_script_obj = ScriptUtil::CreateP2wpkhLockingScript(Pubkey(pubkey));
+    } else {
+      claim_script_obj =
+          ScriptUtil::CreateP2wshLockingScript(Script(redeem_script));
+    }
+
+    Script tweak_fedpegscript = ContractHashUtil::GetContractScript(
+        claim_script_obj, Script(fedpeg_script));
+    auto addr = ElementsAddressFactory::CreatePegInAddress(
+        net_type, addr_type, tweak_fedpegscript);
+
+    work_address = CreateString(addr.GetAddress());
+    work_script = CreateString(claim_script_obj.GetHex());
+    if (tweaked_fedpeg_script != nullptr) {
+      work_fedpeg_script = CreateString(tweak_fedpegscript.GetHex());
+    }
+
+    *pegin_address = work_address;
+    *claim_script = work_script;
+    if (tweaked_fedpeg_script != nullptr) {
+      *tweaked_fedpeg_script = work_fedpeg_script;
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_address, &work_script, &work_fedpeg_script);
+  return result;
 }
 
 };  // extern "C"
