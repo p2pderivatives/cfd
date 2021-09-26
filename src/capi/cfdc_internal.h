@@ -2,7 +2,7 @@
 /**
  * @file cfdc_internal.h
  *
- * @brief cfd-capi内部定義ファイルです。
+ * @brief This file is cfd-capi internal definition.
  *
  */
 #ifndef CFD_SRC_CAPI_CFDC_INTERNAL_H_
@@ -22,6 +22,7 @@
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
 
 using cfd::core::ByteData;
@@ -37,11 +38,11 @@ using cfd::core::ConfidentialValue;
 #endif  // CFD_DISABLE_ELEMENTS
 
 /**
- * @brief cfd名前空間
+ * @brief cfd namespace
  */
 namespace cfd {
 /**
- * @brief capi名前空間
+ * @brief capi namespace
  */
 namespace capi {
 
@@ -61,7 +62,7 @@ constexpr const uint32_t kPrefixLength = 16;
 constexpr const char* const kPrefixHandleData = "CapiHandleData";
 
 /**
- * @brief cfd-capi 構造体Prefix定義テンプレート構造体.
+ * @brief template structure of cfd-capi structure prefix definition.
  */
 struct CfdCapiPrefixTemplate {
   char prefix[kPrefixLength];  //!< buffer prefix
@@ -79,7 +80,7 @@ constexpr const uint32_t kSignatureHexSize = 146;
 //! pubkey hex size (cfd::core::Pubkey::kPubkeySize * 2)
 constexpr const uint32_t kPubkeyHexSize = 130;
 /**
- * @brief cfd-capi MultisigScript構造体.
+ * @brief cfd-capi MultisigScript structure.
  */
 struct CfdCapiMultisigSignData {
   char prefix[kPrefixLength];  //!< buffer prefix
@@ -94,7 +95,7 @@ struct CfdCapiMultisigSignData {
 constexpr const char* const kPrefixTransactionData = "TransactionData";
 
 /**
- * @brief cfd-capi TransactionData構造体.
+ * @brief cfd-capi TransactionData structure.
  */
 struct CfdCapiTransactionData {
   char prefix[kPrefixLength];  //!< buffer prefix
@@ -125,6 +126,13 @@ CFDC_API void FreeBuffer(
  * @param[in] prefix   prefix string (max: 15 char)
  */
 CFDC_API void CheckBuffer(void* address, const std::string& prefix);
+
+/**
+ * @brief convert from net type.
+ * @param[in] network_type  network type.
+ * @return CfdNetworkType
+ */
+CFDC_API int ConvertFromCfdNetType(cfd::core::NetType network_type);
 
 /**
  * @brief convert to net type.
@@ -170,6 +178,26 @@ CFDC_API cfd::core::WitnessVersion GetWitnessVersion(int hash_type);
  * @retval false  exist string
  */
 CFDC_API bool IsEmptyString(const char* message);
+
+/**
+ * @brief Check empty string and throw exception.
+ * @param[in] parameter   string text.
+ * @param[in] name        parameter name.
+ * @param[in] location    caller location.
+ */
+CFDC_API void CheckEmptyString(
+    const char* parameter, const char* name,
+    const cfd::core::logger::CfdSourceLocation& location);
+
+/**
+ * @brief Check null and throw exception.
+ * @param[in] parameter   string text.
+ * @param[in] name        parameter name.
+ * @param[in] location    caller location.
+ */
+CFDC_API void CheckNull(
+    const char* parameter, const char* name,
+    const cfd::core::logger::CfdSourceLocation& location);
 
 /**
  * @brief create string.

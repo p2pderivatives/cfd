@@ -201,6 +201,20 @@ class CFD_EXPORT ConfidentialTransactionContext
   Address GetTxOutAddress(
       uint32_t index, NetType net_type = NetType::kLiquidV1,
       bool ignore_error = false) const;
+  /**
+   * @brief Has pegout txout.
+   * @param[in] index   txout index.
+   * @retval true   
+   */
+  bool HasPegoutTxOut(uint32_t index) const;
+  /**
+   * @brief Get txout mainchain address.
+   * @param[in] index                   txout index.
+   * @param[in] mainchain_network       mainchain network type.
+   * @return address
+   */
+  Address GetTxOutPegoutAddress(
+      uint32_t index, NetType mainchain_network = NetType::kMainnet) const;
 
   /**
    * @brief Get if it is blind.

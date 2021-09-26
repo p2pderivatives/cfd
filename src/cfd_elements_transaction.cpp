@@ -256,6 +256,20 @@ Address ConfidentialTransactionContext::GetTxOutAddress(
     return Address();
   }
 }
+bool ConfidentialTransactionContext::HasPegoutTxOut(uint32_t index) const {
+  if (vout_.size() <= index) return false;
+  return vout_[index].GetLockingScript().IsPegoutScript();
+}
+
+Address ConfidentialTransactionContext::GetTxOutPegoutAddress(
+    uint32_t index, NetType mainchain_network) const {
+  if (vout_.size() <= index) {
+    throw CfdException(
+        CfdError::kCfdOutOfRangeError, "vout out_of_range error.");
+  }
+  return Address::GetPegoutAddress(
+      mainchain_network, vout_[index].GetLockingScript());
+}
 
 bool ConfidentialTransactionContext::HasBlinding() const {
   for (const auto& txout : vout_) {
@@ -790,7 +804,11 @@ void ConfidentialTransactionContext::CollectInputUtxo(
       if (!IsFindUtxoMap(outpoint)) {
         for (const auto& utxo : utxos) {
           if ((utxo.vout == vout) && utxo.txid.Equals(txid)) {
-            utxo_map_.emplace_back(utxo);
+            UtxoData dest;
+            Utxo temp;
+            memset(&temp, 0, sizeof(temp));
+            UtxoUtil::ConvertToUtxo(utxo, &temp, &dest);
+            utxo_map_.emplace_back(dest);
             break;
           }
         }

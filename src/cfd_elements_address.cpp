@@ -15,7 +15,9 @@
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_elements_script.h"
+#include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_exception.h"
+#include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_script.h"
 
@@ -26,10 +28,13 @@ using cfd::core::AddressFormatData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::ConfidentialKey;
+using cfd::core::ConfidentialTransaction;
 using cfd::core::ContractHashUtil;
 using cfd::core::ElementsAddressType;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::ElementsNetType;
+using cfd::core::ExtPrivkey;
+using cfd::core::ExtPubkey;
 using cfd::core::GetElementsAddressFormatList;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
@@ -130,6 +135,82 @@ Address ElementsAddressFactory::CreatePegInAddress(
         CfdError::kCfdIllegalArgumentError,
         "Pubkey-hash cannot be used for the peg-in address type.");
   }
+}
+
+Address ElementsAddressFactory::CreatePegOutAddress(
+    NetType mainchain_network, NetType elements_network,
+    const std::string& descriptor_or_xpub, uint32_t bip32_counter,
+    AddressType address_type, Descriptor* base_descriptor) {
+  if (mainchain_network > NetType::kRegtest) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to mainchain network type. invalid value.");
+  }
+  if ((elements_network < NetType::kLiquidV1) ||
+      (elements_network > NetType::kCustomChain)) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to elements network type. invalid value.");
+  }
+  bool is_mainnet = (mainchain_network == NetType::kMainnet);
+  if ((address_type == AddressType::kP2pkhAddress) ||
+      ((!is_mainnet) && (address_type == AddressType::kP2shP2wpkhAddress)) ||
+      ((!is_mainnet) && (address_type == AddressType::kP2wpkhAddress))) {
+    // do nothing
+  } else {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Invalid address type. This address type is not support on pegout.");
+  }
+
+  std::string descriptor = descriptor_or_xpub;
+  if (descriptor_or_xpub.find("(") == std::string::npos) {
+    if (address_type == AddressType::kP2pkhAddress) {
+      descriptor = "pkh(" + descriptor_or_xpub + ")";
+    } else if (address_type == AddressType::kP2shP2wpkhAddress) {
+      descriptor = "sh(wpkh(" + descriptor_or_xpub + "))";
+    } else if (address_type == AddressType::kP2wpkhAddress) {
+      descriptor = "wpkh(" + descriptor_or_xpub + ")";
+    }
+  }
+
+  auto desc = Descriptor::Parse(descriptor);
+  if (descriptor.find("/") != std::string::npos) {
+    auto start_pos = descriptor.rfind("(") + 1;
+    auto end_pos = descriptor.find("/");
+    std::string extkey = descriptor.substr(start_pos, end_pos - start_pos);
+    ExtPubkey pk(extkey);
+    auto index_str = std::to_string(bip32_counter);
+    std::vector<std::string> args = {index_str};
+    auto derived_key = desc.GetKeyData(args);
+    auto check_key = pk.DerivePubkey("0/" + index_str);
+    if (!derived_key.GetPubkey().Equals(check_key.GetPubkey())) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid descriptor format. This path is not support on pegout.");
+    }
+
+    auto ref = desc.GetReference(&args);
+    descriptor = pk.ToString();
+    auto addr_type = ref.GetAddressType();
+    if (addr_type == AddressType::kP2pkhAddress) {
+      descriptor = "pkh(" + descriptor + ")";
+    } else if (addr_type == AddressType::kP2shP2wpkhAddress) {
+      descriptor = "sh(wpkh(" + descriptor + "))";
+    } else if (addr_type == AddressType::kP2wpkhAddress) {
+      descriptor = "wpkh(" + descriptor + ")";
+    } else {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid descriptor. This descriptor type isn't support on pegout.");
+    }
+    desc = Descriptor::Parse(descriptor);
+  }
+
+  auto addr = ConfidentialTransaction::GetPegoutAddressFromDescriptor(
+      descriptor, bip32_counter, mainchain_network, elements_network);
+  if (base_descriptor != nullptr) *base_descriptor = desc;
+  return addr;
 }
 
 bool ElementsAddressFactory::CheckConfidentialAddressNetType(

@@ -97,6 +97,7 @@ using cfd::capi::AllocBuffer;
 using cfd::capi::CfdCapiCombinePubkey;
 using cfd::capi::CfdCapiGetMnemonicWordList;
 using cfd::capi::CheckBuffer;
+using cfd::capi::ConvertFromCfdNetType;
 using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
 using cfd::capi::FreeBuffer;
@@ -2079,6 +2080,15 @@ int CfdGetParentExtkeyPathData(
 int CfdGetExtkeyInformation(
     void* handle, const char* extkey, char** version, char** fingerprint,
     char** chain_code, uint32_t* depth, uint32_t* child_number) {
+  return CfdGetExtkeyInfo(
+      handle, extkey, version, fingerprint, chain_code, depth, child_number,
+      nullptr, nullptr);
+}
+
+int CfdGetExtkeyInfo(
+    void* handle, const char* extkey, char** version, char** fingerprint,
+    char** chain_code, uint32_t* depth, uint32_t* child_number, int* key_type,
+    int* network_type) {
   int result = CfdErrorCode::kCfdUnknownError;
   char* work_version = nullptr;
   char* work_fingerprint = nullptr;
@@ -2096,25 +2106,43 @@ int CfdGetExtkeyInformation(
     std::string hdkey_top;
     uint32_t work_depth = 0;
     uint32_t work_child_number = 0;
+    CfdExtKeyType extkey_type;
+    int net_type;
     if (extkey_string.size() > 4) {
       hdkey_top = extkey_string.substr(1, 3);
     }
     if (hdkey_top == "prv") {
       ExtPrivkey ext_privkey(extkey_string);
-      work_version = CreateString(ext_privkey.GetVersionData().GetHex());
-      work_fingerprint =
-          CreateString(ext_privkey.GetFingerprintData().GetHex());
-      work_chain_code = CreateString(ext_privkey.GetChainCode().GetHex());
+      if (version != nullptr) {
+        work_version = CreateString(ext_privkey.GetVersionData().GetHex());
+      }
+      if (fingerprint != nullptr) {
+        work_fingerprint =
+            CreateString(ext_privkey.GetFingerprintData().GetHex());
+      }
+      if (chain_code != nullptr) {
+        work_chain_code = CreateString(ext_privkey.GetChainCode().GetHex());
+      }
       work_depth = ext_privkey.GetDepth();
       work_child_number = ext_privkey.GetChildNum();
+      extkey_type = kCfdExtPrivkey;
+      net_type = ConvertFromCfdNetType(ext_privkey.GetNetworkType());
     } else {
       ExtPubkey ext_pubkey(extkey_string);
-      work_version = CreateString(ext_pubkey.GetVersionData().GetHex());
-      work_fingerprint =
-          CreateString(ext_pubkey.GetFingerprintData().GetHex());
-      work_chain_code = CreateString(ext_pubkey.GetChainCode().GetHex());
+      if (version != nullptr) {
+        work_version = CreateString(ext_pubkey.GetVersionData().GetHex());
+      }
+      if (fingerprint != nullptr) {
+        work_fingerprint =
+            CreateString(ext_pubkey.GetFingerprintData().GetHex());
+      }
+      if (chain_code != nullptr) {
+        work_chain_code = CreateString(ext_pubkey.GetChainCode().GetHex());
+      }
       work_depth = ext_pubkey.GetDepth();
       work_child_number = ext_pubkey.GetChildNum();
+      extkey_type = kCfdExtPubkey;
+      net_type = ConvertFromCfdNetType(ext_pubkey.GetNetworkType());
     }
 
     if (version != nullptr) *version = work_version;
@@ -2122,6 +2150,8 @@ int CfdGetExtkeyInformation(
     if (chain_code != nullptr) *chain_code = work_chain_code;
     if (depth != nullptr) *depth = work_depth;
     if (child_number != nullptr) *child_number = work_child_number;
+    if (key_type != nullptr) *key_type = extkey_type;
+    if (network_type != nullptr) *network_type = net_type;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
     result = SetLastError(handle, except);
@@ -2131,6 +2161,31 @@ int CfdGetExtkeyInformation(
     SetLastFatalError(handle, "unknown error.");
   }
   FreeBufferOnError(&work_version, &work_fingerprint, &work_chain_code);
+  return result;
+}
+
+int CfdGetMnemonicWords(
+    void* handle, const char* language, char** mnemonic_words) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+
+    std::string lang;
+    if (!IsEmptyString(language)) {
+      lang = language;
+    }
+    HDWalletApi api;
+    std::vector<std::string> wordlist = api.GetMnemonicWordlist(lang);
+    auto words = StringUtil::Join(wordlist, " ");
+    *mnemonic_words = CreateString(words);
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
   return result;
 }
 

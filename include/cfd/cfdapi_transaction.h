@@ -246,6 +246,7 @@ class CFD_EXPORT TransactionApi {
    * @param[out] append_txout_addresses  used txout additional address
    * @param[in] net_type                 network type
    * @param[in] prefix_list              address prefix list
+   * @param[out] calculate_fee           calculate fee (before add dust amount)
    * @return tx controller
    */
   TransactionController FundRawTransaction(
@@ -258,7 +259,8 @@ class CFD_EXPORT TransactionApi {
       const CoinSelectionOption* option_params = nullptr,
       std::vector<std::string>* append_txout_addresses = nullptr,
       NetType net_type = NetType::kMainnet,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+      const std::vector<AddressFormatData>* prefix_list = nullptr,
+      Amount* calculate_fee = nullptr) const;
 
   /**
    * @brief Create multisig scriptsig (unlocking script).

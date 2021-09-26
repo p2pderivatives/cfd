@@ -1,6 +1,6 @@
 {
   "name": "cfd",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "cfd",
   "scripts": {
     "code_format": "clang-format -i --style=file src/*.cpp src/*.h include/cfd/*.h src/capi/*.cpp src/capi/*.h include/cfdc/*.h",

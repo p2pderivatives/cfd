@@ -345,6 +345,31 @@ CFDC_API int CfdGetConfidentialTxInfoByHandle(
     uint32_t* version, uint32_t* locktime);
 
 /**
+ * @brief Has pegout output by elements transaction.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index             txout index.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdHasPegoutConfidentialTxOut(
+    void* handle, void* tx_data_handle, uint32_t index);
+
+/**
+ * @brief get pegout address by elements transaction.
+ * @param[in] handle            cfd handle.
+ * @param[in] tx_data_handle    transaction data handle.
+ * @param[in] index                 txout index.
+ * @param[in] mainchain_network     mainchain network.
+ * @param[out] mainchain_address    mainchain address.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPegoutMainchainAddress(
+    void* handle, void* tx_data_handle, uint32_t index, int mainchain_network,
+    char** mainchain_address);
+
+/**
  * @brief get elements issuance information.
  * @param[in] handle            cfd handle.
  * @param[in] tx_data_handle    transaction data handle.
@@ -989,6 +1014,34 @@ CFDC_API int CfdAddTxPegoutOutput(
     const char* mainchain_genesis_block_hash, const char* online_pubkey,
     const char* master_online_key, const char* mainchain_output_descriptor,
     uint32_t bip32_counter, const char* whitelist, char** mainchain_address);
+
+/**
+ * @brief Unblind transaction output data.
+ * @param[in] handle                cfd handle.
+ * @param[in] blinding_key          blinding key.
+ * @param[in] locking_script        locking script.
+ * @param[in] asset_commitment      asset commitment.
+ * @param[in] value_commitment      value commitment.
+ * @param[in] commitment_nonce      commitment nonce
+ * @param[in] rangeproof            value rangeproof.
+ * @param[out] asset                asset.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] amount               satoshi amount.
+ * @param[out] asset_blind_factor   asset blind factor.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] value_blind_factor   value blind factor.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ * @see CfdInitializeTransaction
+ */
+CFDC_API int CfdUnblindTxOutData(
+    void* handle, const char* blinding_key, const char* locking_script,
+    const char* asset_commitment, const char* value_commitment,
+    const char* commitment_nonce, const char* rangeproof, char** asset,
+    int64_t* amount, char** asset_blind_factor, char** value_blind_factor);
 
 #ifdef __cplusplus
 #if 0

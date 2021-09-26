@@ -300,7 +300,8 @@ TransactionController TransactionApi::FundRawTransaction(
     Amount* estimate_fee, const UtxoFilter* filter,
     const CoinSelectionOption* option_params,
     std::vector<std::string>* append_txout_addresses, NetType net_type,
-    const std::vector<AddressFormatData>* prefix_list) const {
+    const std::vector<AddressFormatData>* prefix_list,
+    Amount* calculate_fee) const {
   // set option
   CoinSelectionOption option;
   UtxoFilter utxo_filter;
@@ -470,6 +471,7 @@ TransactionController TransactionApi::FundRawTransaction(
           "Failed to FundRawTransaction. low fee.");
     }
 
+    if (calculate_fee != nullptr) *calculate_fee = fee;
     // optionで、超過額の設定がある場合、余剰分をfeeに設定。
     if (dust_amount > new_txout_amount) {
       // feeに残高をすべて設定

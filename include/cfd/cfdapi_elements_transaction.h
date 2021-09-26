@@ -191,12 +191,13 @@ struct IssuanceOutput {
  * @brief Using utxo and option data in elements
  */
 struct ElementsUtxoAndOption {
-  UtxoData utxo;                   //!< utxo
-  bool is_issuance = false;        //!< use issuance/reissuance
-  bool is_blind_issuance = false;  //!< use blind issuance/reissuance
-  bool is_pegin = false;           //!< use pegin
-  uint32_t pegin_btc_tx_size = 0;  //!< btc pegin tx size
-  Script fedpeg_script;            //!< fedpeg script for pegin
+  UtxoData utxo;                       //!< utxo
+  bool is_issuance = false;            //!< use issuance/reissuance
+  bool is_blind_issuance = false;      //!< use blind issuance/reissuance
+  bool is_pegin = false;               //!< use pegin
+  uint32_t pegin_btc_tx_size = 0;      //!< btc pegin tx size
+  Script claim_script;                 //!< claim script for pegin
+  uint32_t pegin_txoutproof_size = 0;  //!< btc pegin txoutproof size
 };
 
 /**
@@ -519,6 +520,7 @@ class CFD_EXPORT ElementsTransactionApi {
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in] append_asset_count  append asset count.
    * @return tx fee (contains utxo)
    */
   Amount EstimateFee(
@@ -527,7 +529,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const ConfidentialAssetId& fee_asset, Amount* txout_fee = nullptr,
       Amount* utxo_fee = nullptr, bool is_blind = true,
       double effective_fee_rate = 1, int exponent = 0,
-      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits,
+      uint32_t* append_asset_count = nullptr) const;
 
   /**
    * @brief estimate a fee amount from transaction.
@@ -542,6 +545,7 @@ class CFD_EXPORT ElementsTransactionApi {
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in] append_asset_count  append asset count.
    * @return tx fee (contains utxo)
    */
   Amount EstimateFee(
@@ -550,7 +554,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const ConfidentialAssetId& fee_asset, Amount* txout_fee = nullptr,
       Amount* utxo_fee = nullptr, bool is_blind = true,
       uint64_t effective_fee_rate = 1000, int exponent = 0,
-      int minimum_bits = cfd::core::kDefaultBlindMinimumBits) const;
+      int minimum_bits = cfd::core::kDefaultBlindMinimumBits,
+      uint32_t* append_asset_count = nullptr) const;
 
   /**
    * @brief calculate fund transaction.
@@ -571,6 +576,7 @@ class CFD_EXPORT ElementsTransactionApi {
    * @param[out] append_txout_addresses  used txout additional address
    * @param[in] net_type                 network type
    * @param[in] prefix_list              address prefix list
+   * @param[out] calculate_fee           calculate fee (before add dust amount)
    * @return tx controller
    */
   ConfidentialTransactionController FundRawTransaction(
@@ -584,7 +590,8 @@ class CFD_EXPORT ElementsTransactionApi {
       const CoinSelectionOption* option_params = nullptr,
       std::vector<std::string>* append_txout_addresses = nullptr,
       NetType net_type = NetType::kLiquidV1,
-      const std::vector<AddressFormatData>* prefix_list = nullptr) const;
+      const std::vector<AddressFormatData>* prefix_list = nullptr,
+      Amount* calculate_fee = nullptr) const;
 
   // CreateDestroyAmountTransaction
   // see CreateRawTransaction and ConfidentialTxOut::CreateDestroyAmountTxOut

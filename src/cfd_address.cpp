@@ -434,6 +434,7 @@ DescriptorScriptData AddressFactory::ParseOutputDescriptor(
       break;
     case DescriptorScriptType::kDescriptorScriptTaproot:
       key_ref = script_refs[0].GetKeyList()[0];
+      result.branch = script_refs[0].GetTapBranch();
       result.tree = script_refs[0].GetScriptTree();
       result.key_type = key_ref.GetKeyType();
       if (key_ref.HasExtPrivkey()) {

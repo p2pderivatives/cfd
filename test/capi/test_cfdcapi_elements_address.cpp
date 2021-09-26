@@ -169,4 +169,216 @@ TEST(cfdcapi_elements_address, GetPeginAddress) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
+TEST(cfdcapi_elements_address, GetPegoutAddress) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  struct CfdCapiTestPegoutAddressData {
+    const char* name;
+    const char* descriptor;
+    uint32_t counter;
+    int mainchain_net_type;
+    int elements_net_type;
+    int address_type;
+    const char* exp_address;
+    const char* exp_base_descriptor;
+  };
+
+  std::vector<CfdCapiTestPegoutAddressData> test_case = {
+    {
+      "extkey - p2pkh - regtest",
+      "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "n3Na7mek1zAStRxvt7RPrNCpZhDErMPkGw",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "descriptor - p2pkh - regtest",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "n3Na7mek1zAStRxvt7RPrNCpZhDErMPkGw",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "deriveDescriptor - p2pkh - regtest",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*)",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "n3Na7mek1zAStRxvt7RPrNCpZhDErMPkGw",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "extkey - p2pkh - mainnet",
+      "xpub67v4wfueMiZVkc7UbutFgPiptQw4kkNs89ooNMrwht8xEjnZZim1rNZHhEdrLejB99fiBdnWNNAB8hmUK7tCo5Ua6UtHzwVLj2Bzpch7vB2",
+      0,
+      kCfdNetworkMainnet,
+      kCfdNetworkLiquidv1,
+      kCfdP2pkhAddress,
+      "1MMxsm4QG8NRHqaFZaUTFQQ9c9dEHUPWnD",
+      "pkh(xpub67v4wfueMiZVkc7UbutFgPiptQw4kkNs89ooNMrwht8xEjnZZim1rNZHhEdrLejB99fiBdnWNNAB8hmUK7tCo5Ua6UtHzwVLj2Bzpch7vB2)"
+    },
+    {
+      "descriptor - p2pkh - mainnet",
+      "pkh(xpub67v4wfueMiZVkc7UbutFgPiptQw4kkNs89ooNMrwht8xEjnZZim1rNZHhEdrLejB99fiBdnWNNAB8hmUK7tCo5Ua6UtHzwVLj2Bzpch7vB2)",
+      0,
+      kCfdNetworkMainnet,
+      kCfdNetworkLiquidv1,
+      kCfdP2pkhAddress,
+      "1MMxsm4QG8NRHqaFZaUTFQQ9c9dEHUPWnD",
+      "pkh(xpub67v4wfueMiZVkc7UbutFgPiptQw4kkNs89ooNMrwht8xEjnZZim1rNZHhEdrLejB99fiBdnWNNAB8hmUK7tCo5Ua6UtHzwVLj2Bzpch7vB2)"
+    },
+    {
+      "deriveDescriptor - p2pkh - mainnet",
+      "pkh(xpub67v4wfueMiZVkc7UbutFgPiptQw4kkNs89ooNMrwht8xEjnZZim1rNZHhEdrLejB99fiBdnWNNAB8hmUK7tCo5Ua6UtHzwVLj2Bzpch7vB2/0/*)",
+      0,
+      kCfdNetworkMainnet,
+      kCfdNetworkLiquidv1,
+      kCfdP2pkhAddress,
+      "1MMxsm4QG8NRHqaFZaUTFQQ9c9dEHUPWnD",
+      "pkh(xpub67v4wfueMiZVkc7UbutFgPiptQw4kkNs89ooNMrwht8xEjnZZim1rNZHhEdrLejB99fiBdnWNNAB8hmUK7tCo5Ua6UtHzwVLj2Bzpch7vB2)"
+    },
+    {
+      "extkey - p2wpkh - regtest",
+      "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2wpkhAddress,
+      "bcrt1qa77w63m523kq82z4fn3d5f7qxqxfm4pmdthkdf",
+      "wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "descriptor - p2wpkh - regtest",
+      "wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2wpkhAddress,
+      "bcrt1qa77w63m523kq82z4fn3d5f7qxqxfm4pmdthkdf",
+      "wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "deriveDescriptor - p2wpkh - regtest",
+      "wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*)",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2wpkhAddress,
+      "bcrt1qa77w63m523kq82z4fn3d5f7qxqxfm4pmdthkdf",
+      "wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "extkey - p2sh-p2wpkh - regtest",
+      "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2shP2wpkhAddress,
+      "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo",
+      "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))"
+    },
+    {
+      "descriptor - p2sh-p2wpkh - regtest",
+      "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2shP2wpkhAddress,
+      "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo",
+      "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))"
+    },
+    {
+      "deriveDescriptor - p2sh-p2wpkh - regtest",
+      "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*))",
+      0,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2shP2wpkhAddress,
+      "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo",
+      "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))"
+    },
+    {
+      "extkey - p2pkh - regtest - count 1",
+      "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y",
+      1,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "mjii5Qey7jLxtvsV5f6BaFeVaqfeqcKXzL",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "descriptor - p2pkh - regtest - count 1",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)",
+      1,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "mjii5Qey7jLxtvsV5f6BaFeVaqfeqcKXzL",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "deriveDescriptor - p2pkh - regtest - count 1",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*)",
+      1,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "mjii5Qey7jLxtvsV5f6BaFeVaqfeqcKXzL",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+    {
+      "deriveDescriptor - p2pkh - regtest - count max",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*)",
+      0x7fffffff,
+      kCfdNetworkRegtest,
+      kCfdNetworkElementsRegtest,
+      kCfdP2pkhAddress,
+      "mfkLVoxUp9K2Q1KeRr3Ewnn414jLSCTGmn",
+      "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)"
+    },
+  };
+
+  for (const auto& test_data : test_case) {
+    SCOPED_TRACE(test_data.name);
+
+    char* mainchain_address = nullptr;
+    char* base_descriptor = nullptr;
+    ret = CfdGetPegoutAddress(
+        handle, test_data.mainchain_net_type, test_data.elements_net_type,
+        test_data.descriptor, test_data.counter, test_data.address_type,
+        &mainchain_address, &base_descriptor);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(test_data.exp_address, mainchain_address);
+      EXPECT_STREQ(test_data.exp_base_descriptor, base_descriptor);
+      CfdFreeStringBuffer(mainchain_address);
+      CfdFreeStringBuffer(base_descriptor);
+    }
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
 #endif  // CFD_DISABLE_ELEMENTS

@@ -87,7 +87,8 @@ CoinSelectionOption::CoinSelectionOption()
     : effective_fee_baserate_(kDefaultLongTermFeeRate),
       long_term_fee_baserate_(kDefaultLongTermFeeRate),
       knapsack_minimum_change_(-1),
-      dust_fee_rate_(kDustRelayTxFeeRate) {
+      dust_fee_rate_(kDustRelayTxFeeRate),
+      has_ignore_fee_asset_(false) {
   // do nothing
 }
 
@@ -132,6 +133,10 @@ Amount CoinSelectionOption::GetDustFeeAmount(const Address& address) const {
   return dust_fee.GetFee(size);
 }
 
+bool CoinSelectionOption::HasIgnoreFeeAsset() const {
+  return has_ignore_fee_asset_;
+}
+
 void CoinSelectionOption::SetUseBnB(bool use_bnb) { use_bnb_ = use_bnb; }
 
 void CoinSelectionOption::SetChangeOutputSize(size_t size) {
@@ -162,6 +167,10 @@ void CoinSelectionOption::SetDustFeeRate(double baserate) {
   if (baserate >= 0) {
     dust_fee_rate_ = static_cast<uint64_t>(floor(baserate * 1000));
   }
+}
+
+void CoinSelectionOption::SetIgnoreFeeAsset(bool has_ignore_fee_asset) {
+  has_ignore_fee_asset_ = has_ignore_fee_asset;
 }
 
 void CoinSelectionOption::InitializeTxSizeInfo() {
@@ -301,7 +310,8 @@ std::vector<Utxo> CoinSelection::SelectCoins(
     const AmountMap& map_target_value, const std::vector<Utxo>& utxos,
     const UtxoFilter& filter, const CoinSelectionOption& option_params,
     const Amount& tx_fee_value, AmountMap* map_select_value,
-    Amount* utxo_fee_value, std::map<std::string, bool>* map_searched_bnb) {
+    Amount* utxo_fee_value, std::map<std::string, bool>* map_searched_bnb,
+    AmountMap* map_utxo_fee_value) {
   bool calculate_fee = (option_params.GetEffectiveFeeBaserate() != 0);
   if (calculate_fee && option_params.GetFeeAsset().IsEmpty()) {
     warn(
@@ -324,11 +334,11 @@ std::vector<Utxo> CoinSelection::SelectCoins(
   // add fee asset to target asset list
   AmountMap work_target_values = map_target_value;
   ConfidentialAssetId fee_asset;
-  if (calculate_fee) {
+  if (calculate_fee && (!option_params.HasIgnoreFeeAsset())) {
     fee_asset = option_params.GetFeeAsset();
     auto iter = work_target_values.find(fee_asset.GetHex());
     if (iter == std::end(work_target_values)) {
-      work_target_values.insert(std::make_pair(fee_asset.GetHex(), 0));
+      work_target_values.emplace(fee_asset.GetHex(), 0);
     }
   }
 
@@ -366,7 +376,7 @@ std::vector<Utxo> CoinSelection::SelectCoins(
           "Failed to SelectCoins. Target asset is not found in utxo list.");
     }
 
-    asset_utxos.insert(std::make_pair(target.first, p_utxos));
+    asset_utxos.emplace(target.first, p_utxos);
   }
 
   // coin selection function
@@ -376,9 +386,11 @@ std::vector<Utxo> CoinSelection::SelectCoins(
   AmountMap work_selected_values;
   Amount work_utxo_fee = Amount();
   std::map<std::string, bool> work_searched_bnb;
+  AmountMap work_map_utxo_fee_value;
   auto coin_selection_function = [this, filter, option_params, &result,
                                   &tx_fee_out, &work_selected_values,
-                                  &work_utxo_fee, &work_searched_bnb](
+                                  &work_utxo_fee, &work_searched_bnb,
+                                  &work_map_utxo_fee_value](
                                      const int64_t& target_value,
                                      const std::vector<Utxo*>& utxos,
                                      const Amount& tx_fee,
@@ -392,9 +404,10 @@ std::vector<Utxo> CoinSelection::SelectCoins(
         &select_value_out, &utxo_fee_out, &use_bnb_out);
     std::copy(ret_utxos.begin(), ret_utxos.end(), std::back_inserter(result));
     tx_fee_out += utxo_fee_out;
-    work_selected_values[asset_id] = select_value_out;
     work_utxo_fee += utxo_fee_out;
-    work_searched_bnb[asset_id] = use_bnb_out;
+    work_selected_values.emplace(asset_id, select_value_out);
+    work_searched_bnb.emplace(asset_id, use_bnb_out);
+    work_map_utxo_fee_value.emplace(asset_id, utxo_fee_out.GetSatoshiValue());
   };
 
   // do coin selection exclude fee asset
@@ -404,7 +417,7 @@ std::vector<Utxo> CoinSelection::SelectCoins(
       continue;
     }
 
-    // fee以外の asset については、tx_fee=0, feeを考慮せずに計算
+    // For assets other than fees, calculate without considering fees.
     const auto& target_value = target.second;
     coin_selection_function(
         target_value, asset_utxos[target.first], Amount(), target.first,
@@ -412,8 +425,8 @@ std::vector<Utxo> CoinSelection::SelectCoins(
   }
 
   // do coin selection with fee asset
-  if (calculate_fee) {
-    const auto& target_value = work_target_values[fee_asset.GetHex()];
+  if (calculate_fee && (!option_params.HasIgnoreFeeAsset())) {
+    int64_t target_value = work_target_values[fee_asset.GetHex()];
     coin_selection_function(
         target_value, asset_utxos[fee_asset.GetHex()], tx_fee_out,
         fee_asset.GetHex(), true);
@@ -428,7 +441,9 @@ std::vector<Utxo> CoinSelection::SelectCoins(
   if (map_searched_bnb != nullptr) {
     *map_searched_bnb = work_searched_bnb;
   }
-
+  if (map_utxo_fee_value != nullptr) {
+    *map_utxo_fee_value = work_map_utxo_fee_value;
+  }
   return result;
 }
 #endif  // CFD_DISABLE_ELEMENTS

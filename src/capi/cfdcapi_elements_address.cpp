@@ -22,6 +22,7 @@
 #include "cfdc/cfdcapi_common.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_common.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_elements_script.h"
 #include "cfdcore/cfdcore_logger.h"
@@ -32,6 +33,7 @@ using cfd::core::AddressType;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::ContractHashUtil;
+using cfd::core::Descriptor;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::NetType;
 using cfd::core::Pubkey;
@@ -47,6 +49,8 @@ using cfd::core::logger::warn;
 // API
 using cfd::capi::AllocBuffer;
 using cfd::capi::CheckBuffer;
+using cfd::capi::ConvertAddressType;
+using cfd::capi::ConvertFromCfdNetType;
 using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::ConvertNetType;
 using cfd::capi::CreateString;
@@ -124,26 +128,7 @@ int CfdParseConfidentialAddress(
     Address addr = confidential_addr.GetUnblindedAddress();
     if (network_type != nullptr) {
       // convert to c_network_type
-      switch (addr.GetNetType()) {
-        case NetType::kMainnet:
-          *network_type = kCfdNetworkMainnet;
-          break;
-        case NetType::kTestnet:
-          *network_type = kCfdNetworkTestnet;
-          break;
-        case NetType::kRegtest:
-          *network_type = kCfdNetworkRegtest;
-          break;
-        case NetType::kLiquidV1:
-          *network_type = kCfdNetworkLiquidv1;
-          break;
-        case NetType::kElementsRegtest:
-          *network_type = kCfdNetworkElementsRegtest;
-          break;
-        default:
-          *network_type = kCfdNetworkCustomChain;
-          break;
-      }
+      *network_type = ConvertFromCfdNetType(addr.GetNetType());
     }
     if (address != nullptr) {
       work_address = CreateString(addr.GetAddress());
@@ -247,6 +232,50 @@ int CfdGetPeginAddress(
     SetLastFatalError(handle, "unknown error.");
   }
   FreeBufferOnError(&work_address, &work_script, &work_fedpeg_script);
+  return result;
+}
+
+int CfdGetPegoutAddress(
+    void* handle, int mainchain_network, int elements_network,
+    const char* descriptor, uint32_t bip32_counter, int address_type,
+    char** mainchain_address, char** base_descriptor) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_address = nullptr;
+  char* work_descriptor = nullptr;
+  try {
+    cfd::Initialize();
+    if (IsEmptyString(descriptor)) {
+      warn(CFD_LOG_SOURCE, "descriptor is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. descriptor is null or empty.");
+    }
+
+    auto mainchain_net_type = ConvertNetType(mainchain_network, nullptr);
+    auto elements_net_type = ConvertNetType(elements_network, nullptr);
+    auto addr_type = ConvertAddressType(address_type);
+    Descriptor desc;
+    auto addr = ElementsAddressFactory::CreatePegOutAddress(
+        mainchain_net_type, elements_net_type, descriptor, bip32_counter,
+        addr_type, &desc);
+    if (mainchain_address != nullptr) {
+      work_address = CreateString(addr.GetAddress());
+    }
+    if (base_descriptor != nullptr) {
+      work_descriptor = CreateString(desc.ToString(false));
+    }
+
+    if (base_descriptor != nullptr) *base_descriptor = work_descriptor;
+    if (mainchain_address != nullptr) *mainchain_address = work_address;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_address, &work_descriptor);
   return result;
 }
 

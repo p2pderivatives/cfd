@@ -652,6 +652,14 @@ TEST(cfdcapi_key, ExtkeyTest) {
       EXPECT_EQ(4, depth);
       EXPECT_EQ(2, child_number);
 
+      int net_type = 0;
+      int key_type = 0;
+      ret = CfdGetExtkeyInfo(handle, extprivkey3, nullptr, nullptr, nullptr,
+          &depth, &child_number, &key_type, &net_type);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_EQ(kCfdExtPrivkey, key_type);
+      EXPECT_EQ(kCfdNetworkMainnet, net_type);
+
       char* get_extkey = nullptr;
       ret = CfdCreateExtkey(handle, kNetwork, kCfdExtPrivkey, nullptr,
           fingerprint, privkey, chain_code,
@@ -728,6 +736,15 @@ TEST(cfdcapi_key, MnemonicTest) {
 
     ret = CfdFreeMnemonicWordList(handle, mnemonic_handle);
     EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  char* mnemonic_words = nullptr;
+  ret = CfdGetMnemonicWords(handle, "en", &mnemonic_words);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    auto words = StringUtil::Split(mnemonic_words, " ");
+    EXPECT_EQ("about", words[3]);
+    EXPECT_EQ(2048, words.size());
   }
 
   char* seed = nullptr;

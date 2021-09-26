@@ -120,6 +120,11 @@ class CFD_EXPORT CoinSelectionOption {
    * @return dust fee satoshi
    */
   Amount GetDustFeeAmount(const Address& address) const;
+  /**
+   * @brief Get the ignore fee asset flag.
+   * @return ignore fee asset flag.
+   */
+  bool HasIgnoreFeeAsset() const;
 
   /**
    * @brief Set the BnB using flag.
@@ -156,6 +161,11 @@ class CFD_EXPORT CoinSelectionOption {
    * @param[in] baserate    fee baserate (for BTC/byte)
    */
   void SetDustFeeRate(double baserate);
+  /**
+   * @brief Set the ignore fee asset.
+   * @param[in] has_ignore_fee_asset    ignore fee asset
+   */
+  void SetIgnoreFeeAsset(bool has_ignore_fee_asset);
 
   /**
    * @brief Initializes size related information equivalent to bitcoin.
@@ -212,6 +222,7 @@ class CFD_EXPORT CoinSelectionOption {
   uint64_t long_term_fee_baserate_;  //!< longterm fee baserate
   int64_t knapsack_minimum_change_;  //!< knapsack min change
   int64_t dust_fee_rate_;            //!< dust fee rate
+  bool has_ignore_fee_asset_;        //!< ignore fee asset
 #ifndef CFD_DISABLE_ELEMENTS
   ConfidentialAssetId fee_asset_;  //!< asset to be used as a fee
   int exponent_ = 0;               //!< rangeproof exponent value
@@ -271,6 +282,8 @@ class CFD_EXPORT CoinSelection {
    * @param[out] utxo_fee_value   the fee amount for utxo
    * @param[out] map_searched_bnb Flag of whether you searched with BnB.
    *   The result is stored for each Asset specified by map_target_value.
+   * @param[out] map_utxo_fee_value Fee utxo amount map.
+   *   The collection amount for each Asset specified by map_target_value is stored.
    * @return UTXO list. If it is empty, the error ends.
    */
   std::vector<Utxo> SelectCoins(
@@ -278,7 +291,8 @@ class CFD_EXPORT CoinSelection {
       const UtxoFilter& filter, const CoinSelectionOption& option_params,
       const Amount& tx_fee_value, AmountMap* map_select_value,
       Amount* utxo_fee_value = nullptr,
-      std::map<std::string, bool>* map_searched_bnb = nullptr);
+      std::map<std::string, bool>* map_searched_bnb = nullptr,
+      AmountMap* map_utxo_fee_value = nullptr);
 #endif  // CFD_DISABLE_ELEMENTS
 
   /**

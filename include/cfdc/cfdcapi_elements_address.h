@@ -69,6 +69,27 @@ CFDC_API int CfdGetPeginAddress(
     int hash_type, const char* pubkey, const char* redeem_script,
     char** pegin_address, char** claim_script, char** tweaked_fedpeg_script);
 
+/**
+ * @brief get pegout address.
+ * @param[in] handle                cfd handle.
+ * @param[in] mainchain_network     mainchain network.
+ * @param[in] elements_network      elements network.
+ * @param[in] descriptor            descriptor.
+ * @param[in] bip32_counter         bip32 counter.
+ * @param[in] address_type          address type. (use if descriptor is xpub.)
+ * @param[out] mainchain_address    mainchain address.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @param[out] base_descriptor      pegout base descriptor.
+ *   If 'CfdFreeStringBuffer' is implemented,
+ *   Call 'CfdFreeStringBuffer' after you are finished using it.
+ * @return CfdErrorCode
+ */
+CFDC_API int CfdGetPegoutAddress(
+    void* handle, int mainchain_network, int elements_network,
+    const char* descriptor, uint32_t bip32_counter, int address_type,
+    char** mainchain_address, char** base_descriptor);
+
 #ifdef __cplusplus
 #if 0
 {
