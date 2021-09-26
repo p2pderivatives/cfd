@@ -256,42 +256,6 @@ CFDC_API int CfdSetOptionEstimateFee(
     double double_value, bool bool_value);
 
 /**
- * @brief Add Transaction Input for estimate fee handle.
- * @param[in] handle            cfd handle.
- * @param[in] fee_handle        handle for fee estimation apis.
- * @param[in] txid              input utxo's transaction id.
- * @param[in] vout              input utxo's vout.
- * @param[in] descriptor        the descriptor for creating locking_script.
- * @param[in] asset             utxo's unblind asset id.
- * @param[in] is_issuance       is utxo issuance input.
- * @param[in] is_blind_issuance is utxo blind issuance input.
- * @param[in] is_pegin          is utxo pegin input.
- * @param[in] pegin_btc_tx_size size of pegin transaction.
- * @param[in] fedpeg_script     utxo's unblind asset id.
- * @param[in] scriptsig_template  utxo's scriptsig template.
- * @return CfdErrorCode
- */
-CFDC_API int CfdAddTxInTemplateForEstimateFee(
-    void* handle, void* fee_handle, const char* txid, uint32_t vout,
-    const char* descriptor, const char* asset, bool is_issuance,
-    bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
-    const char* fedpeg_script, const char* scriptsig_template);
-
-/**
- * @brief set fee estimation's option.
- * @param[in] handle              cfd handle.
- * @param[in] fee_handle          handle for fee estimation apis.
- * @param[in] key                 option key.
- * @param[in] int64_value         int64 value.
- * @param[in] double_value        double value.
- * @param[in] bool_value          bool value.
- * @return CfdErrorCode
- */
-CFDC_API int CfdSetOptionEstimateFee(
-    void* handle, void* fee_handle, int key, int64_t int64_value,
-    double double_value, bool bool_value);
-
-/**
  * @brief Finalize fee estimation api call.
  * @param[in] handle                cfd handle.
  * @param[in] fee_handle            handle for fee estimation apis.
