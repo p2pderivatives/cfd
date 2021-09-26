@@ -126,6 +126,10 @@ TEST(cfdcapi_coin, EstimateFeeTest) {
           handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
           utxo.descriptor.c_str(), nullptr,
           false, false, false, 0, nullptr);
+      //ret = CfdAddTxInputForEstimateFee(
+      //    handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
+      //    utxo.descriptor.c_str(), nullptr,
+      //    false, false, false, nullptr, 0, 0, nullptr);
       EXPECT_EQ(kCfdSuccess, ret);
     }
 
@@ -197,10 +201,10 @@ TEST(cfdcapi_coin, EstimateFeeBySchnorr) {
 
   if (ret == kCfdSuccess) {
     for (auto& utxo : utxos) {
-      ret = CfdAddTxInForEstimateFee(
+      ret = CfdAddTxInputForEstimateFee(
           handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
           utxo.descriptor.c_str(), nullptr,
-          false, false, false, 0, nullptr);
+          false, false, false, nullptr, 0, 0, nullptr);
       EXPECT_EQ(kCfdSuccess, ret);
     }
 
@@ -281,10 +285,10 @@ TEST(cfdcapi_coin, EstimateFeeByTapscript) {
 
   if (ret == kCfdSuccess) {
     for (auto& utxo : utxos) {
-      ret = CfdAddTxInTemplateForEstimateFee(
+      ret = CfdAddTxInputForEstimateFee(
           handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
           utxo.descriptor.c_str(), nullptr,
-          false, false, false, 0, nullptr,
+          false, false, false, nullptr, 0, 0,
           utxo.scriptsig_template.GetHex().c_str());
       EXPECT_EQ(kCfdSuccess, ret);
     }
@@ -941,10 +945,10 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
 
   if (ret == kCfdSuccess) {
     for (auto& utxo : utxos) {
-      ret = CfdAddTxInForEstimateFee(
+      ret = CfdAddTxInputForEstimateFee(
           handle, fee_handle, utxo.txid.GetHex().c_str(), utxo.vout,
           utxo.descriptor.c_str(), utxo.asset.GetHex().c_str(),
-          false, false, false, 0, nullptr);
+          false, false, false, nullptr, 0, 0, nullptr);
       EXPECT_EQ(kCfdSuccess, ret);
     }
 
@@ -973,17 +977,67 @@ TEST(cfdcapi_coin, EstimateFeeElementsTest) {
   EXPECT_EQ(kCfdSuccess, ret);
 }
 
-TEST(cfdcapi_coin, CfCoinSelection_Asset2) {
+TEST(cfdcapi_coin, EstimateFee_PeginTx2) {
+  // signed pegin tx
+  const char* claim_script = "0014aab2ed7ac90f976a17ddb850c4a0c4e62db49b07";
+  std::string btc_tx = "020000000123edd3be8309747693f42e5b6a0a0c57899fca7d6fb5a8d9c4f52fbf7398f03d00000000000000008001a85e00000000000017a914fdfbf873904e8276428aa892576acd028775fbda8700000000";
+  std::string txoutproof = "0400c0209ac0009d7289eb8e52ef1883501b35ec6ee8a5bfc83a09000000000000000000e157506b8e9b09bed1b9a9d6045fa26735547d696d9ce230c7f2003d09704594f558e160ce981317486c10c46e0600000c7eab9226e14b446023e58c32f677298a3a60448556b3b6dcf189ea680035de47fcd1a47ece1bda2de728f1ea7ca166338ddd0ab1ee2797c7cd2c9c5d5d07b055ed58f3b21f1324c98e1c09a8f4dd3a3f5b3a7ca8efc48fcbcb41cbf5476c40e9e3abc1c5d78e4b59dde0cfabf3c47d68f2f83893b19c0079b6902525c41e146ad09cb3859268063fd6e6b123036e6c65a975698553d701e04f0801752a4c454ff689b184b1c48c3fdfc33a7e25c2d96f8b9dfcbbb6b970f7da7ecbccd6f3d33141fb1b60887f17a4d3351880635ff5e76e7941203348955d2675005892ca343b04b0b4b9206faf789f1c0659f100a69eea88bfdc66a2b2382fe628fb159304ffd3f7ef70acc4e0438b1fb380da205c7ae0746dfbb451bb2110a9a25e224455719c6c22fa85161cb1df6fc4a870b337d2de35c7cc478c6658147ea8e1d64e7152d172e425e8e3ffd1cfae750d09193292f6e170a1fbfd65d8d43ecc3c5e0932fddf4b338fb84ae565a87fb78bc9d4d5d32ab8bf1fba7880c08c3a8a3a7e3aa22803bdd602";
+
+  // 1 output data
+  static const char* const kTxData = "02000000000141fb1b60887f17a4d3351880635ff5e76e7941203348955d2675005892ca343b0000004000ffffffff02016d521c38ec1ea15734ae22b7c46064412829c0d0579f0a713d1c04ede979026f010000000000005e7f001600149aa483fc0fd0b1806f25e57903e4cbefb19c20a1016d521c38ec1ea15734ae22b7c46064412829c0d0579f0a713d1c04ede979026f010000000000000029000000000000";
+  static const char* const kFeeAsset = "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d";
+
   void* handle = NULL;
   int ret = CfdCreateHandle(&handle);
   EXPECT_EQ(kCfdSuccess, ret);
   EXPECT_FALSE((NULL == handle));
 
-  auto convert_to_byte = [](const uint8_t* byte_array, size_t size) -> ByteData {
-    std::vector<uint8_t> bytes(size);
-    memcpy(bytes.data(), byte_array, bytes.size());
-    return ByteData(bytes);
-  };
+  void* fee_handle = nullptr;
+  ret = CfdInitializeEstimateFee(handle, &fee_handle, true);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    ret = CfdAddTxInputForEstimateFee(
+        handle, fee_handle,
+        "3b34ca92580075265d9548332041796ee7f55f63801835d3a4177f88601bfb41", 0,
+        "wpkh(03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6)",
+        kFeeAsset,
+        false, false, true, claim_script,
+        btc_tx.length() / 2,
+        txoutproof.length() / 2, nullptr);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    int64_t txout_fee, utxo_fee;
+    ret = CfdFinalizeEstimateFee(
+        handle, fee_handle, kTxData, kFeeAsset, &txout_fee, &utxo_fee, false,
+        0.1);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_EQ(static_cast<int64_t>(13), txout_fee);
+    EXPECT_EQ(static_cast<int64_t>(24), utxo_fee);
+
+    ret = CfdFreeEstimateFeeHandle(handle, fee_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_coin, CfCoinSelection_Asset2) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
 
   void* coin_select_handle = nullptr;
   std::vector<UtxoData> utxos = CfdGetElementsUtxoDataListByC(true);

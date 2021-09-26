@@ -634,17 +634,30 @@ int CfdAddTxInForEstimateFee(
     void* handle, void* fee_handle, const char* txid, uint32_t vout,
     const char* descriptor, const char* asset, bool is_issuance,
     bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
-    const char* fedpeg_script) {
+    const char* claim_script) {
   return CfdAddTxInTemplateForEstimateFee(
       handle, fee_handle, txid, vout, descriptor, asset, is_issuance,
-      is_blind_issuance, is_pegin, pegin_btc_tx_size, fedpeg_script, nullptr);
+      is_blind_issuance, is_pegin, pegin_btc_tx_size, claim_script, nullptr);
 }
 
 int CfdAddTxInTemplateForEstimateFee(
     void* handle, void* fee_handle, const char* txid, uint32_t vout,
     const char* descriptor, const char* asset, bool is_issuance,
     bool is_blind_issuance, bool is_pegin, uint32_t pegin_btc_tx_size,
-    const char* fedpeg_script, const char* scriptsig_template) {
+    const char* claim_script, const char* scriptsig_template) {
+  return CfdAddTxInputForEstimateFee(
+      handle, fee_handle, txid, vout, descriptor, asset, is_issuance,
+      is_blind_issuance, is_pegin, claim_script, pegin_btc_tx_size,
+      500,  // dummy
+      scriptsig_template);
+}
+
+int CfdAddTxInputForEstimateFee(
+    void* handle, void* fee_handle, const char* txid, uint32_t vout,
+    const char* descriptor, const char* asset, bool is_issuance,
+    bool is_blind_issuance, bool is_pegin, const char* claim_script,
+    uint32_t pegin_btc_tx_size, uint32_t pegin_txoutproof_size,
+    const char* scriptsig_template) {
   try {
     cfd::Initialize();
     CheckBuffer(fee_handle, kPrefixEstimateFeeData);
@@ -687,17 +700,19 @@ int CfdAddTxInTemplateForEstimateFee(
       param.is_blind_issuance = is_blind_issuance;
       param.is_pegin = is_pegin;
       param.pegin_btc_tx_size = pegin_btc_tx_size;
-      if (!IsEmptyString(fedpeg_script)) {
-        param.fedpeg_script = Script(fedpeg_script);
+      param.pegin_txoutproof_size = pegin_txoutproof_size;
+      if (!IsEmptyString(claim_script)) {
+        param.claim_script = Script(claim_script);
       }
       buffer->input_elements_utxos->push_back(param);
 #else
       info(
           CFD_LOG_SOURCE,
           "unuse parameters: [is_issuance={}, is_blind_issuance={}, "
-          "is_pegin={}, pegin_btc_tx_size={}, fedpeg_script={}]",
+          "is_pegin={}, pegin_btc_tx_size={}, pegin_txoutproof_size={}, "
+          "claim_script={}]",
           is_issuance, is_blind_issuance, is_pegin, pegin_btc_tx_size,
-          fedpeg_script);
+          pegin_txoutproof_size, claim_script);
 #endif  // CFD_DISABLE_ELEMENTS
     }
     buffer->input_utxos->push_back(utxo);

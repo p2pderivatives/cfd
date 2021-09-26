@@ -566,6 +566,8 @@ int CfdGetDescriptorRootData(
     }
     if (is_taproot && desc_data.tree.IsValid()) {
       work_tree_string = CreateString(desc_data.tree.ToString());
+    } else if (is_taproot && !desc_data.branch.ToString().empty()) {
+      work_tree_string = CreateString(desc_data.branch.ToString());
     }
     if ((pubkey != nullptr) && (pubkey_obj.IsValid())) {
       work_pubkey = CreateString(pubkey_obj.GetHex());

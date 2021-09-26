@@ -4,6 +4,7 @@
 
 #include "cfd/cfd_common.h"
 #include "cfd/cfd_elements_address.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_elements_address.h"
 
@@ -13,6 +14,7 @@ using cfd::core::ByteData;
 using cfd::core::ByteData160;
 using cfd::core::CfdException;
 using cfd::core::ConfidentialKey;
+using cfd::core::Descriptor;
 using cfd::core::GetElementsAddressFormatList;
 using cfd::core::GetBitcoinAddressFormatList;
 using cfd::core::NetType;
@@ -389,4 +391,39 @@ TEST(ElementsAddressFactory, CheckConfidentialAddressNetType)
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kCustomChain));
   EXPECT_FALSE(factory.CheckAddressNetType(addr, NetType::kNetTypeNum));
 }
+
+TEST(ElementsAddressFactory, CreatePegOutAddress)
+{
+  Descriptor desc;
+  auto pegout_addr = ElementsAddressFactory::CreatePegOutAddress(
+    NetType::kRegtest, NetType::kElementsRegtest,
+    "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y/0/*))", 0, AddressType::kP2shP2wpkhAddress, &desc);
+  EXPECT_EQ(pegout_addr.GetAddress(), "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo");
+  EXPECT_EQ(desc.ToString(false), "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))");
+
+  pegout_addr = ElementsAddressFactory::CreatePegOutAddress(
+    NetType::kRegtest, NetType::kElementsRegtest,
+    "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))", 0, AddressType::kP2shP2wpkhAddress, &desc);
+  EXPECT_EQ(pegout_addr.GetAddress(), "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo");
+  EXPECT_EQ(desc.ToString(false), "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))");
+
+  pegout_addr = ElementsAddressFactory::CreatePegOutAddress(
+    NetType::kRegtest, NetType::kElementsRegtest,
+    "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y", 0, AddressType::kP2shP2wpkhAddress, &desc);
+  EXPECT_EQ(pegout_addr.GetAddress(), "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo");
+  EXPECT_EQ(desc.ToString(false), "sh(wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y))");
+
+  pegout_addr = ElementsAddressFactory::CreatePegOutAddress(
+    NetType::kRegtest, NetType::kElementsRegtest,
+    "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y", 0, AddressType::kP2wpkhAddress, &desc);
+  EXPECT_EQ(pegout_addr.GetAddress(), "bcrt1qa77w63m523kq82z4fn3d5f7qxqxfm4pmdthkdf");
+  EXPECT_EQ(desc.ToString(false), "wpkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)");
+
+  pegout_addr = ElementsAddressFactory::CreatePegOutAddress(
+    NetType::kRegtest, NetType::kElementsRegtest,
+    "tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y", 0, AddressType::kP2pkhAddress, &desc);
+  EXPECT_EQ(pegout_addr.GetAddress(), "n3Na7mek1zAStRxvt7RPrNCpZhDErMPkGw");
+  EXPECT_EQ(desc.ToString(false), "pkh(tpubDASgDECJvTMzUgS7GkSCxQAAWPveW7BeTPSvbi1wpUe1Mq1v743FRw1i7vTavjAb3D3Y8geCTYw2ezgiVS7SFXDXS6NpZmvr6XPjPvg632y)");
+}
+
 #endif

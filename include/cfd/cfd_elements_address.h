@@ -14,6 +14,7 @@
 #include "cfd/cfd_address.h"
 #include "cfd/cfd_common.h"
 #include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_script.h"
@@ -24,6 +25,7 @@ using cfd::core::Address;
 using cfd::core::AddressFormatData;
 using cfd::core::AddressType;
 using cfd::core::ConfidentialKey;
+using cfd::core::Descriptor;
 using cfd::core::ElementsConfidentialAddress;
 using cfd::core::ElementsNetType;
 using cfd::core::NetType;
@@ -159,6 +161,21 @@ class CFD_EXPORT ElementsAddressFactory : public AddressFactory {
   static Address CreatePegInAddress(
       NetType mainchain_net_type, AddressType address_type,
       const Script& tweak_fedpegscript);
+
+  /**
+   * @brief get pegout address.
+   * @param[in] mainchain_network     mainchain network.
+   * @param[in] elements_network      elements network.
+   * @param[in] descriptor_or_xpub    descriptor or xpub.
+   * @param[in] bip32_counter         bip32 counter.
+   * @param[in] address_type          address type. (use if descriptor is xpub.)
+   * @param[out] base_descriptor      pegout base descriptor.
+   * @return mainchain address
+   */
+  static Address CreatePegOutAddress(
+      NetType mainchain_network, NetType elements_network,
+      const std::string& descriptor_or_xpub, uint32_t bip32_counter,
+      AddressType address_type, Descriptor* base_descriptor);
 
   /**
    * @brief check confidential address's network type is valid.

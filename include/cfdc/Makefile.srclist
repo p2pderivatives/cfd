@@ -3,6 +3,7 @@
 CFDC_PKGINCLUDE_FILES = \
   cfdcapi_common.h \
   cfdcapi_address.h \
+  cfdcapi_block.h \
   cfdcapi_script.h \
   cfdcapi_transaction.h \
   cfdcapi_key.h \

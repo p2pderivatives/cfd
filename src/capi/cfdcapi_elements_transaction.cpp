@@ -147,6 +147,7 @@ using cfd::capi::CfdCapiBlindTxData;
 using cfd::capi::CfdCapiMultisigSignData;
 using cfd::capi::CfdCapiTransactionData;
 using cfd::capi::CheckBuffer;
+using cfd::capi::CheckEmptyString;
 using cfd::capi::ConvertAddressType;
 using cfd::capi::ConvertHashToAddressType;
 using cfd::capi::ConvertNetType;
@@ -334,7 +335,13 @@ int CfdUpdateConfidentialTxOut(
           "Failed to parameter. asset is null or empty.");
     }
 
-    ConfidentialTransaction ctx(tx_hex_string);
+    ConfidentialTransactionContext ctx(tx_hex_string);
+    if (ctx.HasBlinding()) {
+      warn(CFD_LOG_SOURCE, "tx is already blinded.");
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Failed to blinded. this function can use unblind tx only.");
+    }
 
     ConfidentialValue value;
     if (IsEmptyString(value_commitment)) {
@@ -2406,6 +2413,86 @@ int CfdGetConfidentialTxInfoByHandle(
   return error_code;
 }
 
+int CfdHasPegoutConfidentialTxOut(
+    void* handle, void* tx_data_handle, uint32_t index) {
+  int ret = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(tx_data_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(tx_data_handle);
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    if (!tx->HasPegoutTxOut(index)) return CfdErrorCode::kCfdNotFoundError;
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    ret = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return ret;
+}
+
+int CfdGetPegoutMainchainAddress(
+    void* handle, void* tx_data_handle, uint32_t index, int mainchain_network,
+    char** mainchain_address) {
+  int ret = CfdErrorCode::kCfdUnknownError;
+  try {
+    cfd::Initialize();
+    CheckBuffer(tx_data_handle, kPrefixTransactionData);
+    CfdCapiTransactionData* tx_data =
+        static_cast<CfdCapiTransactionData*>(tx_data_handle);
+    if (mainchain_address == nullptr) {
+      warn(CFD_LOG_SOURCE, "mainchain_address is null.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. mainchain_address is null.");
+    }
+    bool is_bitcoin = false;
+    ConvertNetType(tx_data->net_type, &is_bitcoin);
+    if (tx_data->tx_obj == nullptr) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError, "Invalid handle state. tx is null");
+    } else if (is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalStateError,
+          "Invalid handle state. tx is bitcoin.");
+    }
+    auto mainchain_net_type = ConvertNetType(mainchain_network, &is_bitcoin);
+    if (!is_bitcoin) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. mainchain_network is not bitcoin.");
+    }
+
+    ConfidentialTransactionContext* tx =
+        static_cast<ConfidentialTransactionContext*>(tx_data->tx_obj);
+    auto addr = tx->GetTxOutPegoutAddress(index, mainchain_net_type);
+    *mainchain_address = CreateString(addr.GetAddress());
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    ret = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  return ret;
+}
+
 int CfdGetTxInIssuanceInfoByHandle(
     void* handle, void* tx_data_handle, uint32_t index, char** entropy,
     char** nonce, int64_t* asset_amount, char** asset_value,
@@ -3008,6 +3095,69 @@ int CfdAddTxPegoutOutput(
   } catch (...) {
     SetLastFatalError(handle, "unknown error.");
   }
+  return result;
+}
+
+int CfdUnblindTxOutData(
+    void* handle, const char* blinding_key, const char* locking_script,
+    const char* asset_commitment, const char* value_commitment,
+    const char* commitment_nonce, const char* rangeproof, char** asset,
+    int64_t* amount, char** asset_blind_factor, char** value_blind_factor) {
+  int result = CfdErrorCode::kCfdUnknownError;
+  char* work_asset = nullptr;
+  char* work_asset_blinder = nullptr;
+  char* work_value_blinder = nullptr;
+  try {
+    cfd::Initialize();
+    CheckEmptyString(locking_script, "locking_script", CFD_LOG_SOURCE);
+    CheckEmptyString(asset_commitment, "asset", CFD_LOG_SOURCE);
+    CheckEmptyString(value_commitment, "value_commitment", CFD_LOG_SOURCE);
+    CheckEmptyString(commitment_nonce, "commitment_nonce", CFD_LOG_SOURCE);
+    CheckEmptyString(rangeproof, "rangeproof", CFD_LOG_SOURCE);
+    CheckEmptyString(blinding_key, "blinding_key", CFD_LOG_SOURCE);
+
+    Script locking_script_obj(locking_script);
+    ConfidentialAssetId asset_obj(asset_commitment);
+    ConfidentialValue value(value_commitment);
+    ConfidentialNonce nonce(commitment_nonce);
+    ByteData rangeproof_obj(rangeproof);
+    Privkey blinding_key_obj = Privkey::HasWif(blinding_key)
+                                   ? Privkey::FromWif(blinding_key)
+                                   : Privkey(blinding_key);
+    ConfidentialTxOut txout(
+        locking_script_obj, asset_obj, value, nonce, ByteData(),
+        rangeproof_obj);
+    auto unblind_data = txout.Unblind(blinding_key_obj);
+
+    if (asset != nullptr) {
+      work_asset = CreateString(unblind_data.asset.GetHex());
+    }
+    if (asset_blind_factor != nullptr) {
+      work_asset_blinder = CreateString(unblind_data.abf.GetHex());
+    }
+    if (value_blind_factor != nullptr) {
+      work_value_blinder = CreateString(unblind_data.vbf.GetHex());
+    }
+    if (amount != nullptr) {
+      *amount = unblind_data.value.GetAmount().GetSatoshiValue();
+    }
+
+    if (asset != nullptr) *asset = work_asset;
+    if (asset_blind_factor != nullptr) {
+      *asset_blind_factor = work_asset_blinder;
+    }
+    if (value_blind_factor != nullptr) {
+      *value_blind_factor = work_value_blinder;
+    }
+    return CfdErrorCode::kCfdSuccess;
+  } catch (const CfdException& except) {
+    result = SetLastError(handle, except);
+  } catch (const std::exception& std_except) {
+    SetLastFatalError(handle, std_except.what());
+  } catch (...) {
+    SetLastFatalError(handle, "unknown error.");
+  }
+  FreeBufferOnError(&work_asset, &work_asset_blinder, &work_value_blinder);
   return result;
 }
 

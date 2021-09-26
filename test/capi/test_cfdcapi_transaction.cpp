@@ -864,8 +864,6 @@ TEST(cfdcapi_transaction, VerifyTxSign) {
 
 TEST(cfdcapi_transaction, SplitTxOut) {
   static const char* const kTxHex = "02000000000102a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a47304402205d038d82d3d7043f21b9b3d0e3ea85225ffcb78d02b8531cb1ddbec7e577e7460220367c0b985b1bb76de1f95ce4696ad9717f28ed6a356765cf31a894c42f3bb81201210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffff02706f9800000000001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac20bf02000000000016001445663e592ff613587f0fdd6e74034c5239710dca00024730440220572c4f56643d35a229bf632810ee947190414285b790e841f9e664dfd8e1f25d022021d8e4b01c08ad50bf3f1b6edfb25bb9dc8640b36dce1e26bff352097068d07f01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2700000000";
-  static const char* const kTxid = "31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3";
-  static const uint32_t kVout = 0;
 
   void* handle = nullptr;
   int ret = CfdCreateHandle(&handle);
@@ -950,6 +948,52 @@ TEST(cfdcapi_transaction, UpdateWitnessStack) {
     EXPECT_FALSE((nullptr == tx_hex));
     if (tx_hex != nullptr) {
       EXPECT_STREQ("02000000000102a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a47304402205d038d82d3d7043f21b9b3d0e3ea85225ffcb78d02b8531cb1ddbec7e577e7460220367c0b985b1bb76de1f95ce4696ad9717f28ed6a356765cf31a894c42f3bb81201210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffff02706f9800000000001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac20bf02000000000016001445663e592ff613587f0fdd6e74034c5239710dca00024730440220572c4f56643d35a229bf632810ee947190414285b790e841f9e664dfd8e1f25d022021d8e4b01c08ad50bf3f1b6edfb25bb9dc8640b36dce1e26bff352097068d07f012102f56451fc1fd9040652ff9a700cf914ad1df1c8f9e82f3fe96ca01b6cd47293ef00000000", tx_hex);
+      CfdFreeStringBuffer(tx_hex);
+    }
+
+    ret = CfdFreeTxDataHandle(handle, tx_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = nullptr;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_transaction, UpdateTxInSequence) {
+  static const char* const kTxHex = "02000000000102a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a47304402205d038d82d3d7043f21b9b3d0e3ea85225ffcb78d02b8531cb1ddbec7e577e7460220367c0b985b1bb76de1f95ce4696ad9717f28ed6a356765cf31a894c42f3bb81201210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcaffffffff02706f9800000000001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac20bf02000000000016001445663e592ff613587f0fdd6e74034c5239710dca00024730440220572c4f56643d35a229bf632810ee947190414285b790e841f9e664dfd8e1f25d022021d8e4b01c08ad50bf3f1b6edfb25bb9dc8640b36dce1e26bff352097068d07f01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2700000000";
+  static const char* const kTxid = "31559192b619fd52b2cc0ca54d33778acae393ed31c453e29301a3919763b9e3";
+  static const uint32_t kVout = 0;
+
+  void* handle = nullptr;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((nullptr == handle));
+
+  void* tx_handle = nullptr;
+  ret = CfdInitializeTxDataHandle(
+      handle, kCfdNetworkMainnet, kTxHex, &tx_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((nullptr == tx_handle));
+  if (ret == kCfdSuccess) {
+    ret = CfdUpdateTxInSequence(handle, tx_handle, kTxid, kVout, 4294967294);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    char* tx_hex = nullptr;
+    ret = CfdFinalizeTransaction(handle, tx_handle, &tx_hex);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_FALSE((nullptr == tx_hex));
+    if (tx_hex != nullptr) {
+      EXPECT_STREQ("02000000000102a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a000000006a47304402205d038d82d3d7043f21b9b3d0e3ea85225ffcb78d02b8531cb1ddbec7e577e7460220367c0b985b1bb76de1f95ce4696ad9717f28ed6a356765cf31a894c42f3bb81201210359bc91953b251ae501758673b9d6dd78eafa327190741536025d92217a3f567bffffffffe3b9639791a30193e253c431ed93e3ca8a77334da50cccb252fd19b692915531000000001716001445663e592ff613587f0fdd6e74034c5239710dcafeffffff02706f9800000000001976a9149157a10c10924d7550ee7079cda55db1d11a278a88ac20bf02000000000016001445663e592ff613587f0fdd6e74034c5239710dca00024730440220572c4f56643d35a229bf632810ee947190414285b790e841f9e664dfd8e1f25d022021d8e4b01c08ad50bf3f1b6edfb25bb9dc8640b36dce1e26bff352097068d07f01210206d4fabad19c61ffb180fa8a6d0f973e11485e60115557179786f7ea5d806a2700000000", tx_hex);
       CfdFreeStringBuffer(tx_hex);
     }
 
@@ -1100,6 +1144,9 @@ TEST(cfdcapi_transaction, FundRawTransaction_BTC1) {
     ret = CfdAddTxInForFundRawTx(handle, fund_handle,
         "9f96ade4b41d5433f4eda31e1738ec2b36f6e7d1420d94a6af99801a88f7f7ff", 0,
         amount,  kDescriptor, "", false, false, false, 0, "");
+    // ret = CfdAddTxInputForFundRawTx(handle, fund_handle,
+    //     "9f96ade4b41d5433f4eda31e1738ec2b36f6e7d1420d94a6af99801a88f7f7ff", 0,
+    //     amount,  kDescriptor, "", false, false, false, "", 0, 0, nullptr);
     EXPECT_EQ(kCfdSuccess, ret);
 
     ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0, 65976100,
@@ -1246,10 +1293,10 @@ TEST(cfdcapi_transaction, FundRawTransaction_Asset1) {
       EXPECT_EQ(kCfdSuccess, ret);
     }
 
-    ret = CfdAddTxInForFundRawTx(handle, fund_handle,
+    ret = CfdAddTxInputForFundRawTx(handle, fund_handle,
         "9f96ade4b41d5433f4eda31e1738ec2b36f6e7d1420d94a6af99801a88f7f7ff", 0,
         amount,  kDescriptor, exp_dummytx_asset_ca,
-        false, false, false, 0, "");
+        false, false, false, "", 0, 0, nullptr);
     EXPECT_EQ(kCfdSuccess, ret);
 
     ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0, 115800000,
@@ -1288,10 +1335,10 @@ TEST(cfdcapi_transaction, FundRawTransaction_Asset1) {
         effective_fee_rate, &tx_fee_amount, &append_txout_count,
         &output_tx_hex);
     EXPECT_EQ(kCfdSuccess, ret);
-    EXPECT_EQ(109860, tx_fee_amount);
+    EXPECT_EQ(108020, tx_fee_amount);
     EXPECT_EQ(3, append_txout_count);
     if (ret == kCfdSuccess) {
-      EXPECT_STREQ("010000000006fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000feffffff0a9a33750a810cd384ca5d93b09513f1eb5d93c669091b29eef710d2391ff7300000000000feffffff0ad4a335556c64c3e2599c3a4c3ddff5b28f616fa55cf2323d2ae642eef74a8f0000000000feffffff030b0000000000000000000000000000000000000000000000000000000000000000000000feffffff020b0000000000000000000000000000000000000000000000000000000000000000000000feffffff010c0000000000000000000000000000000000000000000000000000000000000000000000feffffff050100000000000000000000000000000000000000000000000000000000000000aa010000000006b22c2000160014c6598809d09edaacb8f4f4d5b9b81e4413a572430100000000000000000000000000000000000000000000000000000000000000aa01000000000001ad2400000100000000000000000000000000000000000000000000000000000000000000bb010000000014b18c12001600148aff8eea7bef9ec60d35d7034b2e48e180e93c5d0100000000000000000000000000000000000000000000000000000000000000cc0100000000023e8eb800160014799a8d3f11251b6a6df4ba156a28dd64ad969a910100000000000000000000000000000000000000000000000000000000000000aa010000000006fa7688001600146cd31ad8b8552934f4bd9c8cf84a93cbd7a49de111000000", output_tx_hex);
+      EXPECT_STREQ("010000000006fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000feffffff0a9a33750a810cd384ca5d93b09513f1eb5d93c669091b29eef710d2391ff7300000000000feffffff0ad4a335556c64c3e2599c3a4c3ddff5b28f616fa55cf2323d2ae642eef74a8f0000000000feffffff030b0000000000000000000000000000000000000000000000000000000000000000000000feffffff020b0000000000000000000000000000000000000000000000000000000000000000000000feffffff010c0000000000000000000000000000000000000000000000000000000000000000000000feffffff050100000000000000000000000000000000000000000000000000000000000000aa010000000006b22c2000160014c6598809d09edaacb8f4f4d5b9b81e4413a572430100000000000000000000000000000000000000000000000000000000000000aa01000000000001a5f400000100000000000000000000000000000000000000000000000000000000000000bb010000000014b18c12001600148aff8eea7bef9ec60d35d7034b2e48e180e93c5d0100000000000000000000000000000000000000000000000000000000000000cc0100000000023e8eb800160014799a8d3f11251b6a6df4ba156a28dd64ad969a910100000000000000000000000000000000000000000000000000000000000000aa010000000006fa7db8001600146cd31ad8b8552934f4bd9c8cf84a93cbd7a49de111000000", output_tx_hex);
       CfdFreeStringBuffer(output_tx_hex);
     }
 
@@ -1351,6 +1398,838 @@ TEST(cfdcapi_transaction, VerifyTxSignElements) {
     EXPECT_STREQ("", str_buffer);
     CfdFreeStringBuffer(str_buffer);
     str_buffer = nullptr;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_transaction, ElementsSignTransactionTest) {
+  void* handle = nullptr;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  struct CfdSignTransactionTestData {
+    int network;
+    int key_network;
+    const char* txid;
+    uint32_t vout;
+    const char* descriptor;
+    int64_t utxo_amount;
+    const char* utxo_commitment;
+    const char* redeem_script;
+    const char* tapscript_control;
+    const char* tapleaf_hash;
+    const char* annex;
+    const char* aux_rand;
+    const char* pubkey;
+    const char* privkey;
+    int sighash_type;
+    const char* txout_address;
+    int64_t amount;
+    const char* asset;
+    const char* signed_tx;
+    bool use_direct_sign;
+    int hash_type;
+  };
+  const struct CfdSignTransactionTestData exp_datas[] = {
+    {  // p2wpkh
+      kCfdNetworkElementsRegtest,
+      kCfdNetworkRegtest,
+      "cd6adc252632eb0768ac6407e586cc74bfed739d6c8b9efa55305eb37cbd76dd", 0,
+      "wpkh(023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44)",
+      2500000000,
+      "",
+      nullptr, nullptr, nullptr, nullptr, nullptr,
+      "023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44",
+      "28190dff04c40f130b7be4a597213338cb8860ff38bbab5236bd1b3ff8472554",
+      kCfdSigHashAll,
+      "el1qqtl9a3n6878ex25u0wv8u5qlzpfkycc0cftk65t52pkauk55jqka0fajk8d80lafn4t9kqxe77cu9ez2dyr6sq54lwy009uex",
+      2499999000,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+      "020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51802fe5ec67a3f8f932a9c7b987e501f105362630fc2576d5174506dde5a94902dd7160014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a80125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e80000000000000000024730440220451027781118259d92ca7fef774b3d90fe90e92109879a123f1d266c6dbf480602204e9612cf045f499c00cad4c2bf07a95cf9aad192bbfb18f95e56770ea324cb3c0121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c440000000000",
+      false, kCfdP2wpkh
+    },
+    {  // p2wpkh auto sign
+      kCfdNetworkElementsRegtest,
+      kCfdNetworkRegtest,
+      "cd6adc252632eb0768ac6407e586cc74bfed739d6c8b9efa55305eb37cbd76dd", 0,
+      "wpkh(023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44)",
+      2500000000,
+      "",
+      nullptr, nullptr, nullptr, nullptr, nullptr,
+      "023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44",
+      "28190dff04c40f130b7be4a597213338cb8860ff38bbab5236bd1b3ff8472554",
+      kCfdSigHashAll,
+      "el1qqtl9a3n6878ex25u0wv8u5qlzpfkycc0cftk65t52pkauk55jqka0fajk8d80lafn4t9kqxe77cu9ez2dyr6sq54lwy009uex",
+      2499999000,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+      "020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51802fe5ec67a3f8f932a9c7b987e501f105362630fc2576d5174506dde5a94902dd7160014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a80125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e80000000000000000024730440220451027781118259d92ca7fef774b3d90fe90e92109879a123f1d266c6dbf480602204e9612cf045f499c00cad4c2bf07a95cf9aad192bbfb18f95e56770ea324cb3c0121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c440000000000",
+      true, kCfdP2wpkh
+    },
+    {  // p2wsh-multisig
+      kCfdNetworkElementsRegtest,
+      kCfdNetworkRegtest,
+      "cd6adc252632eb0768ac6407e586cc74bfed739d6c8b9efa55305eb37cbd76dd", 0,
+      "wsh(multi(1,023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44,03ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae))",
+      2500000000,
+      "",
+      "5121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c442103ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae52ae",
+      nullptr, nullptr, nullptr, nullptr,
+      "023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44",
+      "28190dff04c40f130b7be4a597213338cb8860ff38bbab5236bd1b3ff8472554",
+      kCfdSigHashAll,
+      "el1qqtl9a3n6878ex25u0wv8u5qlzpfkycc0cftk65t52pkauk55jqka0fajk8d80lafn4t9kqxe77cu9ez2dyr6sq54lwy009uex",
+      2499999000,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+      "020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51802fe5ec67a3f8f932a9c7b987e501f105362630fc2576d5174506dde5a94902dd7160014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a80125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e8000000000000000003004730440220159cf45907d607b3200f6f66823715477fb46a25389c6105925ddfd6149a8c6402206ba5bbc948e273fef511ddb77bcd4e78eb78a34578dd00e290401ccf9f3e7cce01475121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c442103ebb70cf8b4adfff5559794d2e972d55c9429dbda25cd5911615dcab422d031ae52ae0000000000",
+      false, kCfdP2wsh
+    },
+    {  // blind p2wpkh
+      kCfdNetworkElementsRegtest,
+      kCfdNetworkRegtest,
+      "cd6adc252632eb0768ac6407e586cc74bfed739d6c8b9efa55305eb37cbd76dd", 0,
+      "wpkh(023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44)",
+      2500000000,
+      "08b760fd74cae28eaa41126b3c1129b2d708d893e17b4e61bd9d5a5b12a1c7643b",
+      nullptr, nullptr, nullptr, nullptr, nullptr,
+      "023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44",
+      "28190dff04c40f130b7be4a597213338cb8860ff38bbab5236bd1b3ff8472554",
+      kCfdSigHashAll,
+      "el1qqtl9a3n6878ex25u0wv8u5qlzpfkycc0cftk65t52pkauk55jqka0fajk8d80lafn4t9kqxe77cu9ez2dyr6sq54lwy009uex",
+      2499999000,
+      "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+      "020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51802fe5ec67a3f8f932a9c7b987e501f105362630fc2576d5174506dde5a94902dd7160014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a80125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e80000000000000000024730440220036e63bafeb6b76f1d5b94c248f7bbdcc1904046627f0712a2105930ae31dda8022028b49544faf211cd632c12e38efa97fdc1233122418dbb035194b83e689b6de80121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c440000000000",
+      false, kCfdP2wpkh
+    },
+  };
+  size_t list_size = sizeof(exp_datas) / sizeof(struct CfdSignTransactionTestData);
+
+  for (size_t idx = 0; idx < list_size; ++idx) {
+    SCOPED_TRACE("index: " + std::to_string(idx));
+    void* create_handle = nullptr;
+    char* sighash = nullptr;
+    char* sig = nullptr;
+    char* tmp_sig = nullptr;
+    ret = CfdInitializeTransaction(
+        handle, exp_datas[idx].network, 2, 0, nullptr, &create_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_FALSE((NULL == create_handle));
+    if (ret == kCfdSuccess) {
+      ret = CfdSetTransactionUtxoData(handle, create_handle,
+          exp_datas[idx].txid, exp_datas[idx].vout, exp_datas[idx].utxo_amount,
+          exp_datas[idx].utxo_commitment, exp_datas[idx].descriptor,
+          nullptr, exp_datas[idx].asset, nullptr, true);
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      ret = CfdAddTransactionOutput(handle, create_handle,
+          exp_datas[idx].amount, exp_datas[idx].txout_address, nullptr,
+          exp_datas[idx].asset);
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      ret = CfdAddTransactionOutput(handle, create_handle,
+          exp_datas[idx].utxo_amount - exp_datas[idx].amount,
+          nullptr, nullptr, exp_datas[idx].asset);
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      bool has_tapscript = false;
+      if (ret != kCfdSuccess) {
+        // do nothing
+      } else if (exp_datas[idx].use_direct_sign) {
+        ret = CfdAddSignWithPrivkeyByHandle(handle, create_handle,
+            exp_datas[idx].txid, exp_datas[idx].vout, exp_datas[idx].privkey,
+            exp_datas[idx].sighash_type, false, true, exp_datas[idx].aux_rand,
+            exp_datas[idx].annex);
+        EXPECT_EQ(kCfdSuccess, ret);
+      } else {
+        uint32_t code_separator_pos = cfd::core::kDefaultCodeSeparatorPosition;
+        ret = CfdCreateSighashByHandle(handle, create_handle,
+            exp_datas[idx].txid, exp_datas[idx].vout,
+            exp_datas[idx].sighash_type, false,
+            (exp_datas[idx].redeem_script) ? nullptr : exp_datas[idx].pubkey,
+            exp_datas[idx].redeem_script,
+            exp_datas[idx].tapleaf_hash, code_separator_pos,
+            exp_datas[idx].annex, &sighash);
+        EXPECT_EQ(kCfdSuccess, ret);
+        if (ret != kCfdSuccess) {
+          // do nothing
+        } else if (strlen(exp_datas[idx].pubkey) == 64) {
+          // taproot/tapscript
+          ret = CfdSignSchnorr(handle, sighash,
+              exp_datas[idx].privkey, exp_datas[idx].aux_rand, &tmp_sig);
+          EXPECT_EQ(kCfdSuccess, ret);
+          ret = CfdAddSighashTypeInSchnorrSignature(handle, tmp_sig,
+              exp_datas[idx].sighash_type, false, &sig);
+          EXPECT_EQ(kCfdSuccess, ret);
+
+          if (exp_datas[idx].redeem_script != nullptr) {
+            has_tapscript = true;
+            ret = CfdAddTxSignByHandle(handle, create_handle,
+                exp_datas[idx].txid, exp_datas[idx].vout,
+                exp_datas[idx].hash_type, sig, false,
+                exp_datas[idx].sighash_type, false, true);
+            EXPECT_EQ(kCfdSuccess, ret);
+
+            ret = CfdAddTaprootSignByHandle(handle, create_handle,
+                exp_datas[idx].txid, exp_datas[idx].vout,
+                nullptr, exp_datas[idx].redeem_script,
+                exp_datas[idx].tapscript_control, exp_datas[idx].annex);
+            EXPECT_EQ(kCfdSuccess, ret);
+          } else {
+            ret = CfdAddTaprootSignByHandle(handle, create_handle,
+                exp_datas[idx].txid, exp_datas[idx].vout,
+                sig, nullptr, nullptr, exp_datas[idx].annex);
+            EXPECT_EQ(kCfdSuccess, ret);
+          }
+        } else if (exp_datas[idx].redeem_script != nullptr) {
+          // script
+          ret = CfdCalculateEcSignature(handle, sighash,
+              exp_datas[idx].privkey, nullptr,
+              exp_datas[idx].key_network, true, &sig);
+          EXPECT_EQ(kCfdSuccess, ret);
+
+          // multisig first
+          ret = CfdAddTxSignByHandle(handle, create_handle,
+              exp_datas[idx].txid, exp_datas[idx].vout,
+              exp_datas[idx].hash_type, "", false,
+              exp_datas[idx].sighash_type, false, true);
+          EXPECT_EQ(kCfdSuccess, ret);
+
+          ret = CfdAddTxSignByHandle(handle, create_handle,
+              exp_datas[idx].txid, exp_datas[idx].vout,
+              exp_datas[idx].hash_type, sig, true,
+              exp_datas[idx].sighash_type, false, false);
+          EXPECT_EQ(kCfdSuccess, ret);
+
+          ret = CfdAddScriptHashLastSignByHandle(handle, create_handle,
+              exp_datas[idx].txid, exp_datas[idx].vout,
+              exp_datas[idx].hash_type, exp_datas[idx].redeem_script);
+          EXPECT_EQ(kCfdSuccess, ret);
+        } else {
+          ret = CfdCalculateEcSignature(handle, sighash,
+              exp_datas[idx].privkey, nullptr,
+              exp_datas[idx].key_network, true, &sig);
+          EXPECT_EQ(kCfdSuccess, ret);
+
+          if (ret == kCfdSuccess) {
+            ret = CfdAddPubkeyHashSignByHandle(handle, create_handle,
+              exp_datas[idx].txid, exp_datas[idx].vout,
+              exp_datas[idx].hash_type, exp_datas[idx].pubkey,
+              sig, true, exp_datas[idx].sighash_type, false);
+            EXPECT_EQ(kCfdSuccess, ret);
+          }
+        }
+
+        if (sighash != nullptr) {
+          CfdFreeStringBuffer(sighash);
+          sighash = nullptr;
+        }
+        if (sig != nullptr) {
+          CfdFreeStringBuffer(sig);
+          sig = nullptr;
+        }
+        if (tmp_sig != nullptr) {
+          CfdFreeStringBuffer(tmp_sig);
+          tmp_sig = nullptr;
+        }
+      }
+
+      if (ret == kCfdSuccess) {
+        char* tx_hex = nullptr;
+        ret = CfdFinalizeTransaction(handle, create_handle, &tx_hex);
+        EXPECT_EQ(kCfdSuccess, ret);
+        if (ret == kCfdSuccess) {
+          EXPECT_STREQ(exp_datas[idx].signed_tx, tx_hex);
+          CfdFreeStringBuffer(tx_hex);
+        }
+      }
+
+      if (ret == kCfdSuccess) {
+        ret = CfdVerifyTxSignByHandle(handle, create_handle,
+            exp_datas[idx].txid, exp_datas[idx].vout);
+        if ((ret != kCfdSuccess) && has_tapscript) {
+          char* err_msg = NULL;
+          CfdGetLastErrorMessage(handle, &err_msg);
+          const char* tapscript_err_msg = "The script analysis of tapscript is not supported.";
+          EXPECT_STREQ(tapscript_err_msg, err_msg);
+          if (strcmp(tapscript_err_msg, err_msg) == 0) {
+            ret = kCfdSuccess;
+          }
+          CfdFreeStringBuffer(err_msg);
+          err_msg = NULL;
+        }
+        EXPECT_EQ(kCfdSuccess, ret);
+      }
+
+      int tmp_ret = CfdFreeTransactionHandle(handle, create_handle);
+      EXPECT_EQ(kCfdSuccess, tmp_ret);
+    }
+
+#if 0
+    ret = CfdGetLastErrorCode(handle);
+    if (ret != kCfdSuccess) {
+      char* str_buffer = NULL;
+      ret = CfdGetLastErrorMessage(handle, &str_buffer);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_STREQ("", str_buffer);
+      CfdFreeStringBuffer(str_buffer);
+      str_buffer = NULL;
+      break;
+    }
+#endif
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+
+TEST(cfdcapi_transaction, FundRawTransaction_Check1) {
+  // from cfd-go
+  struct CfdTestFundElementsUtxoVector {
+    std::string txid;
+    uint32_t vout;
+    int64_t amount;
+    std::string asset;
+    std::string descriptor;
+  };
+  static ConfidentialAssetId exp_dummy_asset_a("aa00000000000000000000000000000000000000000000000000000000000000");
+  static ConfidentialAssetId exp_dummy_asset_b("bb00000000000000000000000000000000000000000000000000000000000000");
+  static ConfidentialAssetId exp_dummy_asset_c("cc00000000000000000000000000000000000000000000000000000000000000");
+
+  static const std::vector<CfdTestFundElementsUtxoVector> kFundCoinSelectElementsTestVector3 = {
+    // mnemonic: token hair neglect leader furnace obtain sadness tool you father paddle skate remain carry impact dinosaur correct essay rent illness predict mercy exist ring
+    // xpriv: xprv9s21ZrQH143K4QXrTfC9L43GKCuLcDiBCWjyVqfZUTzoPJWUstD4HTJKGz1U5jAGZzKshcX6cCyZ1ZdxSUQLz92pEZWEGwxa39ks2vhTsfA
+    // derive: 44h/0h/0h/0/*
+    {
+      "7ca81dd22c934747f4f5ab7844178445fe931fb248e0704c062b8f4fbd3d500a",
+      0,
+      312500000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh(0329165ca5832de80305c92d4b1415f10340d267ba05cbffcfe02d386dc5020e4d))",
+    },
+    {
+      "30f71f39d210f7ee291b0969c6935debf11395b0935dca84d30c810a75339a0a",
+      0,
+      78125000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh(022db3cb17d98db6cd8d513f88b095dbe80ef9e57acd5b1d9e8bd7f24618079451))",
+    },
+    {
+      "9e1ead91c432889cb478237da974dd1e9009c9e22694fd1e3999c40a1ef59b0a",
+      0,
+      1250000000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh(032d04e0b1474a82ad68c0ef37e1a7cf6c75ef01b22c00882e8e4e127a942823a1))",
+    },
+    {
+      "8f4af7ee42e62a3d32f25ca56f618fb2f5df3d4c3a9c59e2c3646c5535a3d40a",
+      0,
+      39062500,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh(03a7fb569db921abf70f1b6b9ad9ac863196deecd99d606b139bba7d740d1cc5bf))",
+    },
+    {
+      "4d97d0119b90421818bff4ec9033e5199199b53358f56390cb20f8148e76f40a",
+      0,
+      156250000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh(02df74fc8124ff6f3982e90afb318f3e955b10f58c4c6014b3a767e16160f811d9))",
+    },
+    {
+      "b9720ed2265a4ced42425bffdb4ef90a473b4106811a802fce53f7c57487fa0b",
+      0,
+      2500000000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh(029222484db385d268a2a4604ea40fd2228401061f741ad9da8c907ba9df29c2d3))",
+    },
+    {
+      "0000000000000000000000000000000000000000000000000000000000000b01",
+      0,
+      26918400,
+      exp_dummy_asset_b.GetHex(),
+      "sh(wpkh(038f9011753b74fa0134d4b64a1491f99e0c4c0e16da616627c1f6a93c5e7555c0))",
+    },
+    {
+      "0000000000000000000000000000000000000000000000000000000000000b02",
+      0,
+      750000,
+      exp_dummy_asset_b.GetHex(),
+      "sh(wpkh(0302f567f9671b570dbcf179f3ba5f2fb381ea7e8db6ab9e0968c07d40325c3fcd))",
+    },
+    {
+      "0000000000000000000000000000000000000000000000000000000000000b03",
+      0,
+      346430050,
+      exp_dummy_asset_b.GetHex(),
+      "sh(wpkh(034ff60d8fb18ae88019f6f905cfaa0e1841f75edfa1f3c0a5bfaf77b796243901))",
+    },
+    {
+      "0000000000000000000000000000000000000000000000000000000000000b04",
+      0,
+      18476350,
+      exp_dummy_asset_b.GetHex(),
+      "sh(wpkh(029f2126cd8b55af7cc3cee8154c44de7cb7cb214809f81144d6b323d9c7a3993e))",
+    },
+    {
+      "0000000000000000000000000000000000000000000000000000000000000c01",
+      0,
+      37654200,
+      exp_dummy_asset_c.GetHex(),
+      "sh(wpkh(02f1d2c28388e3fd609ff383f022b615f1cd8a1931632706f63bfb6e253875ca03))",
+    },
+    {
+      "0000000000000000000000000000000000000000000000000000000000000c02",
+      0,
+      127030000,
+      exp_dummy_asset_c.GetHex(),
+      "sh(wpkh(02cca4482dc1e7d54c879c0d9069e3d66c3bf91b2bf46eddc74f18d76c659dfd10))",
+    },
+  };
+  static const std::string kExpTxData = "010000000006fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000feffffff0a9a33750a810cd384ca5d93b09513f1eb5d93c669091b29eef710d2391ff7300000000000feffffff0ad4a335556c64c3e2599c3a4c3ddff5b28f616fa55cf2323d2ae642eef74a8f0000000000feffffff030b0000000000000000000000000000000000000000000000000000000000000000000000feffffff020b0000000000000000000000000000000000000000000000000000000000000000000000feffffff010c0000000000000000000000000000000000000000000000000000000000000000000000feffffff050100000000000000000000000000000000000000000000000000000000000000aa010000000006b22c2000160014c6598809d09edaacb8f4f4d5b9b81e4413a572430100000000000000000000000000000000000000000000000000000000000000aa01000000000000026a00000100000000000000000000000000000000000000000000000000000000000000bb010000000014b18c12001600148aff8eea7bef9ec60d35d7034b2e48e180e93c5d0100000000000000000000000000000000000000000000000000000000000000cc0100000000023e8eb800160014799a8d3f11251b6a6df4ba156a28dd64ad969a910100000000000000000000000000000000000000000000000000000000000000aa010000000006fc2142001600146cd31ad8b8552934f4bd9c8cf84a93cbd7a49de111000000";
+
+  CfdInitialize();
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  try {
+    const char* tx = "010000000001fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000feffffff010100000000000000000000000000000000000000000000000000000000000000aa010000000006b22c2000160014c6598809d09edaacb8f4f4d5b9b81e4413a5724311000000";
+    uint32_t target_asset_count = 3;
+    auto fee_asset = exp_dummy_asset_a.GetHex();
+    void* fund_handle = nullptr;
+    ret = CfdInitializeFundRawTx(
+        handle, kCfdNetworkLiquidv1, target_asset_count,
+        fee_asset.c_str(), &fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_NE(nullptr, fund_handle);
+    if (ret == kCfdSuccess) {
+      for (const auto& test_data : kFundCoinSelectElementsTestVector3) {
+        ret = CfdAddUtxoForFundRawTx(
+            handle, fund_handle,
+            test_data.txid.c_str(), test_data.vout,
+            test_data.amount,
+            test_data.descriptor.c_str(),
+            test_data.asset.c_str());
+        EXPECT_EQ(kCfdSuccess, ret);
+      }
+
+      ret = CfdAddTxInputForFundRawTx(handle, fund_handle,
+          "9f96ade4b41d5433f4eda31e1738ec2b36f6e7d1420d94a6af99801a88f7f7ff", 0,
+          112340000,
+          "sh(wpkh([ef735203/0'/0'/7']022c2409fbf657ba25d97bb3dab5426d20677b774d4fc7bd3bfac27ff96ada3dd1))#4z2vy08x",
+          exp_dummy_asset_a.GetHex().c_str(),
+          false, false, false, "", 0, 0, nullptr);
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0, 115800000,
+          exp_dummy_asset_a.GetHex().c_str(),
+          "ex1qdnf34k9c255nfa9anjx0sj5ne0t6f80p5rne4e");
+      EXPECT_EQ(kCfdSuccess, ret);
+      ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 1, 347180040,
+          exp_dummy_asset_b.GetHex().c_str(),
+          "ex1q3tlca6nma70vvrf46up5ktjguxqwj0zamt7ktn");
+      EXPECT_EQ(kCfdSuccess, ret);
+      ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 2, 37654100,
+          exp_dummy_asset_c.GetHex().c_str(),
+          "ex1q0xdg60c3y5dk5m05hg2k52xavjkedx53t3k40m");
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      ret = CfdSetOptionFundRawTx(handle, fund_handle, kCfdFundTxIsBlind,
+          0, 0, true);
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      int64_t tx_fee_amount = 0;
+      uint32_t append_txout_count = 0;
+      char* output_tx_hex = nullptr;
+      double effective_fee_rate = 0.15;
+      ret = CfdFinalizeFundRawTx(handle, fund_handle, tx,
+          effective_fee_rate, &tx_fee_amount, &append_txout_count,
+          &output_tx_hex);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        EXPECT_EQ(618, tx_fee_amount);
+        EXPECT_EQ(3, append_txout_count);
+        EXPECT_STREQ(kExpTxData.c_str(), output_tx_hex);
+        CfdFreeStringBuffer(output_tx_hex);
+      } else {
+        ret = CfdGetLastErrorCode(handle);
+        if (ret != kCfdSuccess) {
+          char* str_buffer = NULL;
+          ret = CfdGetLastErrorMessage(handle, &str_buffer);
+          EXPECT_EQ(kCfdSuccess, ret);
+          EXPECT_STREQ("", str_buffer);
+          CfdFreeStringBuffer(str_buffer);
+          str_buffer = NULL;
+        }
+      }
+    }
+    ret = CfdFreeFundRawTxHandle(handle, fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    // EXPECT_STREQ("", context.GetHex().c_str());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_transaction, FundRawTransaction_Check2) {
+  // from cfd-go
+  struct CfdTestFundElementsUtxoVector {
+    std::string txid;
+    uint32_t vout;
+    int64_t amount;
+    std::string asset;
+    std::string descriptor;
+  };
+  static ConfidentialAssetId exp_dummy_asset_a("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+
+  static const std::vector<CfdTestFundElementsUtxoVector> kFundCoinSelectElementsTestVector3 = {
+    {
+      "2bc630021e76ab6bd7f8da54b0c59381e0265b093629e4384207030adba99775",
+      0,
+      150000000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh([b8f7f84b/0'/0'/4']029b382de02d1753b04f29e743ec988a7585e16f023d7c76fcb468133781465282))#jm9lh5q5",
+    },
+    {
+      "42120c9e8adc1d0f0d843617a0c91d699a1eb67fb744dde21103d6423fa5c8c5",
+      1,
+      150000000,
+      exp_dummy_asset_a.GetHex(),
+      "sh(wpkh([b8f7f84b/0'/0'/4']029b382de02d1753b04f29e743ec988a7585e16f023d7c76fcb468133781465282))#jm9lh5q5",
+    },
+  };
+  static const std::string kExpTxData = "0200000000027597a9db0a03074238e42936095b26e08193c5b054daf8d76bab761e0230c62b0000000000ffffffffc5c8a53f42d60311e2dd44b77fb61e9a691dc9a01736840d0f1ddc8a9e0c12420100000000ffffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000005f5e100036a2e218bb512a3e65c80b59fec57aee428b7512276bcfa366c154dd7262994c817a914363273e2f851bda01e24cda41ba748b8d1f54cfe870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000007be00000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000000bebba420230646d493a7ed8cb0091ad6e8feedcc9cd17a9162e61b7cff7929697792ef64217a91497dfc3937ad66e142925a76489eebc75358bca338700000000";
+  // static const std::string kExpTxData = "0200000000027597a9db0a03074238e42936095b26e08193c5b054daf8d76bab761e0230c62b0000000000ffffffffc5c8a53f42d60311e2dd44b77fb61e9a691dc9a01736840d0f1ddc8a9e0c12420100000000ffffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000005f5e100036a2e218bb512a3e65c80b59fec57aee428b7512276bcfa366c154dd7262994c817a914363273e2f851bda01e24cda41ba748b8d1f54cfe870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000007ae00000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000000bebba520230646d493a7ed8cb0091ad6e8feedcc9cd17a9162e61b7cff7929697792ef64217a91497dfc3937ad66e142925a76489eebc75358bca338700000000";
+
+  CfdInitialize();
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  try {
+    const char* tx = "020000000000010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000005f5e100036a2e218bb512a3e65c80b59fec57aee428b7512276bcfa366c154dd7262994c817a914363273e2f851bda01e24cda41ba748b8d1f54cfe8700000000";
+    uint32_t target_asset_count = 1;
+    auto fee_asset = exp_dummy_asset_a.GetHex();
+    void* fund_handle = nullptr;
+    ret = CfdInitializeFundRawTx(
+        handle, kCfdNetworkElementsRegtest, target_asset_count,
+        fee_asset.c_str(), &fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_NE(nullptr, fund_handle);
+    if (ret == kCfdSuccess) {
+      for (const auto& test_data : kFundCoinSelectElementsTestVector3) {
+        ret = CfdAddUtxoForFundRawTx(
+            handle, fund_handle,
+            test_data.txid.c_str(), test_data.vout,
+            test_data.amount,
+            test_data.descriptor.c_str(),
+            test_data.asset.c_str());
+        EXPECT_EQ(kCfdSuccess, ret);
+      }
+
+      ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0, 100000000,
+          exp_dummy_asset_a.GetHex().c_str(),
+          "AzpkHG7iBPzGn3wCoKwEUrNMWA8TCLXTvhK6ftgAmaAGWqDKyDipYSFjsBBcGXKj3Y65Kt9UauCEbftj");
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      ret = CfdSetOptionFundRawTx(handle, fund_handle, kCfdFundTxIsBlind,
+          0, 0, true);
+      EXPECT_EQ(kCfdSuccess, ret);
+      ret = CfdSetOptionFundRawTx(handle, fund_handle, kCfdFundTxIsBlind,
+          0, 0, true);
+      EXPECT_EQ(kCfdSuccess, ret);
+
+      int64_t tx_fee_amount = 0;
+      uint32_t append_txout_count = 0;
+      char* output_tx_hex = nullptr;
+      double effective_fee_rate = 1.0;
+      ret = CfdFinalizeFundRawTx(handle, fund_handle, tx,
+          effective_fee_rate, &tx_fee_amount, &append_txout_count,
+          &output_tx_hex);
+      EXPECT_EQ(kCfdSuccess, ret);
+      if (ret == kCfdSuccess) {
+        EXPECT_EQ(1982, tx_fee_amount);
+        // EXPECT_EQ(1966, tx_fee_amount);
+        EXPECT_EQ(1, append_txout_count);
+        EXPECT_STREQ(kExpTxData.c_str(), output_tx_hex);
+        CfdFreeStringBuffer(output_tx_hex);
+      } else {
+        ret = CfdGetLastErrorCode(handle);
+        if (ret != kCfdSuccess) {
+          char* str_buffer = NULL;
+          ret = CfdGetLastErrorMessage(handle, &str_buffer);
+          EXPECT_EQ(kCfdSuccess, ret);
+          EXPECT_STREQ("", str_buffer);
+          CfdFreeStringBuffer(str_buffer);
+          str_buffer = NULL;
+        }
+      }
+    }
+    ret = CfdFreeFundRawTxHandle(handle, fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    // EXPECT_STREQ("", context.GetHex().c_str());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_transaction, FundRawTransaction_PeginTx2) {
+  // signed pegin tx
+  const char* claim_script = "0014aab2ed7ac90f976a17ddb850c4a0c4e62db49b07";
+  std::string btc_tx = "020000000123edd3be8309747693f42e5b6a0a0c57899fca7d6fb5a8d9c4f52fbf7398f03d00000000000000008001a85e00000000000017a914fdfbf873904e8276428aa892576acd028775fbda8700000000";
+  std::string txoutproof = "0400c0209ac0009d7289eb8e52ef1883501b35ec6ee8a5bfc83a09000000000000000000e157506b8e9b09bed1b9a9d6045fa26735547d696d9ce230c7f2003d09704594f558e160ce981317486c10c46e0600000c7eab9226e14b446023e58c32f677298a3a60448556b3b6dcf189ea680035de47fcd1a47ece1bda2de728f1ea7ca166338ddd0ab1ee2797c7cd2c9c5d5d07b055ed58f3b21f1324c98e1c09a8f4dd3a3f5b3a7ca8efc48fcbcb41cbf5476c40e9e3abc1c5d78e4b59dde0cfabf3c47d68f2f83893b19c0079b6902525c41e146ad09cb3859268063fd6e6b123036e6c65a975698553d701e04f0801752a4c454ff689b184b1c48c3fdfc33a7e25c2d96f8b9dfcbbb6b970f7da7ecbccd6f3d33141fb1b60887f17a4d3351880635ff5e76e7941203348955d2675005892ca343b04b0b4b9206faf789f1c0659f100a69eea88bfdc66a2b2382fe628fb159304ffd3f7ef70acc4e0438b1fb380da205c7ae0746dfbb451bb2110a9a25e224455719c6c22fa85161cb1df6fc4a870b337d2de35c7cc478c6658147ea8e1d64e7152d172e425e8e3ffd1cfae750d09193292f6e170a1fbfd65d8d43ecc3c5e0932fddf4b338fb84ae565a87fb78bc9d4d5d32ab8bf1fba7880c08c3a8a3a7e3aa22803bdd602";
+
+  // 1 output data
+  static const char* const kTxData = "02000000000141fb1b60887f17a4d3351880635ff5e76e7941203348955d2675005892ca343b0000004000ffffffff0000000000";
+  static const char* const kExpTxData = "02000000000141fb1b60887f17a4d3351880635ff5e76e7941203348955d2675005892ca343b0000004000ffffffff02016d521c38ec1ea15734ae22b7c46064412829c0d0579f0a713d1c04ede979026f0100000000000000240000016d521c38ec1ea15734ae22b7c46064412829c0d0579f0a713d1c04ede979026f010000000000005e84001600149aa483fc0fd0b1806f25e57903e4cbefb19c20a100000000";
+  static const char* const kFeeAsset = "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* fund_handle = nullptr;
+  ret = CfdInitializeFundRawTx(
+    handle, kCfdNetworkLiquidv1, 1, kFeeAsset, &fund_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    ret = CfdAddTxInputForFundRawTx(
+        handle, fund_handle,
+        "3b34ca92580075265d9548332041796ee7f55f63801835d3a4177f88601bfb41", 0,
+        24232,
+        "wpkh(03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6)",
+        kFeeAsset,
+        false, false, true, claim_script,
+        btc_tx.length() / 2,
+        txoutproof.length() / 2, nullptr);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0,
+        1, kFeeAsset, "ex1qn2jg8lq06zccqme9u4us8exta7cecg9p4madau");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdSetOptionFundRawTx(handle, fund_handle, kCfdFundTxIsBlind,
+        0, 0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxKnapsackMinChange, 0, 0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    int64_t tx_fee;
+    char* output_tx_hex = nullptr;
+    uint32_t append_count = 0;
+    ret = CfdFinalizeFundRawTx(
+        handle, fund_handle, kTxData, 0.1, &tx_fee, &append_count,
+        &output_tx_hex);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_EQ(static_cast<int64_t>(36), tx_fee);
+      EXPECT_STREQ(kExpTxData, output_tx_hex);
+      CfdFreeStringBuffer(output_tx_hex);
+    }
+
+    ret = CfdFreeFundRawTxHandle(handle, fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_transaction, FundRawTransaction_PeginTx3) {
+  // signed pegin tx
+  const char* claim_script = "0014f3ea0aba73fdb23912ebd21f46e156cdd9e94280";
+  std::string btc_tx = "020000000001014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff010cdff5050000000017a9141500eb4946dee5979e708c8b2c6d090773f3b8d1870247304402204d9faa0b3b9c76b3ee875ae9205b50e05c2d0a8dff8e26d269f68eb72531af1402201f71d1e2bec6b7ea90d45dec158d3f85942e0fc09cfad29d917d3cbc6acd981d012103b64236b2c8f34a18e3a584fe0877fb944e2abb4544cb14bee5458bcc2480cefc00000000";
+  std::string txoutproof = "00000020fe3b574c1ce6d5cb68fc518e86f7976e599fafc0a2e5754aace7ca16d97a7c78ef9325b8d4f0a4921e060fc5e71435f46a18fa339688142cd4b028c8488c9f8dd1495b5dffff7f200200000002000000024a180a6822abffc3b1080c49016899c6dac25083936df14af12f58db11958ef27926299350fdc2f4d0da1d4f0fbbd3789d29f9dc016358ae42463c0cebf393f30105";
+
+  // 1 output data
+  static const char* const kTxData = "020000000101e39d023fdc7f61f607830d29f895c305e8cfdf83d58e260bb399d960e8d45f5e0000004000ffffffff010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000000000036cfe9a680d17595b0008a959219817af1ed2dcc33cc6cbf472728d2b022b5567016a0000000000000006080cdff505000000002025b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f160014f3ea0aba73fdb23912ebd21f46e156cdd9e94280c0020000000001014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff010cdff5050000000017a9141500eb4946dee5979e708c8b2c6d090773f3b8d1870247304402204d9faa0b3b9c76b3ee875ae9205b50e05c2d0a8dff8e26d269f68eb72531af1402201f71d1e2bec6b7ea90d45dec158d3f85942e0fc09cfad29d917d3cbc6acd981d012103b64236b2c8f34a18e3a584fe0877fb944e2abb4544cb14bee5458bcc2480cefc000000009700000020fe3b574c1ce6d5cb68fc518e86f7976e599fafc0a2e5754aace7ca16d97a7c78ef9325b8d4f0a4921e060fc5e71435f46a18fa339688142cd4b028c8488c9f8dd1495b5dffff7f200200000002000000024a180a6822abffc3b1080c49016899c6dac25083936df14af12f58db11958ef27926299350fdc2f4d0da1d4f0fbbd3789d29f9dc016358ae42463c0cebf393f301050000";
+  static const char* const kExpTxData = "020000000101e39d023fdc7f61f607830d29f895c305e8cfdf83d58e260bb399d960e8d45f5e0000004000ffffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000000000036cfe9a680d17595b0008a959219817af1ed2dcc33cc6cbf472728d2b022b5567016a0125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000c200000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000005f5de4a02fe5ec67a3f8f932a9c7b987e501f105362630fc2576d5174506dde5a94902dd7160014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a80000000000000006080cdff505000000002025b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f160014f3ea0aba73fdb23912ebd21f46e156cdd9e94280c0020000000001014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff010cdff5050000000017a9141500eb4946dee5979e708c8b2c6d090773f3b8d1870247304402204d9faa0b3b9c76b3ee875ae9205b50e05c2d0a8dff8e26d269f68eb72531af1402201f71d1e2bec6b7ea90d45dec158d3f85942e0fc09cfad29d917d3cbc6acd981d012103b64236b2c8f34a18e3a584fe0877fb944e2abb4544cb14bee5458bcc2480cefc000000009700000020fe3b574c1ce6d5cb68fc518e86f7976e599fafc0a2e5754aace7ca16d97a7c78ef9325b8d4f0a4921e060fc5e71435f46a18fa339688142cd4b028c8488c9f8dd1495b5dffff7f200200000002000000024a180a6822abffc3b1080c49016899c6dac25083936df14af12f58db11958ef27926299350fdc2f4d0da1d4f0fbbd3789d29f9dc016358ae42463c0cebf393f30105000000000000";
+  static const char* const kFeeAsset = "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* fund_handle = nullptr;
+  ret = CfdInitializeFundRawTx(
+    handle, kCfdNetworkElementsRegtest, 1, kFeeAsset, &fund_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    ret = CfdAddTxInputForFundRawTx(
+        handle, fund_handle,
+        "5e5fd4e860d999b30b268ed583dfcfe805c395f8290d8307f6617fdc3f029de3", 0,
+        99999500,
+        "wpkh(03f942716865bb9b62678d99aa34de4632249d066d99de2b5a2e542e54908450d6)",
+        kFeeAsset,
+        false, false, true, claim_script,
+        btc_tx.length() / 2,
+        txoutproof.length() / 2, nullptr);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0,
+        1, kFeeAsset,
+        "el1qqtl9a3n6878ex25u0wv8u5qlzpfkycc0cftk65t52pkauk55jqka0fajk8d80lafn4t9kqxe77cu9ez2dyr6sq54lwy009uex");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdSetOptionFundRawTx(handle, fund_handle, kCfdFundTxIsBlind,
+        0, 0, true);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxKnapsackMinChange, 0, 0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxBlindMinimumBits, 36, 0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    int64_t tx_fee;
+    char* output_tx_hex = nullptr;
+    uint32_t append_count = 0;
+    ret = CfdFinalizeFundRawTx(
+        handle, fund_handle, kTxData, 0.1, &tx_fee, &append_count,
+        &output_tx_hex);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_EQ(static_cast<int64_t>(194), tx_fee);
+      EXPECT_STREQ(kExpTxData, output_tx_hex);
+      CfdFreeStringBuffer(output_tx_hex);
+    }
+
+    ret = CfdFreeFundRawTxHandle(handle, fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}
+
+TEST(cfdcapi_transaction, FundRawTransaction_PegoutTx1) {
+  // 2 output data
+  // fee: 190
+  static const char* const kTxData = "020000000000020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000000001d40200a06a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f1976a914844d3afb2081df687e6c0a83d2a5e0925c4fa01f88ac2102f6e02ce0c684096337672d7d72bc33c5129f9079c50447452aa7139ef3632f4e4101bf561427da009d383256e347ca4d3ea35908e3543412be2629bc565e7a1fbb349de22d51d66391a8281abcfa0d06c9eae6b6fe7156aba53f0865f4502f0201920125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000000284fe98a24b72e327254ccbb6056de98bd48e43e7a536d213c110b90ca612fde5016a00000000";
+  // fee: 188
+  //static const char* const kTxData = "020000000000020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000000001d40400a06a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f1976a914844d3afb2081df687e6c0a83d2a5e0925c4fa01f88ac2102f6e02ce0c684096337672d7d72bc33c5129f9079c50447452aa7139ef3632f4e4101bf561427da009d383256e347ca4d3ea35908e3543412be2629bc565e7a1fbb349de22d51d66391a8281abcfa0d06c9eae6b6fe7156aba53f0865f4502f0201920125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000000284fe98a24b72e327254ccbb6056de98bd48e43e7a536d213c110b90ca612fde5016a00000000";
+  // fee: 187 Failed to select coin. Not enough utxos
+  // static const char* const kTxData = "020000000000020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000000001d40500a06a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f1976a914844d3afb2081df687e6c0a83d2a5e0925c4fa01f88ac2102f6e02ce0c684096337672d7d72bc33c5129f9079c50447452aa7139ef3632f4e4101bf561427da009d383256e347ca4d3ea35908e3543412be2629bc565e7a1fbb349de22d51d66391a8281abcfa0d06c9eae6b6fe7156aba53f0865f4502f0201920125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000000284fe98a24b72e327254ccbb6056de98bd48e43e7a536d213c110b90ca612fde5016a00000000";
+  static const char* const kExpTxData = "020000000002a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0100000000ffffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000000001d40200a06a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f1976a914844d3afb2081df687e6c0a83d2a5e0925c4fa01f88ac2102f6e02ce0c684096337672d7d72bc33c5129f9079c50447452aa7139ef3632f4e4101bf561427da009d383256e347ca4d3ea35908e3543412be2629bc565e7a1fbb349de22d51d66391a8281abcfa0d06c9eae6b6fe7156aba53f0865f4502f0201920125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000000284fe98a24b72e327254ccbb6056de98bd48e43e7a536d213c110b90ca612fde5016a0125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000000be000000000000";
+  static const char* const kFeeAsset = "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225";
+
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* fund_handle = nullptr;
+  ret = CfdInitializeFundRawTx(
+    handle, kCfdNetworkLiquidv1, 1, kFeeAsset, &fund_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+
+  if (ret == kCfdSuccess) {
+    ret = CfdAddUtxoTemplateForFundRawTx(
+        handle, fund_handle,
+        "4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3", 0,
+        60000,
+        "wpkh(03e68167b077f06fdcef2b1c4b914df53fcdc4ea2ed43852cc3c2abf2b7992b729)",
+        kFeeAsset,
+        nullptr);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddUtxoTemplateForFundRawTx(
+        handle, fund_handle,
+        "4aa201f333e80b8f62ba5b593edb47b4730212e2917b21279f389ba1c14588a3", 1,
+        60000,
+        "wpkh(03e68167b077f06fdcef2b1c4b914df53fcdc4ea2ed43852cc3c2abf2b7992b729)",
+        kFeeAsset,
+        nullptr);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdAddTargetAmountForFundRawTx(handle, fund_handle, 0,
+        0, kFeeAsset,
+        "lq1qqwqawne0jyc2swqv9qp8fstrgxuux2824zxkqew9gdak4yudxvwhha0kwdv2p3j0lyekhchrzmuekp94fpfp6fkeggjkerfr8");
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    ret = CfdSetOptionFundRawTx(handle, fund_handle, kCfdFundTxIsBlind,
+        0, 0, true);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxKnapsackMinChange, 0, 0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxBlindMinimumBits, 36, 0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxDustFeeRate, 0, 1.0, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+    ret = CfdSetOptionFundRawTx(handle, fund_handle,
+        kCfdFundTxLongTermFeeRate, 0, 0.15, false);
+    EXPECT_EQ(kCfdSuccess, ret);
+
+    int64_t tx_fee;
+    char* output_tx_hex = nullptr;
+    uint32_t append_count = 0;
+    ret = CfdFinalizeFundRawTx(
+        handle, fund_handle, kTxData, 0.15, &tx_fee, &append_count,
+        &output_tx_hex);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_EQ(static_cast<int64_t>(190), tx_fee);
+      EXPECT_STREQ(kExpTxData, output_tx_hex);
+      CfdFreeStringBuffer(output_tx_hex);
+
+      int64_t calc_fee = 0;
+      ret = CfdGetCalculateFeeFundRawTx(handle, fund_handle, &calc_fee);
+      EXPECT_EQ(kCfdSuccess, ret);
+      EXPECT_EQ(static_cast<int64_t>(188), calc_fee);
+    }
+
+    ret = CfdFreeFundRawTxHandle(handle, fund_handle);
+    EXPECT_EQ(kCfdSuccess, ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
   }
 
   ret = CfdFreeHandle(handle);

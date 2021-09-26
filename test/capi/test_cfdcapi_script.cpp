@@ -815,3 +815,82 @@ TEST(cfdcapi_script, TapscriptTreeRestoreFromString) {
   ret = CfdFreeHandle(handle);
   EXPECT_EQ(kCfdSuccess, ret);
 }
+
+TEST(cfdcapi_script, SingleKeyTaproot) {
+  void* handle = NULL;
+  int ret = CfdCreateHandle(&handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  EXPECT_FALSE((NULL == handle));
+
+  void* tree_handle = nullptr;
+  ret = CfdInitializeTaprootScriptTree(handle, &tree_handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+  if (ret == kCfdSuccess) {
+    // set empty branch. or not set.
+    // ret = CfdSetInitialTapBranchByHash(handle, tree_handle, "");
+    // EXPECT_EQ(kCfdSuccess, ret);
+
+    char* witness_program = nullptr;
+    char* leaf_hash = nullptr;
+    char* control_block = nullptr;
+    ret = CfdGetTaprootScriptTreeHash(handle, tree_handle,
+        "1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+        &witness_program,
+        &leaf_hash,
+        &control_block);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(
+        "cc3b1538e0c8144375f71e848b12d609d743992fddfc60dd6ca9b33b8392f27a",
+        witness_program);
+      EXPECT_EQ(nullptr, leaf_hash);  // current is tapbranch only.
+      EXPECT_STREQ(
+        "c11777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+        control_block);
+      CfdFreeStringBuffer(witness_program);
+      witness_program = nullptr;
+      CfdFreeStringBuffer(leaf_hash);
+      leaf_hash = nullptr;
+      CfdFreeStringBuffer(control_block);
+      control_block = nullptr;
+    }
+
+    char* tweaked_privkey = nullptr;
+    ret = CfdGetTaprootTweakedPrivkey(handle, tree_handle,
+        "305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27",
+        &tweaked_privkey);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ(
+          "3a56ec9129732312a78db4b845138a3180c102621d7381ae6e6a5d530f14856a",
+          tweaked_privkey);
+      CfdFreeStringBuffer(tweaked_privkey);
+      tweaked_privkey = nullptr;
+    }
+
+    char* tree_str = nullptr;
+    ret = CfdGetTaprootScriptTreeSrting(handle, tree_handle, &tree_str);
+    EXPECT_EQ(kCfdSuccess, ret);
+    if (ret == kCfdSuccess) {
+      EXPECT_STREQ("", tree_str);  // empty tapbranch
+      CfdFreeStringBuffer(tree_str);
+      tree_str = nullptr;
+    }
+
+    int tmp_ret = CfdFreeTaprootScriptTreeHandle(handle, tree_handle);
+    EXPECT_EQ(kCfdSuccess, tmp_ret);
+  }
+
+  ret = CfdGetLastErrorCode(handle);
+  if (ret != kCfdSuccess) {
+    char* str_buffer = NULL;
+    ret = CfdGetLastErrorMessage(handle, &str_buffer);
+    EXPECT_EQ(kCfdSuccess, ret);
+    EXPECT_STREQ("", str_buffer);
+    CfdFreeStringBuffer(str_buffer);
+    str_buffer = NULL;
+  }
+
+  ret = CfdFreeHandle(handle);
+  EXPECT_EQ(kCfdSuccess, ret);
+}

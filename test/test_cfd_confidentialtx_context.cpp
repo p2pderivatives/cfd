@@ -27,6 +27,7 @@ using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdException;
 using cfd::core::ConfidentialAssetId;
+using cfd::core::ConfidentialNonce;
 using cfd::core::ConfidentialTransaction;
 using cfd::core::ConfidentialTxOutReference;
 using cfd::core::ConfidentialValue;
@@ -46,6 +47,7 @@ using cfd::core::ScriptUtil;
 using cfd::core::SigHashAlgorithm;
 using cfd::core::SigHashType;
 using cfd::core::SignatureUtil;
+using cfd::core::Transaction;
 using cfd::core::UnblindParameter;
 using cfd::core::WitnessVersion;
 using cfd::ConfidentialTransactionContext;
@@ -318,6 +320,11 @@ TEST(ConfidentialTransactionContext, AddPegoutTxOut)
 
     EXPECT_STREQ(txc.GetHex().c_str(), "020000000001a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000fdffffff030125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000befe33cc397c0017a914001d6db698e75a5a8af771730c4ab258af30546b870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000003b9aca00009e6a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f17a914a722b257cabc3b8e7d46f8fb293f893f368219da872103700dcb030588ed828d85f645b48971de0d31e8c0244da46710d18681627f5a4a4101044e949dcf8ac2daac82a3e4999ee28e2711661793570c4daab34cd38d76a425d6bfe102f3fea8be12109925fad32c78b65afea4de1d17a826e7375d0e2d00660125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000001c84000000000000");
     EXPECT_STREQ(addr.GetAddress().c_str(), "2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo");
+
+    EXPECT_FALSE(txc.HasPegoutTxOut(0));
+    EXPECT_TRUE(txc.HasPegoutTxOut(1));
+    auto pegout_addr = txc.GetTxOutPegoutAddress(1, NetType::kRegtest);
+    EXPECT_EQ(pegout_addr.GetAddress(), addr.GetAddress());
 }
 
 TEST(ConfidentialTransactionContext, AddPegoutTxOut2)
@@ -964,6 +971,51 @@ TEST(TransactionContext, SplitTxOutByCA)
   EXPECT_EQ(
     "020000000002a38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0000000000ffffffffa38845c1a19b389f27217b91e2120273b447db3e595bba628f0be833f301a24a0200000000ffffffff040125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000001c8400000125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000b5e620f4800003f234757d0e00e6a7a7a3b4b2b31fb0328d7b9f755cd1093d9f61892fef3116871976a91435ef6d4b59f26089dfe2abca21408e15fee42a3388ac0125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000917d73cef7c027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af160014f42331c418ef4517ba644ad6e9fc99681ad439370125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000003b9aca00027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af17a9149ec42b6cfa1b0bc3f55f07af29867057cb0b8a2e8700000000",
     tx.GetHex());
+}
+
+
+TEST(ConfidentialTransactionContext, PeginSequence)
+{
+  ElementsAddressFactory factory(NetType::kElementsRegtest);
+
+  Transaction btc_tx("020000000001014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff010cdff5050000000017a91426b9ba9cf5d822b70cf490ad0394566f9db20c63870247304402200b3ca71e82551a333fe5c8ce9a8f8454eb8f08aa194180e5a87c79ccf2e46212022065c1f2a363ebcb155a80e234258394140d08f6ab807581953bb21a58f2d229a6012102fd54c734e48c544c3c3ad1aab0607f896eb95e23e7058b174a580826a7940ad800000000");
+
+  // Address1 (p2wpkh)
+  // pubkey: '02e053cd67c379c3f1a2c4dfcf8e11495510f59d1da814a4172d205088ab7ee5d3',
+  // privkey: 'cUfipPioYnHU61pfYTH9uuNoswRXx8rtzXhJZrsPeVV1LRFdTxvp'
+  UtxoData utxo1;
+  utxo1.block_height = 0;
+  utxo1.txid = btc_tx.GetTxid();
+  utxo1.vout = 0;
+  utxo1.descriptor = "wpkh(02e053cd67c379c3f1a2c4dfcf8e11495510f59d1da814a4172d205088ab7ee5d3)";
+  utxo1.amount = Amount(int64_t{99999500});
+  utxo1.asset = ConfidentialAssetId("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+  // utxo1.locking_script = Script("0014e794713e386d83f32baa0e9d03e47c0839dc57a8");
+  // utxo1.redeem_script;
+  // utxo1.address = factory.GetAddress("ert1qu728z03cdkplx2a2p6ws8erupquac4ag9xjpx6");
+  // utxo1.address_type = AddressType::kP2wpkhAddress;
+
+  std::vector<cfd::UtxoData> utxos{utxo1};
+  ConfidentialTransactionContext txc("0200000001017b9c531679cc8b8310338e350dbfd89bbfaf19fd227e3d1a69f8baf0088570120000004000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000005f5db2402fe5ec67a3f8f932a9c7b987e501f105362630fc2576d5174506dde5a94902dd7160014a7b2b1da77ffa99d565b00d9f7b1c2e44a6907a80125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e800000000000000000006080cdff505000000002025b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f160014e794713e386d83f32baa0e9d03e47c0839dc57a8c0020000000001014cdeada737db97af334f0fa4e87432d6068759eea65a3067d1f14a979e5a9dea0000000000ffffffff010cdff5050000000017a91426b9ba9cf5d822b70cf490ad0394566f9db20c63870247304402200b3ca71e82551a333fe5c8ce9a8f8454eb8f08aa194180e5a87c79ccf2e46212022065c1f2a363ebcb155a80e234258394140d08f6ab807581953bb21a58f2d229a6012102fd54c734e48c544c3c3ad1aab0607f896eb95e23e7058b174a580826a7940ad8000000009700000020fe3b574c1ce6d5cb68fc518e86f7976e599fafc0a2e5754aace7ca16d97a7c78ef9325b8d4f0a4921e060fc5e71435f46a18fa339688142cd4b028c8488c9f8dd1495b5dffff7f200200000002000000024a180a6822abffc3b1080c49016899c6dac25083936df14af12f58db11958ef27926299350fdc2f4d0da1d4f0fbbd3789d29f9dc016358ae42463c0cebf393f3010500000000");
+
+  auto key = Privkey::GenerageRandomKey();
+  txc.AddTxOut(Amount(0), utxo1.asset, Script("6a"), ConfidentialNonce(key.GetPubkey()));
+
+  EXPECT_NO_THROW(txc.CollectInputUtxo(utxos));
+  txc.Blind();
+
+  // sign1
+  OutPoint outpoint1(utxo1.txid, utxo1.vout);
+  try {
+    txc.SignWithKey(outpoint1,
+      Pubkey("02e053cd67c379c3f1a2c4dfcf8e11495510f59d1da814a4172d205088ab7ee5d3"),
+      Privkey::FromWif(
+          "cUfipPioYnHU61pfYTH9uuNoswRXx8rtzXhJZrsPeVV1LRFdTxvp", NetType::kTestnet));
+
+    txc.Verify(outpoint1);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
 }
 
 #endif

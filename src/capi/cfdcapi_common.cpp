@@ -90,6 +90,23 @@ void CheckBuffer(void* address, const std::string& prefix) {
   }
 }
 
+int ConvertFromCfdNetType(cfd::core::NetType network_type) {
+  switch (network_type) {
+    case NetType::kMainnet:
+      return kCfdNetworkMainnet;
+    case NetType::kTestnet:
+      return kCfdNetworkTestnet;
+    case NetType::kRegtest:
+      return kCfdNetworkRegtest;
+    case NetType::kLiquidV1:
+      return kCfdNetworkLiquidv1;
+    case NetType::kElementsRegtest:
+      return kCfdNetworkElementsRegtest;
+    default:
+      return kCfdNetworkCustomChain;
+  }
+}
+
 NetType ConvertNetType(int network_type, bool* is_bitcoin) {
   NetType net_type = NetType::kCustomChain;
   switch (network_type) {
@@ -270,6 +287,28 @@ void FreeBufferOnError(
         *(pointer_list[idx]) = nullptr;
       }
     }
+  }
+}
+
+void CheckEmptyString(
+    const char* parameter, const char* name,
+    const cfd::core::logger::CfdSourceLocation& location) {
+  if (IsEmptyString(parameter) && (name != nullptr)) {
+    warn(location, "{} is null or empty.", name);
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to parameter. " + std::string(name) + " is null or empty.");
+  }
+}
+
+void CheckNull(
+    const char* parameter, const char* name,
+    const cfd::core::logger::CfdSourceLocation& location) {
+  if ((parameter == nullptr) && (name != nullptr)) {
+    warn(location, "{} is null.", name);
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to parameter. " + std::string(name) + " is null.");
   }
 }
 

@@ -34,6 +34,7 @@ using cfd::core::NetType;
 using cfd::core::Pubkey;
 using cfd::core::SchnorrPubkey;
 using cfd::core::Script;
+using cfd::core::TapBranch;
 using cfd::core::TaprootScriptTree;
 using cfd::core::WitnessVersion;
 
@@ -50,6 +51,7 @@ struct DescriptorScriptData {
   DescriptorKeyType key_type;     //!< key type
   std::string key;                //!< key string
   uint32_t multisig_req_sig_num;  //!< multisig num of require signatures
+  TapBranch branch;               //!< taproot tapbranch
   TaprootScriptTree tree;         //!< taproot script tree
 };
 

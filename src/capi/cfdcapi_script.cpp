@@ -471,7 +471,7 @@ int CfdInitializeTaprootScriptTree(void* handle, void** tree_handle) {
     buffer = static_cast<CfdCapiTapscriptTree*>(
         AllocBuffer(kPrefixTapscriptTree, sizeof(CfdCapiTapscriptTree)));
     buffer->tree_buffer = new std::vector<TaprootScriptTree>(1);
-    buffer->branch_buffer = new std::vector<TapBranch>();
+    buffer->branch_buffer = new std::vector<TapBranch>(1);
     *tree_handle = buffer;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -522,18 +522,13 @@ int CfdSetInitialTapBranchByHash(
   try {
     cfd::Initialize();
     CheckBuffer(tree_handle, kPrefixTapscriptTree);
-    if (IsEmptyString(hash)) {
-      warn(CFD_LOG_SOURCE, "tapscript is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tapscript is null or empty.");
-    }
     CfdCapiTapscriptTree* buffer =
         static_cast<CfdCapiTapscriptTree*>(tree_handle);
     auto& tree = buffer->tree_buffer->at(0);
     buffer->branch_buffer->clear();
 
-    TapBranch branch = TapBranch(ByteData256(hash));
+    TapBranch branch;
+    if (!IsEmptyString(hash)) branch = TapBranch(ByteData256(hash));
     buffer->branch_buffer->emplace_back(branch);
 
     tree = TaprootScriptTree();  // clear
@@ -555,21 +550,23 @@ int CfdSetScriptTreeFromString(
   try {
     cfd::Initialize();
     CheckBuffer(tree_handle, kPrefixTapscriptTree);
-    if (IsEmptyString(tree_string)) {
-      warn(CFD_LOG_SOURCE, "tree_string is null or empty.");
-      throw CfdException(
-          CfdError::kCfdIllegalArgumentError,
-          "Failed to parameter. tree_string is null or empty.");
-    }
     CfdCapiTapscriptTree* buffer =
         static_cast<CfdCapiTapscriptTree*>(tree_handle);
     auto& tree = buffer->tree_buffer->at(0);
 
     if (IsEmptyString(tapscript)) {
-      auto branch = TapBranch::FromString(tree_string);
+      TapBranch branch;
+      if (!IsEmptyString(tree_string)) {
+        branch = TapBranch::FromString(tree_string);
+      }
       buffer->branch_buffer->clear();
       buffer->branch_buffer->emplace_back(branch);
       tree = TaprootScriptTree();
+    } else if (IsEmptyString(tree_string)) {
+      warn(CFD_LOG_SOURCE, "tree_string is null or empty.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parameter. tree_string is null or empty.");
     } else {
       if (leaf_version != TaprootScriptTree::kTapScriptLeafVersion) {
         // TODO(k-matsuzawa): Support in the future.
@@ -687,7 +684,11 @@ int CfdAddTapBranchByHash(
     ByteData256 hash(branch_hash);
     if (!buffer->branch_buffer->empty()) {
       auto& branch = buffer->branch_buffer->at(0);
-      branch.AddBranch(hash);
+      if (branch.ToString().empty()) {
+        branch = TapBranch(hash);  // override
+      } else {
+        branch.AddBranch(hash);
+      }
     } else {
       auto& tree = buffer->tree_buffer->at(0);
       tree.AddBranch(hash);
@@ -724,7 +725,11 @@ int CfdAddTapBranchByScriptTree(
 
     if (!buffer->branch_buffer->empty()) {
       auto& branch = buffer->branch_buffer->at(0);
-      branch.AddBranch(*src_tree);
+      if (branch.ToString().empty()) {
+        branch = TapBranch(*src_tree);  // override
+      } else {
+        branch.AddBranch(*src_tree);
+      }
     } else {
       auto& dest_tree = buffer->tree_buffer->at(0);
       dest_tree.AddBranch(*src_tree);
@@ -758,7 +763,11 @@ int CfdAddTapBranchByScriptTreeString(
     TapBranch add_branch = TapBranch::FromString(tree_string);
     if (!buffer->branch_buffer->empty()) {
       auto& branch = buffer->branch_buffer->at(0);
-      branch.AddBranch(add_branch);
+      if (branch.ToString().empty()) {
+        branch = TapBranch(add_branch);  // override
+      } else {
+        branch.AddBranch(add_branch);
+      }
     } else {
       auto& dest_tree = buffer->tree_buffer->at(0);
       dest_tree.AddBranch(add_branch);
@@ -792,7 +801,11 @@ int CfdAddTapBranchByTapLeaf(
     TaprootScriptTree leaf(leaf_version, Script(tapscript));
     if (!buffer->branch_buffer->empty()) {
       auto& branch = buffer->branch_buffer->at(0);
-      branch.AddBranch(leaf);
+      if (branch.ToString().empty()) {
+        branch = leaf;  // override
+      } else {
+        branch.AddBranch(leaf);
+      }
     } else {
       auto& tree = buffer->tree_buffer->at(0);
       tree.AddBranch(leaf);
@@ -1034,31 +1047,31 @@ int CfdGetTaprootScriptTreeHash(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. internal_pubkey is null or empty.");
     }
+    TapBranch branch;
     if (!buffer->branch_buffer->empty()) {
-      warn(
-          CFD_LOG_SOURCE,
-          "This tree root is a tapbranch only. Please set tapleaf.");
-      throw CfdException(
-          CfdError::kCfdIllegalStateError,
-          "This tree root is a tapbranch only. Please set tapleaf.");
+      branch = buffer->branch_buffer->at(0);
+    } else {
+      auto& tree = buffer->tree_buffer->at(0);
+      if (tap_leaf_hash != nullptr) {
+        work_tap_leaf_hash = CreateString(tree.GetTapLeafHash().GetHex());
+      }
+      branch = tree;
     }
-    auto& tree = buffer->tree_buffer->at(0);
     SchnorrPubkey tapscript_hash;
     auto control = TaprootUtil::CreateTapScriptControl(
-        SchnorrPubkey(internal_pubkey), tree, &tapscript_hash);
+        SchnorrPubkey(internal_pubkey), branch, &tapscript_hash);
 
     if (hash != nullptr) {
       work_hash = CreateString(tapscript_hash.GetHex());
-    }
-    if (tap_leaf_hash != nullptr) {
-      work_tap_leaf_hash = CreateString(tree.GetTapLeafHash().GetHex());
     }
     if (control_block != nullptr) {
       work_control_block = CreateString(control.GetHex());
     }
 
     if (hash != nullptr) *hash = work_hash;
-    if (tap_leaf_hash != nullptr) *tap_leaf_hash = work_tap_leaf_hash;
+    if ((tap_leaf_hash != nullptr) && (work_tap_leaf_hash != nullptr)) {
+      *tap_leaf_hash = work_tap_leaf_hash;
+    }
     if (control_block != nullptr) *control_block = work_control_block;
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
@@ -1093,22 +1106,19 @@ int CfdGetTaprootTweakedPrivkey(
           CfdError::kCfdIllegalArgumentError,
           "Failed to parameter. tweaked_privkey is null.");
     }
+    TapBranch branch;
     if (!buffer->branch_buffer->empty()) {
-      warn(
-          CFD_LOG_SOURCE,
-          "This tree root is a tapbranch only. Please set tapleaf.");
-      throw CfdException(
-          CfdError::kCfdIllegalStateError,
-          "This tree root is a tapbranch only. Please set tapleaf.");
+      branch = buffer->branch_buffer->at(0);
+    } else {
+      branch = buffer->tree_buffer->at(0);
     }
-    auto& tree = buffer->tree_buffer->at(0);
     Privkey privkey;
     if (Privkey::HasWif(internal_privkey)) {
       privkey = Privkey::FromWif(internal_privkey);
     } else {
       privkey = Privkey(internal_privkey);
     }
-    auto taproot_privkey = tree.GetTweakedPrivkey(privkey);
+    auto taproot_privkey = branch.GetTweakedPrivkey(privkey);
     *tweaked_privkey = CreateString(taproot_privkey.GetHex());
     return CfdErrorCode::kCfdSuccess;
   } catch (const CfdException& except) {
